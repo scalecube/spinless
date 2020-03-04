@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cicd-gateway-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: cicd-gateway
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: cicd-gateway.exchange.om2.com
+    http:
+      paths:
+      - backend:
+          serviceName: cicd-gateway-service
+          servicePort: {{ .Values.service.internalPort }}

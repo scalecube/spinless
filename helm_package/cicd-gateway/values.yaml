@@ -1,0 +1,24 @@
+image:
+  repository: docker.repo.marketspulse.com/om2-exchange/cicd-gateway
+  tag: develop
+  pullPolicy: Always
+
+spin:
+  auth_token: ascdefgh
+
+env:
+  timestamp: 111111
+
+podTemplate:
+  annotations: {}
+
+  labels: {}
+
+nodeSelector:
+  environment: dev
+
+service:
+  internalPort: 5000
+  annotations: {}
+  type: NodePort
+

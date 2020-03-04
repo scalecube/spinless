@@ -1,0 +1,8 @@
+name: cicd-gateway
+version: 0.0.1
+description: Helm chart cicd-gateway
+maintainers:
+  - name: Serhii Kolomiiets
+    email: serhii.kolomiiets@jivygroup.com
+appVersion: 0.1
+apiVersion: v1

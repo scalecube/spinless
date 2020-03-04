@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spin-config
+  namespace: {{ .Release.Namespace }}
+data:
+  config: |
+    gate:
+      endpoint: https://spinnakerapi.genesis.om2.com
+    auth:
+      enabled: true
+      oauth2:
+        tokenUrl: https://github.com/login/oauth/access_token
+        authUrl: https://github.com/login/oauth/authorize
+        clientId: ""
+        clientSecret: ""
+        scopes:
+        - user:email
+        cachedToken:
+          accesstoken: {{ .Values.spin.auth_token }}
+          tokentype: ""
+          refreshtoken: ""
+          expiry: 0001-01-01T00:00:00Z
+      ldap: null
+
