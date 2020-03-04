@@ -40,12 +40,12 @@ jobs:
 
     - name: Check Helm package
       run: |
-        echo 'cd helm_package'
-        cd ./helm_package
-        echo "helm lint ./spinless"
-        helm lint ./spinless
-        echo "helm package ./spinless"
-        helm package ./spinless
+        echo 'cd helm'
+        cd ./helm
+        echo "helm lint ."
+        helm lint .
+        echo "helm package ."
+        helm package .
 
     - name: POST Helm package
       run: |
