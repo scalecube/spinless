@@ -1,5 +1,5 @@
 image:
-  repository: docker.repo.marketspulse.com/om2-exchange/cicd-gateway
+  repository: docker.repo.marketspulse.com/om2-exchange/spinless
   tag: develop
   pullPolicy: Always
 

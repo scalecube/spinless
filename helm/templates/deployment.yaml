@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cicd-gateway-deployment
+  name: spinless-deployment
   namespace: {{ .Release.Namespace }}
   labels:
-    chart: cicd-gateway
-    app: cicd-gateway
+    chart: spinless
+    app: spinless
     release: {{ .Release.Name | quote }}
 spec:
   selector:
     matchLabels:
-      app: cicd-gateway
+      app: spinless
       release: {{ .Release.Name | quote }}
   replicas: 1
   template:
     metadata:
       labels:
-        app: cicd-gateway
+        app: spinless
         release: {{ .Release.Name | quote }}
       annotations:
 {{- if .Values.podAnnotations }}

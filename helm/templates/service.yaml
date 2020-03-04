@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: cicd-gateway-service
+  name: spinless-service
   namespace: {{ .Release.Namespace }}
   labels:
-    chart: cicd-gateway
-    app: cicd-gateway
+    chart: spinless
+    app: spinless
     release: {{ .Release.Name }}
 {{- if .Values.service.annotations }}
   annotations:
@@ -19,4 +19,4 @@ spec:
     protocol: TCP
     name: port-{{ .Values.service.internalPort | toString }}
   selector:
-    app: cicd-gateway
+    app: spinless
