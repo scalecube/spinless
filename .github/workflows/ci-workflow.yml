@@ -3,7 +3,7 @@ name: Pipeline spinless
 on:
   push:
     branches:
-      - develop
+      - master
 
 jobs:
 
