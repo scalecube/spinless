@@ -29,15 +29,15 @@ def main():
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
-    
-    if data["action_type"] == 'deploy':    
+
+    if data["action_type"] == 'deploy':
         event = pipeline_deploy(data)
-        return jsonify({ "id" : event["id"]})
-    
+        return jsonify(event)
+
     elif data["action_type"] == 'install':
         pipeline_create(data)
         return jsonify({})
-    
+
     elif data["action_type"] == 'cancel':
         pipeline_cancel(data)
         return jsonify({})

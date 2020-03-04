@@ -14,7 +14,7 @@ def pipeline_create(data):
 def pipeline_deploy(data):
     app.logger.info("Request topipeline_deploy {}".format(data))
     repo = data['repo']
-    return { "id" :"905de160be1c84e65dda76f4aaac557d861a5e4f" }
+    return { "eventId" :"905de160be1c84e65dda76f4aaac557d861a5e4f" }
 
 def pipeline_cancel(data):
     app.logger.info("Request to pipeline_cancel {}".format(data))
