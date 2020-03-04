@@ -1,10 +1,10 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: cicd-gateway-ingress
+  name: {{ .Chart.Name }}-ingress
   namespace: {{ .Release.Namespace }}
   labels:
-    app: cicd-gateway
+    app: {{ .Chart.Name }}
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
@@ -13,5 +13,5 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: cicd-gateway-service
+          serviceName: {{ .Chart.Name }}-service
           servicePort: {{ .Values.service.internalPort }}

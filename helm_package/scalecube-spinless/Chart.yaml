@@ -1,6 +1,6 @@
-name: cicd-gateway
+name: scalecube-spinless
 version: 0.0.1
-description: Helm chart cicd-gateway
+description: Helm chart scalecube-spinless
 maintainers:
   - name: Serhii Kolomiiets
     email: serhii.kolomiiets@jivygroup.com

@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cicd-gateway-deployment
+  name: {{ .Chart.Name }}-deployment
   namespace: {{ .Release.Namespace }}
   labels:
-    chart: cicd-gateway
-    app: cicd-gateway
+    chart: {{ .Chart.Name }}
+    app: {{ .Chart.Name }}
     release: {{ .Release.Name | quote }}
 spec:
   selector:
     matchLabels:
-      app: cicd-gateway
+      app: 
       release: {{ .Release.Name | quote }}
   replicas: 1
   template:
     metadata:
       labels:
-        app: cicd-gateway
+        app: {{ .Chart.Name }}
         release: {{ .Release.Name | quote }}
       annotations:
 {{- if .Values.podAnnotations }}
