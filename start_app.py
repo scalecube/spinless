@@ -1,10 +1,7 @@
-from libs.github import Github
 from flask import Flask, request, jsonify
 
 from logging.config import dictConfig
 from libs.spinnaker_api import pipeline_create, pipeline_deploy, pipeline_cancel
-
-import os
 
 app = Flask(__name__)
 
