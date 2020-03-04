@@ -1,4 +1,4 @@
-name: Pipeline spinless
+name: Continues Integration
 
 on:
   push:
