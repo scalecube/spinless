@@ -23,7 +23,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
     - name: push image to registry
       run: |
-        docker push ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.IMAGE_NAME }}:${GITHUB_REF##*/}
+        docker push ${{ secrets.IMAGE_NAME }}:${GITHUB_REF##*/}
 
   create_helm:
     runs-on: ubuntu-latest
@@ -39,12 +39,12 @@ jobs:
 
     - name: Check Helm package
       run: |
-        helm lint ./helm
-        helm package ./helm
+        helm lint ./helm/scalecube-spinless
+        helm package ./helm/scalecube-spinless
 
     - name: POST Helm package
       run: |
-        curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file ./helm
+        curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file ./helm/scalecube-spinless
 
   robo_kit_deploy:
 
