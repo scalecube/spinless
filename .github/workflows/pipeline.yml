@@ -44,7 +44,7 @@ jobs:
 
     - name: POST Helm package
       run: |
-        curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file helm
+        curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file ./helm
 
   robo_kit_deploy:
 
