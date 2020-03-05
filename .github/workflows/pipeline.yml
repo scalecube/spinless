@@ -39,12 +39,13 @@ jobs:
 
     - name: Check Helm package
       run: |
-        helm lint ./helm/scalecube-spinless
-        helm package ./helm/scalecube-spinless
+        cd ./helm
+        helm lint ./scalecube-spinless
+        helm package ./scalecube-spinless
 
     - name: POST Helm package
       run: |
-        curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file ./helm/scalecube-spinless
+        for helm_package in $(find . -name '*.tgz'); do curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file $helm_package; done 
 
   robo_kit_deploy:
 
