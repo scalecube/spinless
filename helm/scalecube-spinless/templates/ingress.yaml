@@ -9,7 +9,7 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  - host: cicd-gateway.exchange.om2.com
+  - host: {{ .Values.ingress.dnsname }}.exchange.om2.com
     http:
       paths:
       - backend:

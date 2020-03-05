@@ -22,3 +22,5 @@ service:
   annotations: {}
   type: NodePort
 
+ingress:
+  dnsname: scalecube-spinless
