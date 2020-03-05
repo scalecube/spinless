@@ -1,0 +1,208 @@
+{
+  "schema": "v2",
+  "variables": [
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "Application name",
+    "name": "application"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "Repo slug",
+    "name": "repoSlug"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "Helm package name",
+    "name": "helmPackage"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "Helm package version",
+    "name": "helmPackageVersion"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "defaultArtifactUUID",
+    "name": "defaultArtifactUUID"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "ArtifactUUID",
+  i  "name": "ArtifactUUID"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "matchArtifactUUID",
+    "name": "matchArtifactUUID"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "stagesdefaultArtifactUUID",
+    "name": "stagesdefaultArtifactUUID"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "stagesArtifactUUID",
+    "name": "stagesArtifactUUID"
+  },
+  {
+    "type": "string",
+    "defaultValue": "",
+    "description": "stagesmatchArtifactUUID",
+    "name": "stagesmatchArtifactUUID"
+  }
+  ],
+  "id": "HelmSpelTemplate",
+  "protect": false,
+  "metadata": {
+    "name": "Template for installing helm package",
+    "description": "Template for installing helm package",
+    "owner": "serhii.kolomiiets@jivygroup.com",
+    "scopes": ["global"]
+  },
+  "pipeline": {
+    "expectedArtifacts": [
+    {
+      "defaultArtifact": {
+        "artifactAccount": "nexus",
+        "id": "${ templateVariables.defaultArtifactUUID }",
+        "name": "${ templateVariables.helmPackage }",
+        "type": "helm/chart",
+        "version": "${ templateVariables.helmPackageVersion }"
+      },
+      "displayName": "helm-github-gateway",
+      "id": "${ templateVariables.ArtifactUUID }",
+      "matchArtifact": {
+        "artifactAccount": "nexus",
+        "id": "${ templateVariables.matchArtifactUUID }",
+        "name": "${ templateVariables.helmPackage }",
+        "type": "helm/chart",
+        "version": "${ templateVariables.helmPackageVersion }"
+      },
+      "useDefaultArtifact": true,
+      "usePriorArtifact": false
+    }
+    ],
+    "keepWaitingPipelines": false,
+    "limitConcurrent": true,
+    "stages": [
+    {
+      "expectedArtifacts": [
+      {
+        "defaultArtifact": {
+          "customKind": true,
+          "id": "${ templateVariables.stagesdefaultArtifactUUID }"
+        },
+        "displayName": "helm-github-gw-base64-baked",
+        "id": "${ templateVariables.stagesArtifactUUID }",
+        "matchArtifact": {
+          "name": "helm-${ templateVariables.helmPackageMatched }",
+          "id": "${ templateVariables.stagesmatchArtifactUUID }",
+          "type": "embedded/base64"
+        },
+        "useDefaultArtifact": false,
+        "usePriorArtifact": false
+      }
+      ],
+      "inputArtifacts": [
+      {
+        "account": "nexus",
+        "id": "${ templateVariables.ArtifactUUID }"
+      }
+      ],
+      "name": "Bake Helm Packages",
+      "namespace": "${trigger.payload['namespace']}",
+      "outputName": "helm-${ templateVariables.helmPackageMatched }",
+      "overrides": {
+        "env.timestamp": "${#stage(\"Bake Helm Packages\")[\"startTime\"]}",
+        "image.repository.name": "${ trigger.payload['repo']}",
+        "image.repository.user": "${ trigger.payload['owner']}",
+        "image.tag": "${ trigger.payload['branch_name']}",
+        "ingress.hostname": "${ trigger.payload['namespace']}",
+        "namespace": "${ trigger.payload['namespace']}"
+      },
+      "rawOverrides": false,
+      "refId": "1",
+      "requisiteStageRefIds": [],
+      "templateRenderer": "HELM2",
+      "type": "bakeManifest"
+    },
+    {
+      "account": "my-k8s-account",
+      "cloudProvider": "kubernetes",
+      "manifests": [
+      {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+          "name": "${trigger.payload['namespace']}"
+        }
+      }
+      ],
+      "moniker": {
+        "app": "${ templateVariables.application }"
+      },
+      "name": "Create Kubernetes Namespace",
+      "refId": "2",
+      "requisiteStageRefIds": [
+        "1"
+      ],
+      "skipExpressionEvaluation": false,
+      "source": "text",
+      "trafficManagement": {
+        "enabled": false,
+        "options": {
+          "enableTraffic": false,
+          "services": []
+        }
+      },
+      "type": "deployManifest"
+    },
+    {
+      "account": "my-k8s-account",
+      "cloudProvider": "kubernetes",
+      "manifestArtifactAccount": "embedded-artifact",
+      "manifestArtifactId": "${ templateVariables.stagesArtifactUUID }",
+      "moniker": {
+        "app": "${ templateVariables.application }"
+      },
+      "name": "Deploy (Manifest)",
+      "namespaceOverride": "",
+      "notifications": [],
+      "refId": "3",
+      "requisiteStageRefIds": [
+        "2"
+      ],
+      "sendNotifications": true,
+      "skipExpressionEvaluation": false,
+      "source": "artifact",
+      "trafficManagement": {
+        "enabled": false,
+        "options": {
+          "enableTraffic": false,
+          "services": []
+        }
+      },
+      "type": "deployManifest"
+    }
+    ],
+    "triggers": [
+    {
+      "enabled": true,
+      "source": "${ templateVariables.application }-${ templateVariables.project }-deploy",
+      "type": "webhook"
+    }
+    ],
+    "updateTs": ""
+  }
+}
