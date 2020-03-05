@@ -1,5 +1,5 @@
 image:
-  repository: docker.repo.marketspulse.com/scalecube/spinless
+  repository: scalecube/spinless
   tag: develop
   pullPolicy: Always
 
