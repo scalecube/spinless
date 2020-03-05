@@ -21,4 +21,3 @@ def pipeline_cancel(data):
     application =  "{}-{}".format(data["owner"], data["repo"])
     pipeline_id = data['id']
     return {}
-    
