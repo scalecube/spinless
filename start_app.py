@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 
 from logging.config import dictConfig
-from libs.spinnaker_api import pipeline_create, pipeline_deploy, pipeline_cancel
+from libs.spinnaker_api import SpinnakerPipeline
 
 app = Flask(__name__)
 
@@ -21,28 +21,28 @@ dictConfig({
     }
 })
 
+
 @app.route('/')
 def main():
     return "Yes i am still here, thanks for asking."
+
 
 @app.route('/pipelines', methods=['POST'])
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
-
-    if data["action_type"] == 'deploy':
-        event = pipeline_deploy(data)
-        return jsonify(event)
-
-    elif data["action_type"] == 'install':
-        pipeline_create(data)
-        return jsonify({})
-
-    elif data["action_type"] == 'cancel':
-        pipeline_cancel(data)
-        return jsonify({})
-
+    action_type = data.get("action_type", None)
+    if action_type:
+        pipeline = SpinnakerPipeline(data)
+        if action_type == "install":
+            pipeline.pipeline_create()
+        elif action_type == "deploy":
+            pipeline.pipeline_deploy()
+        elif action_type == 'cancel':
+            pipeline.pipeline_cancel()
+    app.logger.info("Request to CICD is {}".format(data))
     return jsonify({})
+
 
 @app.route('/namespaces', methods=['GET'])
 def namespaces():
@@ -50,6 +50,7 @@ def namespaces():
     app.logger.info("Request to list namespaces is {}".format(data))
     repo_name = data['repo_name']
     return jsonify({})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

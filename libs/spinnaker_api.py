@@ -1,24 +1,29 @@
-from dotenv import load_dotenv
+import subprocess
 from flask import Flask, request
 
-load_dotenv()
+
 
 app = Flask(__name__)
 
-def pipeline_create(data):
-    app.logger.info("Request to pipeline_create is {}".format(data))
-    application =  "{}-{}".format(data["owner"], data["repo"])
-    pipeline_name = "{}-{}-deploy".format(data["owner"], data["repo"])
-    return {}
 
-def pipeline_deploy(data):
-    app.logger.info("Request to pipeline_deploy {}".format(data))
-    repo = data['repo']
-    return { "eventId" :"" }
+class SpinnakerPipeline:
+    def __init__(self, data):
+        self.data = data
 
-def pipeline_cancel(data):
-    app.logger.info("Request to pipeline_cancel {}".format(data))
-    application =  "{}-{}".format(data["owner"], data["repo"])
-    pipeline_id = data['id']
-    return {}
-    
+    def pipeline_create(self):
+        app.logger.info("Request to pipeline_create is {}".format(self.data))
+        application = "{}-{}".format(self.data["owner"], self.data["repo"])
+        pipeline_name = "deploy"
+        cmd = "spin application save"
+        return {}
+
+    def pipeline_deploy(self):
+        app.logger.info("Request to pipeline_deploy {}".format(self.data))
+        repo = self.data['repo']
+        return { "eventId" :"" }
+
+    def pipeline_cancel(self):
+        app.logger.info("Request to pipeline_cancel {}".format(self.data))
+        application = "{}-{}".format(self.data["owner"], self.data["repo"])
+        pipeline_id = self.data['id']
+        return {}

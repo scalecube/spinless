@@ -1,0 +1,34 @@
+{
+ "accounts": "my-k8s-account",
+ "chaosMonkey": {
+  "enabled": false,
+  "exceptions": [],
+  "grouping": "cluster",
+  "meanTimeBetweenKillsInWorkDays": 2,
+  "minTimeBetweenKillsInWorkDays": 1,
+  "regionsAreIndependent": true
+ },
+ "cloudProviders": "kubernetes",
+ "dataSources": {
+  "disabled": [],
+  "enabled": []
+ },
+ "email": "serhii.kolomiiets@jivygroup.com",
+ "instancePort": 80,
+ "name": "{{ application_name }}",
+ "permissions": {
+  "EXECUTE": [
+   "hardcore-devops",
+   "hardcore-developers"
+  ],
+  "READ": [
+   "hardcore-devops",
+   "hardcore-developers"
+  ],
+  "WRITE": [
+   "hardcore-devops"
+  ]
+ },
+ "repoType": "github",
+ "trafficGuards": []
+}
