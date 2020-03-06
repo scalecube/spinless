@@ -80,7 +80,7 @@
         "type": "helm/chart",
         "version": "${ templateVariables.helmPackageVersion }"
       },
-      "displayName": "helm-github-gateway",
+      "displayName": "helm-${ templateVariables.helmPackage }",
       "id": "${ templateVariables.ArtifactUUID }",
       "matchArtifact": {
         "artifactAccount": "nexus",
