@@ -35,7 +35,7 @@
     "type": "string",
     "defaultValue": "",
     "description": "ArtifactUUID",
-  i  "name": "ArtifactUUID"
+    "name": "ArtifactUUID"
   },
   {
     "type": "string",
@@ -103,10 +103,10 @@
           "customKind": true,
           "id": "${ templateVariables.stagesdefaultArtifactUUID }"
         },
-        "displayName": "helm-github-gw-base64-baked",
+        "displayName": "helm-${ templateVariables.helmPackage }-base64-baked",
         "id": "${ templateVariables.stagesArtifactUUID }",
         "matchArtifact": {
-          "name": "helm-${ templateVariables.helmPackageMatched }",
+          "name": "helm-${ templateVariables.helmPackage }-base64",
           "id": "${ templateVariables.stagesmatchArtifactUUID }",
           "type": "embedded/base64"
         },
@@ -120,15 +120,13 @@
         "id": "${ templateVariables.ArtifactUUID }"
       }
       ],
-      "name": "Bake Helm Packages",
+      "name": "Bake helm",
       "namespace": "${trigger.payload['namespace']}",
-      "outputName": "helm-${ templateVariables.helmPackageMatched }",
+      "outputName": "helm-${ templateVariables.helmPackage }",
       "overrides": {
         "env.timestamp": "${#stage(\"Bake Helm Packages\")[\"startTime\"]}",
-        "image.repository.name": "${ trigger.payload['repo']}",
-        "image.repository.user": "${ trigger.payload['owner']}",
         "image.tag": "${ trigger.payload['branch_name']}",
-        "ingress.hostname": "${ trigger.payload['namespace']}",
+        "ingress.dnsname": "${ trigger.payload['namespace']}",
         "namespace": "${ trigger.payload['namespace']}"
       },
       "rawOverrides": false,
@@ -152,7 +150,7 @@
       "moniker": {
         "app": "${ templateVariables.application }"
       },
-      "name": "Create Kubernetes Namespace",
+      "name": "Create kubernetes namespace",
       "refId": "2",
       "requisiteStageRefIds": [
         "1"
@@ -176,7 +174,7 @@
       "moniker": {
         "app": "${ templateVariables.application }"
       },
-      "name": "Deploy (Manifest)",
+      "name": "Deploy helm",
       "namespaceOverride": "",
       "notifications": [],
       "refId": "3",
