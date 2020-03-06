@@ -36,6 +36,8 @@ def pipelines():
         pipeline = SpinnakerPipeline(data)
         if action_type == "install":
             pipeline.pipeline_create()
+        elif action_type == "uninstall":
+            #pipeline.pipeline_delete()
         elif action_type == "deploy":
             pipeline.pipeline_deploy()
         elif action_type == 'cancel':
