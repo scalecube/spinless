@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  build_push_docker:
+  docker-build-push:
 
     runs-on: ubuntu-latest
 
@@ -25,7 +25,7 @@ jobs:
       run: |
         docker push ${{ secrets.IMAGE_NAME }}:${GITHUB_REF##*/}
 
-  create_helm:
+  helm-package-post:
     runs-on: ubuntu-latest
 
     steps:
@@ -47,15 +47,15 @@ jobs:
       run: |
         for helm_package in $(find . -name '*.tgz'); do curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }} --upload-file $helm_package; done 
 
-  robo_kit_deploy:
+  robokit-deploy:
 
     needs:
-      - build_push_docker
-      - create_helm
+      - docker-build-push
+      - helm-package-post
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Robo-Kit Deploy
+      - name: Deploy
         run: |
-          echo 'Run Robo-Kit Deploy'
+          echo 'Robokit Deploy Triggered.'
