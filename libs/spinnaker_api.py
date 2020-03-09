@@ -5,7 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 
 
 log = logging.getLogger('spinnaker_api')
-handler = logging.StreamHandler(sys.stderr)
+handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
 log.addHandler(handler)
 log.setLevel(logging.INFO)
