@@ -17,8 +17,8 @@ class SpinnakerPipeline:
         proc = subprocess.Popen(["spin application save --file /opt/spinnaker/app.yaml"],
                                 stdout=subprocess.PIPE, shell=True)
         (out, err) = proc.communicate()
-        self.logger.info("Creation of application output: {}".format(out))
-        self.logger.info("Creation of application error: {}".format(err))
+        self.logger.info("Creation of application output: {}".format(out.decode("utf-8")))
+        self.logger.info("Creation of application error: {}".format(err.decode("utf-8")))
         return
 
     def pipeline_create(self):
