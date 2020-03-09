@@ -197,7 +197,7 @@
     "triggers": [
     {
       "enabled": true,
-      "source": "${ templateVariables.application }-${ templateVariables.project }-deploy",
+      "source": "${ templateVariables.application }-${ templateVariables.repoSlug }-deploy",
       "type": "webhook"
     }
     ],
