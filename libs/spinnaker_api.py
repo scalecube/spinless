@@ -4,6 +4,10 @@ from jinja2 import Environment, FileSystemLoader
 
 
 log = logging.getLogger('spinnaker_api')
+handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+log.addHandler(handler)
+log.setLevel(logging.INFO)
 
 
 class SpinnakerPipeline:
