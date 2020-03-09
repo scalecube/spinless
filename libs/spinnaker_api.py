@@ -1,9 +1,14 @@
 import subprocess
+import logging
 from jinja2 import Environment, FileSystemLoader
+
+
+log = logging.getLogger('spinnaker_api')
 
 
 class SpinnakerPipeline:
     def __init__(self, data):
+        log.info("SpinnakerPipeline init")
         self.data = data
 
     def application_create(self, application_name):
@@ -15,6 +20,8 @@ class SpinnakerPipeline:
         proc = subprocess.Popen(["spin application save --file /opt/spinnaker/app.yaml"],
                                 stdout=subprocess.PIPE, shell=True)
         (out, err) = proc.communicate()
+        log.info("Creation of application output: {}".format(out))
+        log.info("Creation of application error: {}".format(err))
         return
 
     def pipeline_create(self):
