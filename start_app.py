@@ -33,7 +33,7 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
     action_type = data.get("action_type", None)
     if action_type:
-        pipeline = SpinnakerPipeline(data)
+        pipeline = SpinnakerPipeline(data, app.logger)
         if action_type == "install":
             pipeline.pipeline_create()
         elif action_type == "uninstall":
