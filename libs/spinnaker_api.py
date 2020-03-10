@@ -1,5 +1,6 @@
 import subprocess
 import uuid
+import time
 from jinja2 import Environment, FileSystemLoader
 
 
@@ -24,8 +25,8 @@ class SpinnakerPipeline:
             err.decode("utf-8") if err else None))
         return
 
-    def pipeline_create(self):
-        # app.logger.info("Request to pipeline_create is {}".format(self.data))
+    def create(self):
+        self.logger.info("Request to pipeline_create is {}".format(self.data))
         owner = self.data["owner"]
         repo = self.data["repo"]
         application = "{}-{}".format(owner, repo)
@@ -53,12 +54,29 @@ class SpinnakerPipeline:
             err.decode("utf-8") if err else None))
         return
 
-    def pipeline_deploy(self):
-        # app.logger.info("Request to pipeline_deploy {}".format(self.data))
-        repo = self.data['repo']
+    def deploy(self):
+        self.logger.info("Request to pipeline_deploy is {}".format(self.data))
+        timestamp = str(round(time.time() * 100))
+        params_file = "/opt/spinnaker/params-{}.json".format(timestamp)
+        namespace = self.data["namespace"]
+        application = "{}-{}".format(self.data["namespace"], self.data["repo"])
+        with open(params_file, "w") as params_file_w:
+            j2_env = Environment(loader=FileSystemLoader("/opt/spinnaker/templates/"))
+            gen_template = j2_env.get_template(
+                'params.j2').render(namespace=namespace)
+            params_file_w.write(gen_template)
+        proc = subprocess.Popen(
+            "spin pipeline execute --name deploy --application {}".format(
+                application
+            ))
+        (out, err) = proc.communicate()
+        self.logger.info("Execution of deploy pipeline output: {}".format(
+            out.decode("utf-8") if out else None))
+        self.logger.info("Execution of deploy pipeline error: {}".format(
+            err.decode("utf-8") if err else None))
         return {"eventId":""}
 
-    def pipeline_cancel(self):
+    def cancel(self):
         # app.logger.info("Request to pipeline_cancel {}".format(self.data))
         application = "{}-{}".format(self.data["owner"], self.data["repo"])
         pipeline_id = self.data['id']

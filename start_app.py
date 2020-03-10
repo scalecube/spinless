@@ -35,14 +35,14 @@ def pipelines():
     if action_type:
         pipeline = SpinnakerPipeline(data, app.logger)
         if action_type == "install":
-            pipeline.pipeline_create()
+            pipeline.create()
         elif action_type == "uninstall":
             #pipeline.pipeline_delete()
             app.logger.info("TODO: Delete the pipeline")
         elif action_type == "deploy":
-            pipeline.pipeline_deploy()
+            pipeline.deploy()
         elif action_type == 'cancel':
-            pipeline.pipeline_cancel()
+            pipeline.cancel()
     app.logger.info("Request to CICD is {}".format(data))
     return jsonify({})
 
