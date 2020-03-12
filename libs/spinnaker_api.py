@@ -1,6 +1,7 @@
 import subprocess
 import uuid
 import time
+import requests
 import urllib.parse
 from http.cookiejar import CookieJar
 from jinja2 import Environment, FileSystemLoader
@@ -74,12 +75,20 @@ class SpinnakerPipeline:
     def deploy(self):
         self.logger.info("Request to pipeline_deploy is {}".format(self.data))
         timestamp = str(round(time.time() * 100))
-        params_file = "/opt/spinnaker/params-{}.json".format(timestamp)
         application = "{}-{}".format(self.data["namespace"], self.data["repo"])
         data = {"namespace": "{}".format(self.data['namespace'])}
         cookies = {"SESSION": self.auth_cookie()}
-
-        return {"status":"deployed"}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(
+            url=urllib.parse.urljoin(
+                self.spinnaker_api, "{}/deploy".format(self.data["application"])),
+            headers=headers,
+            cookies=cookies,
+            json=data
+        )
+        pipeline_id = response.json()["ref"].split("/")[-1]
+        self.logger.info("Request to deploy status_code: {}".format(response.status_code))
+        return {"pipeline_id": pipeline_id}
 
     def cancel(self):
         # app.logger.info("Request to pipeline_cancel {}".format(self.data))
