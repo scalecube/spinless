@@ -25,6 +25,7 @@ class SpinnakerPipeline:
         go = opener.open(request)
         for cookie in cj:
             if cookie.name == "SESSION":
+                self.logger.info("Cookie is returned")
                 return cookie.value
         return
 
@@ -86,8 +87,8 @@ class SpinnakerPipeline:
             cookies=cookies,
             json=data
         )
-        pipeline_id = response.json()["ref"].split("/")[-1]
         self.logger.info("Request to deploy status_code: {}".format(response.status_code))
+        pipeline_id = response.json()["ref"].split("/")[-1]
         return {"pipeline_id": pipeline_id}
 
     def cancel(self):
