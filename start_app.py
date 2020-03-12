@@ -1,9 +1,11 @@
+import os
 from flask import Flask, request, jsonify
-
 from logging.config import dictConfig
 from libs.spinnaker_api import SpinnakerPipeline
 
 app = Flask(__name__)
+app.config["SPINNAKER_API"] = os.getenv("SPINNAKER_API")
+app.config["SPINNAKER_AUTH_TOKEN"] = os.getenv["SPINNAKER_AUTH_TOKEN"]
 
 dictConfig({
     'version': 1,
@@ -33,7 +35,9 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
     action_type = data.get("action_type", None)
     if action_type:
-        pipeline = SpinnakerPipeline(data, app.logger)
+        pipeline = SpinnakerPipeline(data, app.logger,
+                                     app.config['SPINNAKER_API'],
+                                     app.config["SPINNAKER_AUTH_TOKEN"])
         if action_type == "install":
             pipeline.create()
         elif action_type == "uninstall":

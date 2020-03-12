@@ -7,5 +7,6 @@ RUN curl -LO https://storage.googleapis.com/spinnaker-artifacts/spin/$(curl -s h
 RUN chmod +x spin
 RUN mv spin /usr/local/bin/spin
 RUN mkdir /root/.spin
+RUN apt update && apt install -y jq
 EXPOSE 5000
 CMD ["python", "./start_app.py"]

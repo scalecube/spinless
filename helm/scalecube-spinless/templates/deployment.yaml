@@ -38,6 +38,10 @@ spec:
         - name: {{ $pkey }}
           value: {{ $pval | quote }}
 {{- end }}
+        - name: SPINNAKER_API
+          value: {{ .Values.spin.api }}
+        - name: SPINNAKER_AUTH_TOKEN
+          value: {{ .Values.spin.auth_token }}
         ports:
         - name: port-{{ .Values.service.internalPort | toString }}
           containerPort: {{ .Values.service.internalPort }}
