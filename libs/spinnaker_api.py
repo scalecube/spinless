@@ -80,9 +80,11 @@ class SpinnakerPipeline:
         data = {"namespace": "{}".format(self.data['namespace'])}
         cookies = {"SESSION": self.auth_cookie()}
         headers = {'Content-Type': 'application/json'}
+        url = urllib.parse.urljoin(
+                self.spinnaker_api, "{}/deploy".format(application))
+        self.logger.info("URL for deploy: {}".format(url))
         response = requests.post(
-            url=urllib.parse.urljoin(
-                self.spinnaker_api, "{}/deploy".format(application)),
+            url=url,
             headers=headers,
             cookies=cookies,
             json=data
