@@ -76,7 +76,7 @@ class SpinnakerPipeline:
     def deploy(self):
         self.logger.info("Request to pipeline_deploy is {}".format(self.data))
         timestamp = str(round(time.time() * 100))
-        application = "{}-{}".format(self.data["namespace"], self.data["repo"])
+        application = "{}-{}".format(self.data["owner"], self.data["repo"])
         data = {"namespace": "{}".format(self.data['namespace'])}
         cookies = {"SESSION": self.auth_cookie()}
         headers = {'Content-Type': 'application/json'}
