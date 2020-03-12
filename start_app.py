@@ -45,7 +45,7 @@ def pipelines():
             #pipeline.pipeline_delete()
             app.logger.info("TODO: Delete the pipeline")
         elif action_type == "deploy":
-            pipeline.deploy()
+            return jsonify(pipeline.deploy())
         elif action_type == 'cancel':
             pipeline.cancel()
     app.logger.info("Request to CICD is {}".format(data))
