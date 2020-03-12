@@ -5,7 +5,7 @@ from libs.spinnaker_api import SpinnakerPipeline
 
 app = Flask(__name__)
 app.config["SPINNAKER_API"] = os.getenv("SPINNAKER_API")
-app.config["SPINNAKER_AUTH_TOKEN"] = os.getenv["SPINNAKER_AUTH_TOKEN"]
+app.config["SPINNAKER_AUTH_TOKEN"] = os.getenv("SPINNAKER_AUTH_TOKEN")
 
 dictConfig({
     'version': 1,
