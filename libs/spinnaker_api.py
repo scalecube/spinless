@@ -81,7 +81,7 @@ class SpinnakerPipeline:
         headers = {'Content-Type': 'application/json'}
         response = requests.post(
             url=urllib.parse.urljoin(
-                self.spinnaker_api, "{}/deploy".format(self.data["application"])),
+                self.spinnaker_api, "{}/deploy".format(application)),
             headers=headers,
             cookies=cookies,
             json=data
