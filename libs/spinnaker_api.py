@@ -81,7 +81,7 @@ class SpinnakerPipeline:
         cookies = {"SESSION": self.auth_cookie()}
         headers = {'Content-Type': 'application/json'}
         url = urllib.parse.urljoin(
-                self.spinnaker_api, "{}/deploy".format(application))
+                self.spinnaker_api, "pipelines/{}/deploy".format(application))
         self.logger.info("URL for deploy: {}".format(url))
         response = requests.post(
             url=url,
