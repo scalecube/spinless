@@ -109,5 +109,5 @@ class SpinnakerPipeline:
         url = urllib.parse.urljoin(
             self.spinnaker_api, "pipelines/{}".format(pipeline_id))
         request = requests.get(url=url, cookies=cookies, headers=self.headers)
-        status = request.json()['status']
+        status = request.json()
         return {"status": status}

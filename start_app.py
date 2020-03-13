@@ -47,7 +47,8 @@ def pipelines():
         elif action_type == "deploy":
             return jsonify(pipeline.deploy())
         elif action_type == 'cancel':
-            pipeline.cancel()
+            cancel = pipeline.cancel()
+            return jsonify(cancel)
     return jsonify({})
 
 
