@@ -52,6 +52,16 @@ def pipelines():
     return jsonify({})
 
 
+@app.route('/pipeline/<pipeline_id>', methods=['GET'])
+def pipeline_status(pipeline_id):
+    data = {}
+    pipeline = SpinnakerPipeline(data, app.logger,
+                                 app.config['SPINNAKER_API'],
+                                 app.config["SPINNAKER_AUTH_TOKEN"])
+    spin_pipeline_status = pipeline.status(pipeline_id)
+    return jsonify(spin_pipeline_status)
+
+
 @app.route('/namespaces', methods=['GET'])
 def namespaces():
     data = request.get_json()

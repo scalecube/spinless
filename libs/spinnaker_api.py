@@ -93,8 +93,18 @@ class SpinnakerPipeline:
         pipeline_id = response.json()["ref"].split("/")[-1]
         return {"pipeline_id": pipeline_id}
 
-    def cancel(self):
+    def cancel(self, pipeline_id):
         # app.logger.info("Request to pipeline_cancel {}".format(self.data))
         application = "{}-{}".format(self.data["owner"], self.data["repo"])
         pipeline_id = self.data['id']
         return {}
+
+    def status(self, pipeline_id):
+        self.logger.info("Request to get pipeline status with id: {}".format(pipeline_id))
+        cookies = {"SESSION": self.auth_cookie()}
+        headers = {'Content-Type': 'application/json'}
+        url = urllib.parse.urljoin(
+            self.spinnaker_api, "pipelines/{}".format(pipeline_id))
+        request = requests.get(url=url, cookies=cookies, headers = headers)
+        status = request.json()['status']
+        return {"status": status}
