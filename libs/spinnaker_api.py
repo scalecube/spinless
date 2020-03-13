@@ -96,7 +96,7 @@ class SpinnakerPipeline:
         data = {
             "parameters": {
                 "namespace": "{}".format(self.data['namespace']),
-                "onwer": "{}".format(self.data['owner']),
+                "owner": "{}".format(self.data['owner']),
                 "repo": "{}".format(self.data['repo']),
                 "sha": "{}".format(self.data['sha']),
                 "branch_name": "{}".format(self.data['branch_name'])
