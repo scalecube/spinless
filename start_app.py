@@ -42,13 +42,12 @@ def pipelines():
         if action_type == "install":
             pipeline.create()
         elif action_type == "uninstall":
-            #pipeline.pipeline_delete()
+            #pipeline.delete()
             app.logger.info("TODO: Delete the pipeline")
         elif action_type == "deploy":
             return jsonify(pipeline.deploy())
         elif action_type == 'cancel':
             pipeline.cancel()
-    app.logger.info("Request to CICD is {}".format(data))
     return jsonify({})
 
 
