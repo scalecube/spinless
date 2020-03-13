@@ -99,10 +99,9 @@ class SpinnakerPipeline:
                 "owner": "{}".format(self.data['owner']),
                 "repo": "{}".format(self.data['repo']),
                 "sha": "{}".format(self.data['sha']),
-                "branch_name": "{}".format(self.data['branch_name'])
+                "branch_name": "{}".format(self.data['branch_name']),
                 "is_pull_request": self.data['is_pull_request'],
                 "labeled": self.data['labeled'],
-                "labels": self.data['labeles'],
                 "issue_number": self.data['issue_number']
             }
         }
