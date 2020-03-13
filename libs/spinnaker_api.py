@@ -93,7 +93,18 @@ class SpinnakerPipeline:
         self.logger.info("Request to pipeline_deploy is {}".format(self.data))
         # timestamp = str(round(time.time() * 100))
         application = "{}-{}".format(self.data["owner"], self.data["repo"])
-        data = {"parameters": {"namespace": "{}".format(self.data['namespace'])}}
+        data = {"parameters": {
+                "namespace": "{}".format(self.data['namespace']),
+                "onwer": "{}".format(self.data['owner']),
+                "repo": "{}".format(self.data['repo']),
+                "sha": "{}".format(self.data['sha']),
+                "branch_name": "{}".format(self.data['branch_name'])
+                "is_pull_request": self.data['is_pull_request'],
+                "labeled": self.data['labeled'],
+                "labels": self.data['labeles'],
+                "issue_number": self.data['issue_number']
+            }
+        }
         cookies = {"SESSION": self.auth_cookie()}
         url = urllib.parse.urljoin(
                 self.spinnaker_api, "pipelines/{}/deploy".format(application))
