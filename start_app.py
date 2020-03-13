@@ -42,8 +42,7 @@ def pipelines():
         if action_type == "install":
             pipeline.create()
         elif action_type == "uninstall":
-            #pipeline.delete()
-            app.logger.info("TODO: Delete the pipeline")
+            pipeline.delete()
         elif action_type == "deploy":
             return jsonify(pipeline.deploy())
         elif action_type == 'cancel':

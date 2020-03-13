@@ -74,6 +74,21 @@ class SpinnakerPipeline:
             err.decode("utf-8") if err else None))
         return
 
+    def delete(self):
+        self.logger.info("Request to pipeline_delete is {}".format(self.data))
+        owner = self.data["owner"]
+        repo = self.data["repo"]
+        application = "{}-{}".format(owner, repo)
+        proc = subprocess.Popen(
+            ["spin pipeline delete --name deploy --application {}".format(application)],
+            stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+        self.logger.info("Creation of deploy pipeline output: {}".format(
+            out.decode("utf-8") if out else None))
+        self.logger.info("Creation of deploy pipeline error: {}".format(
+            err.decode("utf-8") if err else None))
+        return
+
     def deploy(self):
         self.logger.info("Request to pipeline_deploy is {}".format(self.data))
         # timestamp = str(round(time.time() * 100))
