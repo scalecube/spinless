@@ -93,7 +93,8 @@ class SpinnakerPipeline:
         self.logger.info("Request to pipeline_deploy is {}".format(self.data))
         # timestamp = str(round(time.time() * 100))
         application = "{}-{}".format(self.data["owner"], self.data["repo"])
-        data = {"parameters": {
+        data = {
+            "parameters": {
                 "namespace": "{}".format(self.data['namespace']),
                 "onwer": "{}".format(self.data['owner']),
                 "repo": "{}".format(self.data['repo']),
