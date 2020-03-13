@@ -99,7 +99,7 @@ class SpinnakerPipeline:
         pipeline_id = self.data['id']
         url = urllib.parse.urljoin(
             self.spinnaker_api,
-            "pipelines/{}/cancel?reason=api_call$force=true".format(pipeline_id))
+            "pipelines/{}/cancel?reason=api_call&force=true".format(pipeline_id))
         requests.put(url=url, cookies=cookies, headers=self.headers)
         return {"status": "canceled"}
 
