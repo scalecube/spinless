@@ -23,6 +23,8 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
+      serviceAccount: spinless
+      serviceAccountName: spinless
       nodeSelector:
 {{- range $key, $value := .Values.nodeSelector }}
   {{ indent 6 $key }}: {{ $value }}
@@ -42,6 +44,23 @@ spec:
           value: {{ .Values.spin.api }}
         - name: SPINNAKER_AUTH_TOKEN
           value: {{ .Values.spin.auth_token }}
+        - name: VAULT_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: vault-config
+              key: VAULT_ADDR
+        - name: VAULT_ROLE
+          valueFrom:
+            configMapKeyRef:
+              name: vault-config
+              key: VAULT_ROLE
+        - name: VAULT_SECRETS_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: vault-config
+              key: VAULT_SECRETS_PATH
+
+
         ports:
         - name: port-{{ .Values.service.internalPort | toString }}
           containerPort: {{ .Values.service.internalPort }}

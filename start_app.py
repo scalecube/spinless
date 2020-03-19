@@ -1,7 +1,6 @@
 import os
 from flask import Flask, request, jsonify
 from logging.config import dictConfig
-from libs.spinnaker_api import SpinnakerPipeline
 
 
 dictConfig({
@@ -21,8 +20,9 @@ dictConfig({
 })
 
 app = Flask(__name__)
-app.config["SPINNAKER_API"] = os.getenv("SPINNAKER_API")
-app.config["SPINNAKER_AUTH_TOKEN"] = os.getenv("SPINNAKER_AUTH_TOKEN")
+app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
+app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
+app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
 @app.route('/')
@@ -36,29 +36,17 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
     action_type = data.get("action_type", None)
     if action_type:
-        pipeline = SpinnakerPipeline(data, app.logger,
-                                     app.config['SPINNAKER_API'],
-                                     app.config["SPINNAKER_AUTH_TOKEN"])
-        if action_type == "install":
-            pipeline.create()
-        elif action_type == "uninstall":
-            pipeline.delete()
-        elif action_type == "deploy":
-            return jsonify(pipeline.deploy())
+        if action_type == "deploy":
+            return
         elif action_type == 'cancel':
-            cancel = pipeline.cancel()
-            return jsonify(cancel)
+            return
     return jsonify({})
 
 
 @app.route('/pipeline/<pipeline_id>', methods=['GET'])
 def pipeline_status(pipeline_id):
-    data = {}
-    pipeline = SpinnakerPipeline(data, app.logger,
-                                 app.config['SPINNAKER_API'],
-                                 app.config["SPINNAKER_AUTH_TOKEN"])
-    spin_pipeline_status = pipeline.status(pipeline_id)
-    return jsonify(spin_pipeline_status)
+    pipeline_status = ''
+    return jsonify(pipeline_status)
 
 
 @app.route('/namespaces', methods=['GET'])

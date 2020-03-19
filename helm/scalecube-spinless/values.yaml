@@ -3,10 +3,6 @@ image:
   tag: develop
   pullPolicy: Always
 
-spin:
-  auth_token: ascdefgh
-  api: http://localhost
-
 env:
   timestamp: 111111
 
