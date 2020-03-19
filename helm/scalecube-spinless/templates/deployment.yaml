@@ -55,15 +55,7 @@ spec:
             configMapKeyRef:
               name: vault-config
               key: VAULT_SECRETS_PATH
-
-
         ports:
         - name: port-{{ .Values.service.internalPort | toString }}
           containerPort: {{ .Values.service.internalPort }}
-        volumeMounts:
-          - name: spin-volume
-            mountPath: /root/.spin
-      volumes:
-        - name: spin-volume
-          configMap:
-            name: spin-config
+
