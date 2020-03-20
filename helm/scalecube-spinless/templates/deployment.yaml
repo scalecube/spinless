@@ -23,8 +23,8 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
-      serviceAccount: spinless
-      serviceAccountName: spinless
+      serviceAccount: scalecube-spinless
+      serviceAccountName: scalecube-spinless
       nodeSelector:
 {{- range $key, $value := .Values.nodeSelector }}
   {{ indent 6 $key }}: {{ $value }}
