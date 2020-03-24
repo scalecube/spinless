@@ -31,7 +31,7 @@ def main():
     return "Yes i am still here, thanks for asking."
 
 
-@app.route('/pipelines', methods=['POST'])
+@app.route('/kubernetes/deploy', methods=['POST'])
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
@@ -43,7 +43,7 @@ def pipelines():
                           vault_server=app.config["VAULT_ADDR"],
                           service_role=app.config["VAULT_ROLE"],
                           owner=data.get("owner"),
-                          repo_slug=data.get("repo_slug"),
+                          repo_slug=data.get("repo"),
                           version=data.get("version"),
                           vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
             service_account = vault.app_path
