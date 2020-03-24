@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 from logging.config import dictConfig
+from libs.vault_api import Vault
 
 
 dictConfig({
@@ -37,6 +38,19 @@ def pipelines():
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
+            vault = Vault(logger=app.logger,
+                          root_path="secretv2",
+                          vault_server=app.config["VAULT_ADDR"],
+                          service_role=app.config["VAULT_ROLE"],
+                          owner=data.get("owner"),
+                          repo_slug=data.get("repo_slug"),
+                          version=data.get("version"),
+                          vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
+            service_account = vault.app_path
+            spinless_app_env = vault.get_self_app_env()
+            vault.create_role()
+            env = vault.get_env("env")
+            # TODO: add env to helm and install
             return
         elif action_type == 'cancel':
             return
@@ -55,6 +69,7 @@ def namespaces():
     app.logger.info("Request to list namespaces is {}".format(data))
     repo_name = data['repo_name']
     return jsonify({})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
