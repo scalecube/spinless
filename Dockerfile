@@ -9,4 +9,4 @@ RUN tar xzfv helm-v2.14.1-linux-amd64.tar.gz
 RUN mv ./linux-amd64/helm /usr/local/bin/helm
 
 EXPOSE 5000
-CMD ["/usr/local/bin/helm", "init", "--client-only", "--tiller-namespace=tiller", " && ", "python", "./start_app.py"]
+CMD ["/bin/sh", "c", "/usr/local/bin/helm init --client-only --tiller-namespace=tiller", "python", "./start_app.py"]
