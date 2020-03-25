@@ -1,6 +1,6 @@
 import os
-import asyncio
-from datetime import time
+import threading
+import time
 
 from flask import Flask, request, jsonify, Response
 from logging.config import dictConfig
@@ -8,7 +8,6 @@ from libs.vault_api import Vault
 from libs.task_logs import JobContext, tail_f
 
 SUCCESS = "SUCCESS"
-
 RUNNING = "RUNNING"
 
 dictConfig({
@@ -48,18 +47,17 @@ def pipelines():
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            asyncio.run(execute_job, [ctx, data])
-
+            thr = threading.Thread(target=execute_job, args=(ctx, data), kwargs={})
+            thr.start()
         elif action_type == 'cancel':
             return
 
-    return jsonify({'id': ctx.id})
+    return jsonify({'id': str(ctx.id) })
 
 
-async def execute_job(ctx, data):
+def execute_job(ctx, data):
     try:
         ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-        time.sleep(10)
         vault = Vault(logger=app.logger,
                       root_path="secretv2",
                       vault_server=app.config["VAULT_ADDR"],
