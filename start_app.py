@@ -36,6 +36,7 @@ app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 def main():
     return "Yes i am still here, thanks for asking."
 
+
 @app.route('/kubernetes/deploy', methods=['POST'])
 def pipelines():
     data = request.get_json()
@@ -67,7 +68,7 @@ def pipelines():
         elif action_type == 'cancel':
             return
 
-    return jsonify(ctx.id())
+    return jsonify({"id": ctx.id()})
 
 
 @app.route('/status/<owner>/<repo>/<log_id>')
