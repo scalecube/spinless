@@ -5,6 +5,7 @@ import time
 from flask import Flask, request, jsonify, Response
 from logging.config import dictConfig
 from libs.vault_api import Vault
+from libs.helm_api import Helm
 from libs.task_logs import JobContext, tail_f
 
 ERROR = "ERROR"
