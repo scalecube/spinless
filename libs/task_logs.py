@@ -59,8 +59,8 @@ class JobContext:
         self.task_log = get_logger(data.get("owner"), data.get("repo"), self.id)
         return
 
-    def status(self, status, message):
-        status(self.task_log, self.data, self.id, status, message)
+    def update_status(self, event_status, message):
+        status(self.task_log, self.data, self.id, event_status, message)
         pass
 
     def end(self):

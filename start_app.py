@@ -38,7 +38,7 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
 
     ctx = JobContext(data)
-    ctx.status("RUNNING", "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
+    ctx.update_status("RUNNING", "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
     action_type = data.get("action_type", None)
     if action_type:
