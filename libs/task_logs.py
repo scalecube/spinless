@@ -66,6 +66,3 @@ class JobContext:
 
     def end(self):
         self.task_log.info("EOF")
-
-    def id(self):
-        return self.id

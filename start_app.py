@@ -1,5 +1,6 @@
 import os
-import uuid
+import asyncio
+from datetime import time
 
 from flask import Flask, request, jsonify, Response
 from logging.config import dictConfig
@@ -47,28 +48,37 @@ def pipelines():
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+            asyncio.run(execute_job, [ctx, data])
 
-            vault = Vault(logger=app.logger,
-                          root_path="secretv2",
-                          vault_server=app.config["VAULT_ADDR"],
-                          service_role=app.config["VAULT_ROLE"],
-                          owner=data.get("owner"),
-                          repo_slug=data.get("repo"),
-                          version=data.get("version"),
-                          vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
-            service_account = vault.app_path
-            spinless_app_env = vault.get_self_app_env()
-            vault.create_role()
-            env = vault.get_env("env")
-            # TODO: add env to helm and install
-            ctx.update_status(SUCCESS, "completed successfully the deployment of {}".format(data.get("namespace")))
-            ctx.end()
-            return
         elif action_type == 'cancel':
             return
 
-    return jsonify({"id": ctx.id()})
+    return jsonify({'id': ctx.id})
+
+
+async def execute_job(ctx, data):
+    try:
+        ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+        time.sleep(10)
+        vault = Vault(logger=app.logger,
+                      root_path="secretv2",
+                      vault_server=app.config["VAULT_ADDR"],
+                      service_role=app.config["VAULT_ROLE"],
+                      owner=data.get("owner"),
+                      repo_slug=data.get("repo"),
+                      version=data.get("version"),
+                      vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
+        service_account = vault.app_path
+        spinless_app_env = vault.get_self_app_env()
+        vault.create_role()
+        env = vault.get_env("env")
+        # TODO: add env to helm and install
+    except OSError:
+        ctx.update_status("ERROR", "failed to deploy {}".format(data.get("namespace")))
+        ctx.end()
+    else:
+        ctx.update_status(SUCCESS, "completed successfully the deployment of {}".format(data.get("namespace")))
+        ctx.end()
 
 
 @app.route('/status/<owner>/<repo>/<log_id>')
