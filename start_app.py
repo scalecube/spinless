@@ -1,8 +1,12 @@
 import os
-from flask import Flask, request, jsonify
+import uuid
+
+from flask import Flask, request, jsonify, Response
 from logging.config import dictConfig
 from libs.vault_api import Vault
+from libs.task_logs import Logs
 
+job_logs = Logs()
 
 dictConfig({
     'version': 1,
@@ -35,9 +39,14 @@ def main():
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
+    id = str(uuid.uuid1())
+    task_log = job_logs.get_logger(data.get("owner"), data.get("repo"), id)
+    task_log.info("Request to CICD is {}".format(data))
+
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
+
             vault = Vault(logger=app.logger,
                           root_path="secretv2",
                           vault_server=app.config["VAULT_ADDR"],
@@ -51,16 +60,18 @@ def pipelines():
             vault.create_role()
             env = vault.get_env("env")
             # TODO: add env to helm and install
+            task_log.info("EOF")
+
             return
         elif action_type == 'cancel':
             return
-    return jsonify({})
+    return jsonify(id)
 
 
-@app.route('/pipeline/<pipeline_id>', methods=['GET'])
-def pipeline_status(pipeline_id):
-    pipeline_status = ''
-    return jsonify(pipeline_status)
+@app.route('/status/<owner>/<repo>/<log_id>')
+def log(owner, repo, log_id):
+    file = '{}/{}/{}.log'.format(owner, repo, log_id)
+    return Response(job_logs.tail_f(file, 1.0), mimetype='text/plain')
 
 
 @app.route('/namespaces', methods=['GET'])
