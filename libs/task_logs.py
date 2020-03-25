@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import uuid
+import json
 
 from flask import jsonify
 
@@ -16,7 +17,7 @@ def create_dir(path):
 
 
 def get_logger(owner, repo, id):
-    path = "/logs/{}/{}".format(owner, repo)
+    path = "logs/{}/{}".format(owner, repo)
     create_dir(path)
     fh = logging.FileHandler("{}/{}.log".format(path, id))
     fh.setLevel(logging.DEBUG)
@@ -47,14 +48,14 @@ def status(task_log, data, id, status, message):
     data["status"] = status
     data["timestamp"] = status
     data["message"] = message
-    task_log.info(jsonify(data))
+    task_log.info(json.dumps(data))
     pass
 
 
 class JobContext:
 
     def __init__(self, data):
-        self.id = uuid.uuid1()
+        self.id = str(uuid.uuid1())
         self.data = data
         self.task_log = get_logger(data.get("owner"), data.get("repo"), self.id)
         return

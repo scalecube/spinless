@@ -6,6 +6,8 @@ from logging.config import dictConfig
 from libs.vault_api import Vault
 from libs.task_logs import JobContext, tail_f
 
+SUCCESS = "SUCCESS"
+
 RUNNING = "RUNNING"
 
 dictConfig({
@@ -40,11 +42,11 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
 
     ctx = JobContext(data)
-    ctx.update_status(RUNNING, "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
+            ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
             vault = Vault(logger=app.logger,
                           root_path="secretv2",
@@ -59,7 +61,7 @@ def pipelines():
             vault.create_role()
             env = vault.get_env("env")
             # TODO: add env to helm and install
-
+            ctx.update_status(SUCCESS, "completed successfully the deployment of {}".format(data.get("namespace")))
             ctx.end()
             return
         elif action_type == 'cancel':
