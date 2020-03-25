@@ -7,6 +7,8 @@ from logging.config import dictConfig
 from libs.vault_api import Vault
 from libs.task_logs import JobContext, tail_f
 
+ERROR = "ERROR"
+
 SUCCESS = "SUCCESS"
 RUNNING = "RUNNING"
 
@@ -42,14 +44,13 @@ def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
 
-    ctx = JobContext(data)
-
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            thr = threading.Thread(target=execute_job, args=(ctx, data), kwargs={})
-            thr.start()
+            ctx = JobContext(execute_job, data).start()
+
         elif action_type == 'cancel':
+            JobContext.cancel(data.get("id"))
             return
 
     return jsonify({'id': str(ctx.id) })
@@ -72,7 +73,7 @@ def execute_job(ctx, data):
         env = vault.get_env("env")
         # TODO: add env to helm and install
     except OSError:
-        ctx.update_status("ERROR", "failed to deploy {}".format(data.get("namespace")))
+        ctx.update_status(ERROR, "failed to deploy {}".format(data.get("namespace")))
         ctx.end()
     else:
         ctx.update_status(SUCCESS, "completed successfully the deployment of {}".format(data.get("namespace")))
