@@ -4,9 +4,7 @@ import uuid
 from flask import Flask, request, jsonify, Response
 from logging.config import dictConfig
 from libs.vault_api import Vault
-from libs.task_logs import Logs
-
-job_logs = Logs()
+from libs.task_logs import JobContext, tail_f
 
 dictConfig({
     'version': 1,
@@ -34,14 +32,13 @@ app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 def main():
     return "Yes i am still here, thanks for asking."
 
-
 @app.route('/kubernetes/deploy', methods=['POST'])
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
-    id = str(uuid.uuid1())
-    task_log = job_logs.get_logger(data.get("owner"), data.get("repo"), id)
-    task_log.info("Request to CICD is {}".format(data))
+
+    ctx = JobContext(data)
+    ctx.status("RUNNING", "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
     action_type = data.get("action_type", None)
     if action_type:
@@ -60,18 +57,19 @@ def pipelines():
             vault.create_role()
             env = vault.get_env("env")
             # TODO: add env to helm and install
-            task_log.info("EOF")
 
+            ctx.end()
             return
         elif action_type == 'cancel':
             return
-    return jsonify(id)
+
+    return jsonify(ctx.id())
 
 
 @app.route('/status/<owner>/<repo>/<log_id>')
 def log(owner, repo, log_id):
     file = '{}/{}/{}.log'.format(owner, repo, log_id)
-    return Response(job_logs.tail_f(file, 1.0), mimetype='text/plain')
+    return Response(tail_f(file, 1.0), mimetype='text/plain')
 
 
 @app.route('/namespaces', methods=['GET'])
