@@ -1,8 +1,17 @@
 import os
-from flask import Flask, request, jsonify
+import platform
 from logging.config import dictConfig
+
+from flask import request, jsonify, Response
+from flask_api import FlaskAPI
+
+from libs.log_api import get_log, start_logging
 from libs.vault_api import Vault
 
+DEPLOY_ACTION = "deploy"
+# WIN_CMD = "FOR /L %v IN (0,0,0) DO echo %TIME% && ping localhost -n 3 > nul"
+WIN_CMD = "ping google.com -t"
+UNIX_CMD = ""
 
 dictConfig({
     'version': 1,
@@ -20,15 +29,40 @@ dictConfig({
     }
 })
 
-app = Flask(__name__)
+app = FlaskAPI(__name__)
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
+@app.route('/example/')
+def example():
+    return {'hello': 'world'}
+
+
 @app.route('/')
 def main():
     return "Yes i am still here, thanks for asking."
+
+
+@app.route('/logging/create', methods=['POST'])
+def create_log():
+    data = request.get_json()
+    app.logger.info("Request to Log is {}".format(data))
+
+    cmd = WIN_CMD
+    if (platform.system() != 'Windows'):
+        cmd = UNIX_CMD
+    log_id = start_logging(cmd)
+    return {"log_id": log_id}
+
+
+@app.route('/logging/get/<log_id>', methods=['GET'])
+def get_log_api(log_id):
+    app.logger.info("Request to get_log  is {}".format(log_id))
+    if not log_id:
+        return "No log id provided"
+    return Response(get_log(log_id), mimetype='text/plain')
 
 
 @app.route('/kubernetes/deploy', methods=['POST'])
