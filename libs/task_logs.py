@@ -1,10 +1,9 @@
 import os
+import threading
 import time
 import logging
 import uuid
 import json
-
-from flask import jsonify
 
 
 def create_dir(path):
@@ -36,7 +35,8 @@ def tail_f(path, interval=1.0):
         if not line:
             time.sleep(interval)
             file.seek(where)
-        elif line == 'EOF':
+        elif line.startswith('EOF'):
+            file.close()
             break
         else:
             yield line
@@ -54,11 +54,16 @@ def status(task_log, data, id, status, message):
 
 class JobContext:
 
-    def __init__(self, data):
+    def __init__(self, func, data):
         self.id = str(uuid.uuid1())
         self.data = data
         self.task_log = get_logger(data.get("owner"), data.get("repo"), self.id)
+        self.thr = threading.Thread(target=func, args=(self, data), kwargs={})
         return
+
+    def start(self):
+        self.thr.start()
+        return self
 
     def update_status(self, event_status, message):
         status(self.task_log, self.data, self.id, event_status, message)
@@ -66,3 +71,7 @@ class JobContext:
 
     def end(self):
         self.task_log.info("EOF")
+
+    @classmethod
+    def cancel(cls, id):
+        pass
