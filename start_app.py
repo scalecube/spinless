@@ -6,6 +6,8 @@ from logging.config import dictConfig
 from libs.vault_api import Vault
 from libs.task_logs import JobContext, tail_f
 
+RUNNING = "RUNNING"
+
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -38,7 +40,7 @@ def pipelines():
     app.logger.info("Request to CICD is {}".format(data))
 
     ctx = JobContext(data)
-    ctx.update_status("RUNNING", "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
+    ctx.update_status(RUNNING, "start deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
     action_type = data.get("action_type", None)
     if action_type:
