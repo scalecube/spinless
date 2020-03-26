@@ -1,3 +1,8 @@
+import os
+import threading
+import time
+
+from flask import Flask, request, jsonify, Response
 import time
 from logging.config import dictConfig
 
@@ -8,6 +13,9 @@ from libs.job_api import *
 from libs.vault_api import Vault
 
 DEPLOY_ACTION = "deploy"
+from libs.helm_api import Helm
+from libs.task_logs import JobContext, tail_f
+from services.kubernetes import deploy
 
 dictConfig({
     'version': 1,
@@ -82,32 +90,23 @@ def cancel_job_api(job_id):
 def pipelines():
     data = request.get_json()
     app.logger.info("Request to CICD is {}".format(data))
+
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            vault = Vault(logger=app.logger,
-                          root_path="secretv2",
-                          vault_server=app.config["VAULT_ADDR"],
-                          service_role=app.config["VAULT_ROLE"],
-                          owner=data.get("owner"),
-                          repo_slug=data.get("repo"),
-                          version=data.get("version"),
-                          vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
-            service_account = vault.app_path
-            spinless_app_env = vault.get_self_app_env()
-            vault.create_role()
-            env = vault.get_env("env")
-            # TODO: add env to helm and install
-            return
+            ctx = JobContext(deploy, app, data).start()
+
         elif action_type == 'cancel':
+            JobContext.cancel(data.get("id"))
             return
-    return jsonify({})
+
+    return jsonify({'id': str(ctx.id) })
 
 
-@app.route('/pipeline/<pipeline_id>', methods=['GET'])
-def pipeline_status(pipeline_id):
-    pipeline_status = ''
-    return jsonify(pipeline_status)
+@app.route('/status/<owner>/<repo>/<log_id>')
+def log(owner, repo, log_id):
+    file = '{}/{}/{}.log'.format(owner, repo, log_id)
+    return Response(tail_f(file, 1.0), mimetype='text/plain')
 
 
 @app.route('/namespaces', methods=['GET'])
