@@ -1,17 +1,15 @@
 import os
-import platform
 from logging.config import dictConfig
 
 from flask import request, jsonify, Response
 from flask_api import FlaskAPI
 
-from libs.log_api import get_log, start_logging
+from libs.job_api import *
 from libs.vault_api import Vault
 
 DEPLOY_ACTION = "deploy"
 # WIN_CMD = "FOR /L %v IN (0,0,0) DO echo %TIME% && ping localhost -n 3 > nul"
-WIN_CMD = "ping google.com -t"
-UNIX_CMD = ""
+CMD = "ping google.com"
 
 dictConfig({
     'version': 1,
@@ -45,24 +43,38 @@ def main():
     return "Yes i am still here, thanks for asking."
 
 
-@app.route('/logging/create', methods=['POST'])
-def create_log():
-    data = request.get_json()
-    app.logger.info("Request to Log is {}".format(data))
-
-    cmd = WIN_CMD
-    if (platform.system() != 'Windows'):
-        cmd = UNIX_CMD
-    log_id = start_logging(cmd)
+@app.route('/jobs/create', methods=['POST'])
+def create_job_api():
+    app.logger.info("Requested to start job. Starting.")
+    log_id = create_job(CMD)
     return {"log_id": log_id}
 
 
-@app.route('/logging/get/<log_id>', methods=['GET'])
-def get_log_api(log_id):
-    app.logger.info("Request to get_log  is {}".format(log_id))
-    if not log_id:
+@app.route('/jobs/get/<job_id>', methods=['GET'])
+def get_job_api(job_id):
+    app.logger.info("Request to get_log  is {}".format(job_id))
+    if not job_id:
         return "No log id provided"
-    return Response(get_log(log_id), mimetype='text/plain')
+    return Response(get_job_log(job_id), mimetype='text/plain')
+
+
+@app.route('/jobs/status/<job_id>', methods=['GET'])
+def get_job_status_api(job_id):
+    app.logger.info("Request to get_log  is {}".format(job_id))
+    if not job_id:
+        return "No log id provided"
+    return Response(get_job_status(job_id), mimetype='text/plain')
+
+
+@app.route('/jobs/cancel/<job_id>', methods=['GET'])
+def cancel_job_api(job_id):
+    app.logger.info("Request to get_log is {}".format(job_id))
+    if not job_id:
+        return "No job id provided"
+    if cancel_job(job_id):
+        return Response("Stopped job {}".format(job_id), mimetype='text/plain')
+    else:
+        return Response("Job {} was not running".format(job_id), mimetype='text/plain')
 
 
 @app.route('/kubernetes/deploy', methods=['POST'])
