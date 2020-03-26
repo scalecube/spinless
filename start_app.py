@@ -1,15 +1,13 @@
-import os
+import time
 from logging.config import dictConfig
 
-from flask import request, jsonify, Response
+from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 
 from libs.job_api import *
 from libs.vault_api import Vault
 
 DEPLOY_ACTION = "deploy"
-# WIN_CMD = "FOR /L %v IN (0,0,0) DO echo %TIME% && ping localhost -n 3 > nul"
-CMD = "ping google.com"
 
 dictConfig({
     'version': 1,
@@ -33,11 +31,6 @@ app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
-@app.route('/example/')
-def example():
-    return {'hello': 'world'}
-
-
 @app.route('/')
 def main():
     return "Yes i am still here, thanks for asking."
@@ -45,8 +38,16 @@ def main():
 
 @app.route('/jobs/create', methods=['POST'])
 def create_job_api():
+    data = request.get_json()
+    if not data:
+        return abort(Response("Give some payload"))
+    app.logger.info("Request to Start Job is {}".format(data))
+    action = data.get("action", None)
+    if not action:
+        return abort(Response("Provide 'action' field in payload"))
+
     app.logger.info("Requested to start job. Starting.")
-    log_id = create_job(CMD)
+    log_id = create_job(action)
     return {"log_id": log_id}
 
 
@@ -54,15 +55,15 @@ def create_job_api():
 def get_job_api(job_id):
     app.logger.info("Request to get_log  is {}".format(job_id))
     if not job_id:
-        return "No log id provided"
+        return abort(Response("No log id provided"))
     return Response(get_job_log(job_id), mimetype='text/plain')
 
 
 @app.route('/jobs/status/<job_id>', methods=['GET'])
-def get_job_status_api(job_id):
+def job_status_api(job_id):
     app.logger.info("Request to get_log  is {}".format(job_id))
     if not job_id:
-        return "No log id provided"
+        return abort(Response("No job id provided"))
     return Response(get_job_status(job_id), mimetype='text/plain')
 
 
@@ -70,11 +71,11 @@ def get_job_status_api(job_id):
 def cancel_job_api(job_id):
     app.logger.info("Request to get_log is {}".format(job_id))
     if not job_id:
-        return "No job id provided"
+        return abort(Response("No job id provided"))
     if cancel_job(job_id):
-        return Response("Stopped job {}".format(job_id), mimetype='text/plain')
+        return Response("Stopped job {}".format(job_id))
     else:
-        return Response("Job {} was not running".format(job_id), mimetype='text/plain')
+        return abort(Response("Job {} was not running".format(job_id)))
 
 
 @app.route('/kubernetes/deploy', methods=['POST'])

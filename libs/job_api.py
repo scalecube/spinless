@@ -1,12 +1,11 @@
 import os
 import shlex
-import uuid
-import asyncio
-import functools
 import threading
+import uuid
 from subprocess import Popen, PIPE
 
 jobs_dict = dict()
+
 
 class Job:
     def __init__(self, cmd):
@@ -37,7 +36,9 @@ class Job:
         def from_std(stream_to_generate):
             line = stream_to_generate.readline()
             while line:
-                yield line.strip()
+                line_strip = line.strip()
+                print("[LIVE] Streaming {} for job {}".format(line_strip, self.id))
+                yield line_strip
                 line = stream_to_generate.readline()
 
         def from_file(filename):
@@ -46,7 +47,9 @@ class Job:
             with open(filename) as f:
                 line = f.readline()
                 while line:
-                    yield line.strip()
+                    strip = line.strip()
+                    print("[LOG] Streaming {} for job {}".format(strip, self.id))
+                    yield strip
                     line = f.readline()
 
         if self.__running():
@@ -82,7 +85,7 @@ def create_job(cmd):
 
 
 def cancel_job(job_id):
-    job = jobs_dict[job_id]
+    job = jobs_dict.get(job_id)
     if not job:
         return False
     # del jobs_dict[job_id]
@@ -90,14 +93,14 @@ def cancel_job(job_id):
 
 
 def get_job_log(job_id):
-    job = jobs_dict[job_id]
+    job = jobs_dict.get(job_id)
     if not job:
         return "no such job {}".format(job_id)
     return job.get_log()
 
 
 def get_job_status(job_id):
-    job = jobs_dict[job_id]
+    job = jobs_dict.get(job_id)
     if not job:
         return "no such job {}".format(job_id)
     return job.status
