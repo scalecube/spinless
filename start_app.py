@@ -100,7 +100,7 @@ def pipelines():
             JobContext.cancel(data.get("id"))
             return
 
-    return jsonify({'id': str(ctx.id) })
+    return jsonify({'id': str(ctx.id)})
 
 
 @app.route('/status/<owner>/<repo>/<log_id>')
