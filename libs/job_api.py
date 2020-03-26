@@ -1,35 +1,81 @@
-import os
 import shlex
 import threading
 import uuid
-from subprocess import Popen, PIPE
+from _datetime import datetime
+from enum import Enum
+from subprocess import Popen, PIPE, STDOUT
+
+from libs.log_api import *
 
 jobs_dict = dict()
 
 
+class JobState(Enum):
+    CREATED = 1
+    RUNNING = 2
+    SUCCESS = 3
+    FAILED = 4
+    CANCELLED = 5
+
+
+class Status:
+
+    def __init__(self, id):
+        self.start = datetime.now()
+        self.state = JobState.CREATED
+        self.id = id
+        self.end = ""
+        self.elapsed = ""
+
+    def finish(self, state):
+        self.state = state
+        self.end = datetime.now()
+        self.elapsed = self.end - self.start
+
+    def serialize(self):
+        return json.dumps({
+            "id": self.id,
+            "state": self.state.name,
+            "start": self.start.__str__(),
+            "end": self.end.__str__() or "",
+            "elapsed": self.elapsed.__str__() or ""
+        })
+
+
 class Job:
-    def __init__(self, cmd):
+    def __init__(self, data):
         self.id = str(uuid.uuid1())
-        self.cmd = cmd
-        self.status = "CREATED"
+        self.cmd = data.get("cmd", "echo no-op")
+        self.owner = data.get("owner", "no_owner")
+        self.repo = data.get("repo", "no_repo")
+        self.status = Status(self.id)
         self.proc = None
-        self.code = None
+        self.logfile = None
         return
 
     def start(self):
         try:
-            self.status = 'RUNNING'
-            with Popen(shlex.split(self.cmd), stdout=PIPE, stderr=PIPE) as p, open(self.__log_name(), 'w') as logfile:
-                s_out = p.stdout
+            f_name = get_logfile(self.owner, self.repo, self.id)
+            with Popen(shlex.split(self.cmd), stdout=PIPE, stderr=STDOUT) as p, open(f_name, 'w') as logfile:
+                self.status.state = JobState.RUNNING
                 self.proc = p
-                for line in iter(s_out.readline, b''):
+                for line in iter(p.stdout.readline, b''):
                     logfile.write(line.decode("utf-8"))
-                self.code = p.wait()
-                self.status = 'STOPPED'
+                code = p.wait()
+                logfile.write("Exit code: {}".format(code))
+                if code != 0:
+                    self.status.finish(JobState.FAILED)
+                else:
+                    self.status.finish(JobState.SUCCESS)
+            self.logfile = f_name
+
         except Exception as ex:
+            self.status.finish(JobState.FAILED)
             self.__terminate()
 
     def stop(self):
+        if self.__running():
+            self.status.finish(JobState.CANCELLED)
         return self.__terminate()
 
     def get_log(self):
@@ -55,31 +101,22 @@ class Job:
         if self.__running():
             return from_std(self.proc.stdout)
         else:
-            return from_file(self.__log_name())
+            return from_file(self.logfile)
 
     def __running(self):
         return self.proc and self.proc.poll() is None
 
     def __terminate(self):
-        if self.status == 'STOPPED':
-            return False
-        self.status = 'STOPPED'
         if self.__running():
             self.proc.terminate()
             return True
         else:
             return False
 
-    def __log_name(self):
-        return '{}.log'.format(self.id)
 
-
-def create_job(cmd):
-    job = Job(cmd)
+def create_job(app, data):
+    job = Job(data)
     jobs_dict[job.id] = job
-    # loop = asyncio.new_event_loop()
-    # asyncio.set_event_loop(loop)
-    # loop.call_soon_threadsafe(functools.partial(job.start))
     threading.Thread(target=job.start).start()
     return job.id
 
@@ -88,7 +125,6 @@ def cancel_job(job_id):
     job = jobs_dict.get(job_id)
     if not job:
         return False
-    # del jobs_dict[job_id]
     return job.stop()
 
 
@@ -103,4 +139,4 @@ def get_job_status(job_id):
     job = jobs_dict.get(job_id)
     if not job:
         return "no such job {}".format(job_id)
-    return job.status
+    return job.status.serialize()
