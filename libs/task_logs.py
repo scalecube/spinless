@@ -54,11 +54,11 @@ def status(task_log, data, id, status, message):
 
 class JobContext:
 
-    def __init__(self, func, data):
+    def __init__(self, func, app, data):
         self.id = str(uuid.uuid1())
         self.data = data
         self.task_log = get_logger(data.get("owner"), data.get("repo"), self.id)
-        self.thr = threading.Thread(target=func, args=(self, data), kwargs={})
+        self.thr = threading.Thread(target=func, args=(app, self, data), kwargs={})
         return
 
     def start(self):

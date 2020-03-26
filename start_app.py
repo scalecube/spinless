@@ -7,11 +7,7 @@ from logging.config import dictConfig
 from libs.vault_api import Vault
 from libs.helm_api import Helm
 from libs.task_logs import JobContext, tail_f
-
-ERROR = "ERROR"
-
-SUCCESS = "SUCCESS"
-RUNNING = "RUNNING"
+from services.kubernetes import deploy
 
 dictConfig({
     'version': 1,
@@ -48,37 +44,13 @@ def pipelines():
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            ctx = JobContext(deploy, data).start()
+            ctx = JobContext(deploy, app, data).start()
 
         elif action_type == 'cancel':
             JobContext.cancel(data.get("id"))
             return
 
     return jsonify({'id': str(ctx.id) })
-
-
-def deploy(ctx, data):
-    try:
-        ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-        vault = Vault(logger=app.logger,
-                      root_path="secretv2",
-                      vault_server=app.config["VAULT_ADDR"],
-                      service_role=app.config["VAULT_ROLE"],
-                      owner=data.get("owner"),
-                      repo_slug=data.get("repo"),
-                      version=data.get("version"),
-                      vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
-        service_account = vault.app_path
-        spinless_app_env = vault.get_self_app_env()
-        vault.create_role()
-        env = vault.get_env("env")
-        # TODO: add env to helm and install
-    except OSError:
-        ctx.update_status(ERROR, "failed to deploy {}".format(data.get("namespace")))
-        ctx.end()
-    else:
-        ctx.update_status(SUCCESS, "completed successfully the deployment of {}".format(data.get("namespace")))
-        ctx.end()
 
 
 @app.route('/status/<owner>/<repo>/<log_id>')
