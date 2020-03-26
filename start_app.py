@@ -1,17 +1,9 @@
-import os
-import platform
 from logging.config import dictConfig
 
-from flask import request, jsonify, Response
+from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 
-from libs.log_api import get_log, start_logging
-from libs.vault_api import Vault
-
-DEPLOY_ACTION = "deploy"
-# WIN_CMD = "FOR /L %v IN (0,0,0) DO echo %TIME% && ping localhost -n 3 > nul"
-WIN_CMD = "ping google.com -t"
-UNIX_CMD = ""
+from libs.job_api import *
 
 dictConfig({
     'version': 1,
@@ -35,74 +27,47 @@ app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
-@app.route('/example/')
-def example():
-    return {'hello': 'world'}
-
-
-@app.route('/')
-def main():
-    return "Yes i am still here, thanks for asking."
-
-
-@app.route('/logging/create', methods=['POST'])
-def create_log():
-    data = request.get_json()
-    app.logger.info("Request to Log is {}".format(data))
-
-    cmd = WIN_CMD
-    if (platform.system() != 'Windows'):
-        cmd = UNIX_CMD
-    log_id = start_logging(cmd)
-    return {"log_id": log_id}
-
-
-@app.route('/logging/get/<log_id>', methods=['GET'])
-def get_log_api(log_id):
-    app.logger.info("Request to get_log  is {}".format(log_id))
-    if not log_id:
-        return "No log id provided"
-    return Response(get_log(log_id), mimetype='text/plain')
-
-
 @app.route('/kubernetes/deploy', methods=['POST'])
-def pipelines():
+def deploy():
     data = request.get_json()
-    app.logger.info("Request to CICD is {}".format(data))
-    action_type = data.get("action_type", None)
-    if action_type:
-        if action_type == "deploy":
-            vault = Vault(logger=app.logger,
-                          root_path="secretv2",
-                          vault_server=app.config["VAULT_ADDR"],
-                          service_role=app.config["VAULT_ROLE"],
-                          owner=data.get("owner"),
-                          repo_slug=data.get("repo"),
-                          version=data.get("version"),
-                          vault_secrets_path=app.config["VAULT_SECRETS_PATH"])
-            service_account = vault.app_path
-            spinless_app_env = vault.get_self_app_env()
-            vault.create_role()
-            env = vault.get_env("env")
-            # TODO: add env to helm and install
-            return
-        elif action_type == 'cancel':
-            return
-    return jsonify({})
+    if not data:
+        return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
+    app.logger.info("Request to CI/CD is {}".format(data))
+    job_id = create_job(app, data)
+    return jsonify({'job_id': job_id})
 
 
-@app.route('/pipeline/<pipeline_id>', methods=['GET'])
-def pipeline_status(pipeline_id):
-    pipeline_status = ''
-    return jsonify(pipeline_status)
+@app.route('/kubernetes/cancel/<job_id>')
+def cancel(job_id):
+    app.logger.info("Request to cancel {}".format(job_id))
+    if not job_id:
+        return abort(400, Response("Provide 'job_id' field."))
+    if cancel_job(job_id):
+        return Response("Canceled job {}".format(job_id))
+    return abort(400, Response("Job {} was not running".format(job_id)))
+
+
+@app.route('/kubernetes/status/<job_id>')
+def status(job_id):
+    app.logger.info("Request to status is {}".format(job_id))
+    if not job_id:
+        return abort(400, Response("No job id provided"))
+    return get_job_status(job_id)
+
+
+@app.route('/kubernetes/log/<job_id>')
+def get_log_api(job_id):
+    app.logger.info("Request to get_log  is {}".format(job_id))
+    if not job_id:
+        return abort(Response("No job id provided"))
+    return Response(get_job_log(job_id))
 
 
 @app.route('/namespaces', methods=['GET'])
 def namespaces():
     data = request.get_json()
     app.logger.info("Request to list namespaces is {}".format(data))
-    repo_name = data['repo_name']
-    return jsonify({})
+    abort(400, Response("Not implemented yet"))
 
 
 if __name__ == '__main__':

@@ -1,52 +1,29 @@
+import errno
+import json
+import logging
 import os
-import shlex
-import uuid
-from subprocess import Popen, PIPE
-
-stream_dict = dict()
+import time
 
 
-def start_logging(cmd):
-    stream_id = uuid.uuid1()
-    try:
-        with Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE) as process, open(str(stream_id) + '.log',
-                                                                                'w') as logfile:
-            # save stream to dict
-            s_out = process.stdout
-            stream_dict[str(stream_id)] = s_out
-            for line in iter(s_out.readline, b''):
-                logfile.write(line.decode("utf-8"))
-    except Exception as exc:
-        return "Failed to execute: {}".format(exc.with_traceback())
-    return stream_id
+def get_logfile(owner, repo, id):
+    path = "logs/{}/{}/{}.log".format(owner, repo, id)
+    return __create_dirs(path)
 
 
-def get_log(stream_id):
-    def from_std(stream_to_generate):
-        line = stream_to_generate.readline()
-        while line:
-            yield line.strip()
-            line = stream_to_generate.readline()
+def __create_dirs(filename):
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                print("Creation of the directory %s failed" % filename)
+                raise
+    return filename
 
-    def from_file(filename):
-        with open(filename) as f:
-            line = f.readline()
-            while line:
-                yield line.strip()
-                line = f.readline()
-
-        # for line in stream_to_generate.readline():
-        #     yield line.decode("utf-8")
-
-    # try opened stream first (job in progress)
-    log_out = stream_dict.get(stream_id)
-    if log_out:
-        return from_std(log_out)
-    # if not read from logfile
-    log_name = str(stream_id) + ".log"
-    if os.path.isfile(log_name):
-        return from_file(log_name)
-
-    else:
-        return "no such job {}".format(stream_id)
-    # del stream_dict[stream_id]
+def status(task_log, data, id, status, message):
+    data["id"] = id
+    data["status"] = status
+    data["timestamp"] = status
+    data["message"] = message
+    task_log.info(json.dumps(data))
+    pass
