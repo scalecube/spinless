@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import json
+from datetime import datetime
 
 
 def create_dir(path):
@@ -38,12 +39,14 @@ def tail_f(path, interval=1.0):
     pass
 
 
-def status(task_log, data, id, status, message):
-    data["id"] = id
-    data["status"] = status
-    data["timestamp"] = status
-    data["message"] = message
-    task_log.info(json.dumps(data))
+def status(logger, id, status, message):
+    data = {
+        "id": id,
+        "status": status,
+        "timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "message": message,
+    }
+    logger.info(json.dumps(data))
     pass
 
 
@@ -54,6 +57,8 @@ class JobLogger:
         self.repo = repo
         self.id = id
         self.logger = get_logger(owner, repo, id)
+        self.emit = self.log
+
         return
 
     def info(self, message):
@@ -61,7 +66,7 @@ class JobLogger:
         pass
 
     def log(self, event_status, message):
-        status(self.logger, self.data, self.id, event_status, message)
+        status(self.logger, self.id, event_status, message)
         pass
 
     def end(self):

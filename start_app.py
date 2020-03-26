@@ -55,12 +55,12 @@ def status(job_id):
     return get_job_status(job_id)
 
 
-@app.route('/kubernetes/log/<job_id>')
-def get_log_api(job_id):
+@app.route('/kubernetes/log/<owner>/<repo>/<job_id>')
+def get_log_api(owner, repo, job_id):
     app.logger.info("Request to get_log  is {}".format(job_id))
     if not job_id:
         return abort(Response("No job id provided"))
-    return Response(get_job_log(job_id))
+    return Response(tail_f("{}/{}/{}.log".format(owner, repo, job_id)))
 
 
 @app.route('/namespaces', methods=['GET'])
