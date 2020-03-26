@@ -3,6 +3,7 @@ import threading
 import uuid
 from _datetime import datetime
 from enum import Enum
+from multiprocessing.context import Process
 from subprocess import Popen, PIPE, STDOUT
 
 from libs.log_api import *
@@ -26,6 +27,9 @@ class Status:
         self.id = id
         self.end = ""
         self.elapsed = ""
+
+    def update(self, state):
+        self.state = state
 
     def finish(self, state):
         self.state = state
@@ -51,28 +55,14 @@ class Job:
         self.status = Status(self.id)
         self.proc = None
         self.logfile = None
-        args1 = (self, data)
         self.data = data
-        self.thr = threading.Thread(target=func, args=args1)
-        self.thr.start()
+        self.p = Process(target=func, args=(self, *args))
+        self.p.start()
         return
 
     def start(self):
         try:
-            f_name = get_logfile(self.owner, self.repo, self.id)
-            self.thr.start()
-            with Popen(shlex.split(self.cmd), stdout=PIPE, stderr=STDOUT) as p, open(f_name, 'w') as logfile:
-                self.status.state = JobState.RUNNING
-                self.proc = p
-                for line in iter(p.stdout.readline, b''):
-                    logfile.write(line.decode("utf-8"))
-                code = p.wait()
-                logfile.write("Exit code: {}".format(code))
-                if code != 0:
-                    self.status.finish(JobState.FAILED)
-                else:
-                    self.status.finish(JobState.SUCCESS)
-            self.logfile = f_name
+            self.status.finish(JobState.RUNNING)
 
         except Exception as ex:
             self.status.finish(JobState.FAILED)

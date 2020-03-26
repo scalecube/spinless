@@ -8,7 +8,7 @@ RUNNING = "RUNNING"
 
 def deploy(ctx):
     data = ctx.data
-    ctx.status.state = JobState.RUNNING
+    ctx.status.state = JobState.CANCELLED
     ctx.logger.info("starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
 
     vault = Vault(logger=ctx.logger,
