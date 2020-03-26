@@ -24,6 +24,7 @@ def get_logger(owner, repo, id):
 
 
 def tail_f(path, interval=1.0):
+
     file = open('logs/{}'.format(path))
     while True:
         where = file.tell()
@@ -31,11 +32,11 @@ def tail_f(path, interval=1.0):
         if not line:
             time.sleep(interval)
             file.seek(where)
-        elif line.startswith('EOF'):
+        elif '"status": "EOF"' in line:
             file.close()
             break
         else:
-            yield line
+            yield "{}\n".format(line)
     pass
 
 
@@ -70,4 +71,4 @@ class JobLogger:
         pass
 
     def end(self):
-        self.logger.info("EOF")
+        self.emit("EOF", '')

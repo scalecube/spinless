@@ -8,8 +8,8 @@ from libs.vault_api import Vault
 def deploy(ctx):
     data = ctx.data
     logger = JobLogger(data['owner'], data['repo'], ctx.id)
-    logger.info("starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-    logger.emit(JobState.RUNNING, "starting deploy")
+    logger.emit(JobState.RUNNING.name, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+    logger.emit(JobState.RUNNING.name, "starting deploy")
     try:
         vault = Vault(logger=logger,
                       root_path="secretv2",
@@ -25,9 +25,9 @@ def deploy(ctx):
         env = vault.get_env("env")
         # TODO: add env to helm and install
 
-        logger.emit(JobState.SUCCESS, "deployed successfully")
+        logger.emit(JobState.SUCCESS.name, "deployed successfully")
     except Exception as e:
-        logger.emit(JobState.FAILED, "failed to deploy")
+        logger.emit(JobState.FAILED.name, "failed to deploy")
         logger.end()
 
     else:
