@@ -7,14 +7,14 @@ class Vault:
                  service_role,
                  root_path=None,
                  owner=None,
-                 repo_slug=None,
+                 repo=None,
                  version=None,
                  vault_secrets_path=None):
         self.root_path = root_path
         self.owner = owner
-        self.repo_slug = repo_slug
+        self.repo_slug = repo
         self.version = version
-        self.app_path = "{}-{}-{}".format(owner, repo_slug, version)
+        self.app_path = "{}-{}-{}".format(owner, repo, version)
         self.vault_server = vault_server
         self.service_role = service_role
         self.logger = logger

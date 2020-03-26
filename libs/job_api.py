@@ -43,7 +43,7 @@ class Status:
 
 
 class Job:
-    def __init__(self, data):
+    def __init__(self, func, args, data):
         self.id = str(uuid.uuid1())
         self.cmd = data.get("cmd", "echo no-op")
         self.owner = data.get("owner", "no_owner")
@@ -51,11 +51,16 @@ class Job:
         self.status = Status(self.id)
         self.proc = None
         self.logfile = None
+        args1 = (self, data)
+        self.data = data
+        self.thr = threading.Thread(target=func, args=args1)
+        self.thr.start()
         return
 
     def start(self):
         try:
             f_name = get_logfile(self.owner, self.repo, self.id)
+            self.thr.start()
             with Popen(shlex.split(self.cmd), stdout=PIPE, stderr=STDOUT) as p, open(f_name, 'w') as logfile:
                 self.status.state = JobState.RUNNING
                 self.proc = p
@@ -114,11 +119,10 @@ class Job:
             return False
 
 
-def create_job(app, data):
-    job = Job(data)
+def create_job(func, args, data):
+    job = Job(func, args, data)
     jobs_dict[job.id] = job
-    threading.Thread(target=job.start).start()
-    return job.id
+    return job
 
 
 def cancel_job(job_id):

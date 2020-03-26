@@ -2,7 +2,7 @@ from logging.config import dictConfig
 
 from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
-
+from services.kubernetes import deploy
 from libs.job_api import *
 
 dictConfig({
@@ -28,13 +28,13 @@ app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
 @app.route('/kubernetes/deploy', methods=['POST'])
-def deploy():
+def kubernetes_deploy():
     data = request.get_json()
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
-    job_id = create_job(app, data)
-    return jsonify({'job_id': job_id})
+    job = create_job(deploy, (), data)
+    return jsonify({'id': job.id})
 
 
 @app.route('/kubernetes/cancel/<job_id>')
