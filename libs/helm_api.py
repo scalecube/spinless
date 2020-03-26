@@ -1,5 +1,7 @@
 from subprocess import Popen, PIPE
 
+from libs.vault_api import Vault
+
 
 class Helm:
     def __init__(self):
