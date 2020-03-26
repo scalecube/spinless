@@ -48,7 +48,7 @@ def pipelines():
     action_type = data.get("action_type", None)
     if action_type:
         if action_type == "deploy":
-            ctx = JobContext(execute_job, data).start()
+            ctx = JobContext(deploy, data).start()
 
         elif action_type == 'cancel':
             JobContext.cancel(data.get("id"))
@@ -57,7 +57,7 @@ def pipelines():
     return jsonify({'id': str(ctx.id) })
 
 
-def execute_job(ctx, data):
+def deploy(ctx, data):
     try:
         ctx.update_status(RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
         vault = Vault(logger=app.logger,
