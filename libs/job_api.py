@@ -1,3 +1,4 @@
+import json
 import shlex
 import threading
 import uuid
@@ -49,15 +50,12 @@ class Status:
 class Job:
     def __init__(self, func, args, data):
         self.id = str(uuid.uuid1())
-        self.cmd = data.get("cmd", "echo no-op")
         self.owner = data.get("owner", "no_owner")
         self.repo = data.get("repo", "no_repo")
         self.status = Status(self.id)
-        self.proc = None
-        self.logfile = None
         self.data = data
-        self.p = Process(target=func, args=(self, *args))
-        self.p.start()
+        self.proc = Process(target=func, args=(self, *args))
+        self.proc.start()
         return
 
     def start(self):

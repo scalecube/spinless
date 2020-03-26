@@ -1,4 +1,6 @@
-from libs.job_api import Job, JobState
+import logging
+
+from libs.log_api import JobLogger
 from libs.vault_api import Vault
 
 ERROR = "ERROR"
@@ -8,10 +10,10 @@ RUNNING = "RUNNING"
 
 def deploy(ctx):
     data = ctx.data
-    ctx.status.state = JobState.CANCELLED
-    ctx.logger.info("starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-
-    vault = Vault(logger=ctx.logger,
+    logger = JobLogger(data['owner'], data['repo'], ctx.id)
+    logger.info("starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+    return
+    vault = Vault(logger=logger,
                   root_path="secretv2",
                   vault_server=ctx.config["VAULT_ADDR"],
                   service_role=ctx.config["VAULT_ROLE"],
