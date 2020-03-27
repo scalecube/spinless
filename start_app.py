@@ -42,7 +42,7 @@ def kubernetes_deploy():
     )
     helm.install_package()
     # job = create_job(helm_deploy, (), data)
-    return jsonify({'id': job.id})
+    return jsonify({"helm": "installed"}) #jsonify({'id': job.id})
 
 
 @app.route('/kubernetes/job/cancel/<job_id>')

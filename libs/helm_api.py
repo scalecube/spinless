@@ -69,6 +69,8 @@ class Helm:
                       repo_slug=self.repo,
                       version=self.version,
                       )
+        ### Remove create role
+        vault.create_role()
         vault_env = vault.get_env("env")
         env = default_values['env']
         env.update(vault_env)
