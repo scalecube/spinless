@@ -59,7 +59,7 @@ class Helm:
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
-            default_values = yaml.load(default_values_yaml)
+            default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
         vault = Vault(logger=self.logger,
                       vault_server=self.vault_server,
                       service_role=self.service_role,
