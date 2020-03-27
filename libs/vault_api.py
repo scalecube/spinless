@@ -56,10 +56,10 @@ class Vault:
         policy_path = "{}/{}/{}/*".format(self.root_path, self.owner, self.repo)
         self.logger.info("Policy name is: {}".format(policy_name))
         self.logger.info("Policy path is: {}".format(policy_path))
+        policy_1_path = 'path "{}" '.format(policy_path)
+        policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
         try:
-            client.set_policy(policy_name,
-                              'path "{}/*" { capabilities = ["create", "read", "update", "delete", "list"]}'.format(
-                                  policy_path))
+            client.set_policy(policy_name, policy_1_path+policy_2_path)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
