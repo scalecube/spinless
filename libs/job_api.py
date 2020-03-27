@@ -58,10 +58,11 @@ class Job:
         try:
             self.status.finish(JobState.RUNNING)
             self.proc.start()
-
+            return self
         except Exception as ex:
             self.status.finish(JobState.FAILED)
             self.__terminate()
+
 
     def stop(self):
         if self.__running():
