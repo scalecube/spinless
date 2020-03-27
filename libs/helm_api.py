@@ -83,7 +83,7 @@ class Helm:
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
         helm_exec = 'helm upgrade --debug --install --namespace {} ' \
-                    '--name {} -f {} {} --recreate-pods'.format(
+                    '{} -f {} {} --recreate-pods'.format(
                         self.namespace, self.namespace,
                         path_to_values_yaml, self.helm_dir
         )
