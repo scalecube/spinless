@@ -94,4 +94,7 @@ class Helm:
                          "{}".format(self.helm_dir), "--recreate-pods"],
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
+        time.sleep(3)
+        self.logger.info("Helm install stdout: {}".format(stdout))
+        self.logger.info("Helm install stderr: {}".format(stderr))
         return
