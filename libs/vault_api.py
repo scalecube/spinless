@@ -44,7 +44,7 @@ class Vault:
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
             env = client.read(path)
-            self.logger("ENV from vault is {}: ".format(env))
+            self.logger.info("ENV from vault is {}: ".format(env))
             return env['data']
         except Exception as e:
             self.logger.info("Vault get_env exception is: {}".format(e))
