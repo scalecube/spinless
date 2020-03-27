@@ -65,8 +65,8 @@ class Helm:
                       service_role=self.service_role,
                       root_path="secretv2",
                       owner=self.owner,
-                      repo_slug=self.repo,
-                      version=self.version,
+                      repo=self.repo,
+                      version=self.version
                       )
         ### Remove create role
         vault.create_role()

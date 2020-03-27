@@ -12,7 +12,7 @@ class Vault:
                  vault_secrets_path=None):
         self.root_path = root_path
         self.owner = owner
-        self.repo_slug = repo
+        self.repo = repo
         self.version = version
         self.app_path = "{}-{}-{}".format(owner, repo, version)
         self.vault_server = vault_server
