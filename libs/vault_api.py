@@ -30,6 +30,7 @@ class Vault:
     def get_self_app_env(self):
         client = self.auth_client()
         try:
+            self.logger.info("Vault secrets path is: {}".format(self.vault_secrets_path))
             env = client.read(self.vault_secrets_path)['data']
             return env
         except Exception as e:
