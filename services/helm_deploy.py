@@ -1,6 +1,6 @@
 from libs.job_api import JobState
 from libs.log_api import JobLogger
-from libs.vault_api import Vault
+from libs.helm_api import Helm
 
 
 def helm_deploy(ctx):
@@ -9,28 +9,19 @@ def helm_deploy(ctx):
     logger.emit(JobState.RUNNING.name, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
     logger.emit(JobState.RUNNING.name, "starting deploy")
 
-    try:
-        vault = Vault(logger=logger,
-                      root_path="secretv2",
-                      vault_server=ctx.config["VAULT_ADDR"],
-                      service_role=ctx.config["VAULT_ROLE"],
-                      owner=data.get("owner"),
-                      repo=data.get("repo"),
-                      version=data.get("version"),
-                      vault_secrets_path=ctx.config["VAULT_SECRETS_PATH"])
+    posted_env = {'sha': data['sha'], 'issue_number': data['issue_number']}
+    helm = Helm(
+        logger=data["logger"],
+        owner=data["owner"],
+        repo=data["repo"],
+        version=data["branch_name"],
+        posted_env=posted_env
+    )
+    helm.install_package()
 
-        service_account = vault.app_path
-        spinless_app_env = vault.get_self_app_env()
-        vault.create_role()
-        env = vault.get_env("env")
-        # TODO: add env to helm and install
+    logger.emit(JobState.RUNNING.name, "OK doing installl")
+    logger.emit(JobState.SUCCESS.name, "deployed successfully")
+    # logger.emit(JobState.FAILED.name, "failed to deploy")
+    # logger.end()
 
-        logger.emit(JobState.RUNNING.name, "OK doing installl")
-        logger.emit(JobState.SUCCESS.name, "deployed successfully")
-
-    except Exception as e:
-        logger.emit(JobState.FAILED.name, "failed to deploy")
-        logger.end()
-
-    else:
-        logger.end()
+    logger.end()
