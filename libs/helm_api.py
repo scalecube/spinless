@@ -86,13 +86,12 @@ class Helm:
     def install_package(self):
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
-        helm_exec = 'helm upgrade --debug --install --namespace {} ' \
-                    '{} -f {} {} --recreate-pods'.format(
-                        self.namespace, self.namespace,
-                        path_to_values_yaml, self.helm_dir
-        )
         self.logger.info("Helm execution command is: {}".format(helm_exec))
-        process = Popen([helm_exec],
+        process = Popen(["/usr/local/bin/helm", "upgrade", "--debug",
+                         "--install", "--namespace",
+                         "{}".format(self.namespace), "{}".self.namespace,
+                         "-f", "{}".format(path_to_values_yaml),
+                         "{}".format(self.helm_dir), "--recreate-pods"],
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         return
