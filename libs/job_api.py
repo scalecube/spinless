@@ -63,7 +63,6 @@ class Job:
             self.status.finish(JobState.FAILED)
             self.__terminate()
 
-
     def stop(self):
         if self.__running():
             self.status.finish(JobState.CANCELLED)
