@@ -40,7 +40,7 @@ class Helm:
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
         targz = tarfile.open(helm_tag_gz, "r:gz")
-        targz.extractall(targz, r"{}".format(self.path))
+        targz.extractall(r"{}".format(self.path))
         return
 
 
