@@ -4,7 +4,6 @@ from flask_api import FlaskAPI
 from services.helm_deploy import helm_deploy
 from libs.job_api import *
 
-from libs.helm_api import Helm
 
 dictConfig({
     'version': 1,
@@ -35,7 +34,7 @@ def kubernetes_deploy():
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
     job = create_job(helm_deploy, (app.logger,), data).start()
-    return jsonify({"helm": "installed"}) #jsonify({'id': job.id})
+    return jsonify({'id': job.id})
 
 
 @app.route('/kubernetes/job/cancel/<job_id>')
@@ -46,6 +45,7 @@ def cancel(job_id):
     if cancel_job(job_id):
         return Response("Canceled job {}".format(job_id))
     return abort(400, Response("Job {} was not running".format(job_id)))
+
 
 @app.route('/kubernetes/job/status/<job_id>')
 def status(job_id):
