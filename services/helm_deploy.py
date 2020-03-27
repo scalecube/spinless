@@ -31,8 +31,8 @@ def helm_deploy(ctx, logger):
     )
     helm.install_package()
 
-    logger.emit(JobState.RUNNING.name, "OK doing installl")
-    logger.emit(JobState.SUCCESS.name, "deployed successfully")
+    logger.emit(JobState.RUNNING.RUNNING, "OK doing installl")
+    logger.emit(JobState.SUCCESS.SUCCESS, "deployed successfully")
     # logger.emit(JobState.FAILED.name, "failed to deploy")
     # logger.end()
 
