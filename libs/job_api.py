@@ -1,8 +1,10 @@
+import json
 import shlex
 import threading
 import uuid
 from _datetime import datetime
 from enum import Enum
+from multiprocessing.context import Process
 from subprocess import Popen, PIPE, STDOUT
 
 from libs.log_api import *
@@ -27,6 +29,9 @@ class Status:
         self.end = ""
         self.elapsed = ""
 
+    def update(self, state):
+        self.state = state
+
     def finish(self, state):
         self.state = state
         self.end = datetime.now()
@@ -43,31 +48,19 @@ class Status:
 
 
 class Job:
-    def __init__(self, data):
+    def __init__(self, func, args, data):
         self.id = str(uuid.uuid1())
-        self.cmd = data.get("cmd", "echo no-op")
         self.owner = data.get("owner", "no_owner")
         self.repo = data.get("repo", "no_repo")
         self.status = Status(self.id)
-        self.proc = None
-        self.logfile = None
+        self.data = data
+        self.proc = Process(target=func, args=(self, *args))
+        self.proc.start()
         return
 
     def start(self):
         try:
-            f_name = get_logfile(self.owner, self.repo, self.id)
-            with Popen(shlex.split(self.cmd), stdout=PIPE, stderr=STDOUT) as p, open(f_name, 'w') as logfile:
-                self.status.state = JobState.RUNNING
-                self.proc = p
-                for line in iter(p.stdout.readline, b''):
-                    logfile.write(line.decode("utf-8"))
-                code = p.wait()
-                logfile.write("Exit code: {}".format(code))
-                if code != 0:
-                    self.status.finish(JobState.FAILED)
-                else:
-                    self.status.finish(JobState.SUCCESS)
-            self.logfile = f_name
+            self.status.finish(JobState.RUNNING)
 
         except Exception as ex:
             self.status.finish(JobState.FAILED)
@@ -114,11 +107,10 @@ class Job:
             return False
 
 
-def create_job(app, data):
-    job = Job(data)
+def create_job(func, args, data):
+    job = Job(func, args, data)
     jobs_dict[job.id] = job
-    threading.Thread(target=job.start).start()
-    return job.id
+    return job
 
 
 def cancel_job(job_id):
