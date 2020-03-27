@@ -75,7 +75,7 @@ class Helm:
         env.update(vault_env)
         default_values['env'] = env
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
-        with open(path_to_values_yaml) as spinless_values_yaml:
+        with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
         return path_to_values_yaml
 
