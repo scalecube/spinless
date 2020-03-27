@@ -72,7 +72,7 @@ class JobLogger:
         pass
 
     def log(self, event_status, message):
-        status(self.logger, self.id, event_status.name, message)
+        status(self.logger, self.id, event_status, message)
         pass
 
     def end(self):
