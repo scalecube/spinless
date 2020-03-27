@@ -86,7 +86,6 @@ class Helm:
     def install_package(self):
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
-        self.logger.info("Helm execution command is: {}".format(helm_exec))
         process = Popen(["/usr/local/bin/helm", "upgrade", "--debug",
                          "--install", "--namespace",
                          "{}".format(self.namespace), "{}".self.namespace,
