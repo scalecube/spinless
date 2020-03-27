@@ -72,8 +72,12 @@ class Helm:
         vault.create_role()
         vault_env = vault.get_env("env")
         env = default_values['env']
+        self.logger.info("Vault values are: {}".format(vault_env))
+        self.logger.info("Default values are: {}".format(env))
         env.update(vault_env)
         default_values['env'] = env
+        default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
+        self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
