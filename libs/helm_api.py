@@ -46,7 +46,7 @@ class Helm:
 
     def prepare_package(self):
         os.mkdir(self.path)
-        data = self.get_env_from_vault
+        data = self.get_env_from_vault()
         url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
             data['nexus_user'], data['nexus_password'], data['nexus_repo'],
             self.owner, self.repo, self.helm_version
