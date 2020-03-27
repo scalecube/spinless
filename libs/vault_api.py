@@ -39,9 +39,11 @@ class Vault:
 
     def get_env(self, env_or_app):
         client = self.auth_client()
+        path = "{}/{}/{}".format(
+                self.root_path, self.app_path, env_or_app)
+        self.logger.info("Get_env in vault path is: {}".format(path))
         try:
-            env = client.read("{}/{}/{}".format(
-                self.root_path, self.app_path, env_or_app))['data']
+            env = client.read(path)['data']
             return env
         except Exception as e:
             self.logger.info("Vault get_env exception is: {}".format(e))
