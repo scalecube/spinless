@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import logging
 import json
@@ -24,21 +25,24 @@ def get_logger(owner, repo, id):
 
 
 def tail_f(path, interval=1.0):
+    try:
+        THIS_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
+        log_file = os.path.join(THIS_FOLDER, './logs/{}'.format(path))
+        file = open(log_file, 'r')
+        while True:
+            where = file.tell()
+            line = file.readline()
+            if not line:
+                time.sleep(interval)
+                file.seek(where)
+            elif '"status": "EOF"' in line:
+                file.close()
+                break
+            else:
+                yield line
 
-    file = open('logs/{}'.format(path))
-    while True:
-        where = file.tell()
-        line = file.readline()
-        if not line:
-            time.sleep(interval)
-            file.seek(where)
-        elif '"status": "EOF"' in line:
-            file.close()
-            break
-        else:
-            yield "{}\n".format(line)
-    pass
-
+    except Exception as err:
+        print(err)
 
 def status(logger, id, status, message):
     data = {
