@@ -39,8 +39,8 @@ class Vault:
 
     def get_env(self, env_or_app):
         client = self.auth_client()
-        path = "{}/{}/{}".format(
-                self.root_path, self.app_path, env_or_app)
+        path = "{}/{}/{}/{}".format(
+                self.root_path, self.owner, self.repo, env_or_app)
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
             env = client.read(path)
