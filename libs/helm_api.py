@@ -88,7 +88,7 @@ class Helm:
         path_to_values_yaml = self.enrich_values_yaml()
         process = Popen(["/usr/local/bin/helm", "upgrade", "--debug",
                          "--install", "--namespace",
-                         "{}".format(self.namespace), "{}".self.namespace,
+                         "{}".format(self.namespace), "{}".format(self.namespace),
                          "-f", "{}".format(path_to_values_yaml),
                          "{}".format(self.helm_dir), "--recreate-pods"],
                         stdout=PIPE, stderr=PIPE)
