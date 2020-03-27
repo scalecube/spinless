@@ -54,6 +54,7 @@ class Vault:
         client = self.auth_client()
         policy_name = "{}-policy".format(self.app_path)
         policy_path = "{}/{}/*".format(self.root_path, self.app_path)
+        self.logger.info("Policy name is: {}".format(policy_path))
         self.logger.info("Policy path is: {}".format(policy_path))
         try:
             client.set_policy(policy_name,
