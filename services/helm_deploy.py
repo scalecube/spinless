@@ -8,6 +8,7 @@ def helm_deploy(ctx):
     logger = JobLogger(data['owner'], data['repo'], ctx.id)
     logger.emit(JobState.RUNNING.name, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
     logger.emit(JobState.RUNNING.name, "starting deploy")
+
     try:
         vault = Vault(logger=logger,
                       root_path="secretv2",
@@ -17,13 +18,16 @@ def helm_deploy(ctx):
                       repo=data.get("repo"),
                       version=data.get("version"),
                       vault_secrets_path=ctx.config["VAULT_SECRETS_PATH"])
+
         service_account = vault.app_path
         spinless_app_env = vault.get_self_app_env()
         vault.create_role()
         env = vault.get_env("env")
         # TODO: add env to helm and install
 
+        logger.emit(JobState.RUNNING.name, "OK doing installl")
         logger.emit(JobState.SUCCESS.name, "deployed successfully")
+
     except Exception as e:
         logger.emit(JobState.FAILED.name, "failed to deploy")
         logger.end()

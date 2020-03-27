@@ -27,7 +27,7 @@ def get_logger(owner, repo, id):
 def tail_f(path, interval=1.0):
     try:
         PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-        log_file = os.path.join(PROJECT_FOLDER, './logs/{}'.format(path))
+        log_file = '{}/logs/{}'.format(PROJECT_FOLDER, path)
         file = open(log_file, 'r')
         while True:
             where = file.tell()

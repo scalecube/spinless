@@ -1,11 +1,7 @@
-import json
-import shlex
-import threading
 import uuid
 from _datetime import datetime
 from enum import Enum
 from multiprocessing.context import Process
-from subprocess import Popen, PIPE, STDOUT
 
 from libs.log_api import *
 
@@ -55,12 +51,13 @@ class Job:
         self.status = Status(self.id)
         self.data = data
         self.proc = Process(target=func, args=(self, *args))
-        self.proc.start()
+
         return
 
     def start(self):
         try:
             self.status.finish(JobState.RUNNING)
+            self.proc.start()
 
         except Exception as ex:
             self.status.finish(JobState.FAILED)
