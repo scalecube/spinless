@@ -38,11 +38,9 @@ class Helm:
 
     def untar_helm_gz(self, helm_tag_gz):
         targz = tarfile.open(helm_tag_gz, "r:gz")
-        if tarfile.is_tarfile():
-            targz.extractall(r"{}".format(self.path))
-            return
-        else:
-            return None
+        targz.extractall(targz, r"{}".format(self.path))
+        return
+
 
     def prepare_package(self):
         os.mkdir(self.path)
