@@ -59,6 +59,7 @@ class Vault:
         return policy_name
 
     def create_role(self):
+        self.logger.info("Creating service role")
         client = self.auth_client()
         policy_name = self.create_policy()
         try:
