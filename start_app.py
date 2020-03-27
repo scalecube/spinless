@@ -38,7 +38,7 @@ def kubernetes_deploy():
         logger=app.logger,
         owner=data["owner"],
         repo=data["repo"],
-        version=data["version"]
+        version=data["branch_name"]
     )
     helm.install_package()
     # job = create_job(helm_deploy, (), data)
