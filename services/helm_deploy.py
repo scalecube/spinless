@@ -1,11 +1,9 @@
-import logging
-
 from libs.job_api import JobState
 from libs.log_api import JobLogger
 from libs.vault_api import Vault
 
 
-def deploy(ctx):
+def helm_deploy(ctx):
     data = ctx.data
     logger = JobLogger(data['owner'], data['repo'], ctx.id)
     logger.emit(JobState.RUNNING.name, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))

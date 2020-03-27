@@ -2,7 +2,7 @@ from logging.config import dictConfig
 import json
 from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
-from services.kubernetes import deploy
+from services.helm_deploy import helm_deploy
 from libs.job_api import *
 
 dictConfig({
@@ -33,11 +33,11 @@ def kubernetes_deploy():
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
-    job = create_job(deploy, (), data)
+    job = create_job(helm_deploy, (), data)
     return jsonify({'id': job.id})
 
 
-@app.route('/kubernetes/cancel/<job_id>')
+@app.route('/kubernetes/job/cancel/<job_id>')
 def cancel(job_id):
     app.logger.info("Request to cancel {}".format(job_id))
     if not job_id:
@@ -47,7 +47,7 @@ def cancel(job_id):
     return abort(400, Response("Job {} was not running".format(job_id)))
 
 
-@app.route('/kubernetes/status/<job_id>')
+@app.route('/kubernetes/job/status/<job_id>')
 def status(job_id):
     app.logger.info("Request to status is {}".format(job_id))
     if not job_id:
@@ -55,7 +55,7 @@ def status(job_id):
     return get_job_status(job_id)
 
 
-@app.route('/kubernetes/log/<owner>/<repo>/<job_id>')
+@app.route('/kubernetes/status/<owner>/<repo>/<job_id>')
 def get_log_api(owner, repo, job_id):
     app.logger.info("Request to get_log  is {}".format(job_id))
     if not job_id:
