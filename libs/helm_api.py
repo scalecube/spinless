@@ -19,7 +19,7 @@ class Helm:
         self.timestamp = round(time.time())
         self.path = "/tmp/{}".format(self.timestamp)
         self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
-        self.namespace = "{}-{}-{}-{}".format(self.path, self.owner, self.repo, self.version)
+        self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
         self.vault_server = os.getenv("VAULT_ADDR")
         self.service_role = os.getenv("VAULT_ROLE")
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
