@@ -18,8 +18,8 @@ def create_posted_env(data):
 def helm_deploy(ctx, logger):
     data = ctx.data
     logger = JobLogger(data['owner'], data['repo'], ctx.id)
-    logger.emit(JobState.RUNNING.CREATED, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-    logger.emit(JobState.RUNNING.CREATED, "starting deploy")
+    logger.emit(JobState.RUNNING, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+    logger.emit(JobState.RUNNING, "starting deploy")
 
     posted_env = create_posted_env(data)
     helm = Helm(
@@ -31,8 +31,8 @@ def helm_deploy(ctx, logger):
     )
     helm.install_package()
 
-    logger.emit(JobState.RUNNING.RUNNING, "OK doing installl")
-    logger.emit(JobState.SUCCESS.SUCCESS, "deployed successfully")
+    logger.emit(JobState.RUNNING, "OK doing installl")
+    logger.emit(JobState.SUCCESS, "deployed successfully")
     # logger.emit(JobState.FAILED.name, "failed to deploy")
     # logger.end()
 
