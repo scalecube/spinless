@@ -43,7 +43,6 @@ class Helm:
         targz.extractall(r"{}".format(self.path))
         return
 
-
     def prepare_package(self):
         os.mkdir(self.path)
         data = self.get_env_from_vault()
@@ -60,7 +59,7 @@ class Helm:
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
-            default_values = yaml.load_safe(default_values_yaml)
+            default_values = yaml.load(default_values_yaml)
         vault = Vault(logger=self.logger,
                       vault_server=self.vault_server,
                       service_role=self.service_role,
