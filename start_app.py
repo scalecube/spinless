@@ -34,11 +34,13 @@ def kubernetes_deploy():
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
+    posted_env = {'sha': data['sha'], 'issue_number': data['issue_number']}
     helm = Helm(
         logger=app.logger,
         owner=data["owner"],
         repo=data["repo"],
-        version=data["branch_name"]
+        version=data["branch_name"],
+        posted_env=posted_env
     )
     helm.install_package()
     # job = create_job(helm_deploy, (), data)

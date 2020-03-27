@@ -9,11 +9,12 @@ from libs.vault_api import Vault
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, version, helm_version='0.0.1'):
+    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
         self.logger = logger
         self.owner = owner
         self.repo = repo
         self.version = version
+        self.posted_env = posted_env
         self.helm_version = helm_version
         self.timestamp = round(time.time())
         self.path = "/tmp/{}".format(self.timestamp)
