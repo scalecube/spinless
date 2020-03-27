@@ -1,9 +1,10 @@
 from logging.config import dictConfig
-import json
 from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 from services.helm_deploy import helm_deploy
 from libs.job_api import *
+
+from libs.helm_api import Helm
 
 dictConfig({
     'version': 1,
@@ -33,7 +34,14 @@ def kubernetes_deploy():
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
-    job = create_job(helm_deploy, (), data)
+    helm = Helm(
+        logger=app.logger,
+        owner=data["owner"],
+        repo=data["repo"],
+        version=data["version"]
+    )
+    helm.install_package()
+    # job = create_job(helm_deploy, (), data)
     return jsonify({'id': job.id})
 
 

@@ -9,15 +9,16 @@ from libs.vault_api import Vault
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, helm_version='0.0.1'):
+    def __init__(self, logger, owner, repo, version, helm_version='0.0.1'):
         self.logger = logger
         self.owner = owner
         self.repo = repo
+        self.version = version
         self.helm_version = helm_version
         self.timestamp = round(time.time())
         self.path = "/tmp/{}".format(self.timestamp)
         self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
-        self.namespace = "{}-{}-{}".format(self.path, self.owner, self.repo)
+        self.namespace = "{}-{}-{}-{}".format(self.path, self.owner, self.repo, self.version)
         self.vault_server = os.getenv("VAULT_ADDR")
         self.service_role = os.getenv("VAULT_ROLE")
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
