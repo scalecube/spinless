@@ -26,8 +26,8 @@ def get_logger(owner, repo, id):
 
 def tail_f(path, interval=1.0):
     try:
-        THIS_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-        log_file = os.path.join(THIS_FOLDER, './logs/{}'.format(path))
+        PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
+        log_file = os.path.join(PROJECT_FOLDER, './logs/{}'.format(path))
         file = open(log_file, 'r')
         while True:
             where = file.tell()
@@ -43,6 +43,7 @@ def tail_f(path, interval=1.0):
 
     except Exception as err:
         print(err)
+
 
 def status(logger, id, status, message):
     data = {
@@ -71,7 +72,7 @@ class JobLogger:
         pass
 
     def log(self, event_status, message):
-        status(self.logger, self.id, event_status, message)
+        status(self.logger, self.id, event_status.name, message)
         pass
 
     def end(self):
