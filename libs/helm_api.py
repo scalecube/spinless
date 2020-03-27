@@ -75,6 +75,7 @@ class Helm:
         self.logger.info("Vault values are: {}".format(vault_env))
         self.logger.info("Default values are: {}".format(env))
         env.update(vault_env)
+        env.update(self.posted_env)
         default_values['env'] = env
         default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
         self.logger.info("Env before writing: {}".format(default_values))
