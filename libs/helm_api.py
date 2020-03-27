@@ -52,7 +52,7 @@ class Helm:
             self.owner, self.repo, self.helm_version
         )
         r = requests.get(url)
-        helm_tag_gz = '{}/{}-{}.tgz'.format(self.path, data['owner'], data['repo'])
+        helm_tag_gz = '{}/{}-{}.tgz'.format(self.path, self.owner, self.repo)
         with open(helm_tag_gz) as helm_archive:
             helm_archive.write(r.content)
         self.untar_helm_gz(helm_tag_gz)
