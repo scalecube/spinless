@@ -3,15 +3,27 @@ from libs.log_api import JobLogger
 from libs.helm_api import Helm
 
 
-def helm_deploy(ctx):
+def create_posted_env(data):
+    posted_env = {
+        'OWNER': data.get("owner", "no_owner"),
+        'REPO': data.get("repo", "no_repo"),
+        'BRANCH_NAME': data.get("branch_name", "no_branch_name"),
+        'SHA': data.get("sha", "no_sha"),
+        'PR': data.get("issue_number", "no_issue_number"),
+        'NAMESPACE': data.get("namespace", "no_namespace")
+    }
+    return posted_env
+
+
+def helm_deploy(ctx, logger):
     data = ctx.data
     logger = JobLogger(data['owner'], data['repo'], ctx.id)
     logger.emit(JobState.RUNNING.name, "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
     logger.emit(JobState.RUNNING.name, "starting deploy")
 
-    posted_env = {'sha': data['sha'], 'issue_number': data['issue_number']}
+    posted_env = create_posted_env
     helm = Helm(
-        logger=data["logger"],
+        logger=logger,
         owner=data["owner"],
         repo=data["repo"],
         version=data["branch_name"],
