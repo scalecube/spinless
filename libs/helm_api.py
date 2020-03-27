@@ -3,8 +3,8 @@ import os
 import requests
 import tarfile
 import yaml
-from subprocess import Popen, PIPE
 
+from subprocess import Popen, PIPE
 from libs.vault_api import Vault
 
 
@@ -17,9 +17,10 @@ class Helm:
         self.timestamp = round(time.time())
         self.path = "/tmp/{}".format(self.timestamp)
         self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
-        self.vault_server=os.getenv("VAULT_ADDR")
-        self.service_role=os.getenv("VAULT_ROLE")
-        self.vault_secrets_path=os.getenv("VAULT_SECRETS_PATH")
+        self.namespace = "{}-{}-{}".format(self.path, self.owner, self.repo)
+        self.vault_server = os.getenv("VAULT_ADDR")
+        self.service_role = os.getenv("VAULT_ROLE")
+        self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
 
     def get_env_from_vault(self):
         vault = Vault(logger=self.logger,
@@ -58,7 +59,7 @@ class Helm:
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
-            default_values = yaml.load(default_values_yaml)
+            default_values = yaml.load_safe(default_values_yaml)
         vault = Vault(logger=self.logger,
                       vault_server=self.vault_server,
                       service_role=self.service_role,
@@ -71,12 +72,21 @@ class Helm:
         env = default_values['env']
         env.update(vault_env)
         default_values['env'] = env
-
+        path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
+        with open(path_to_values_yaml) as spinless_values_yaml:
+            yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
+        return path_to_values_yaml
 
     def install_package(self):
         self.prepare_package()
-        self.enrich_values_yaml()
-        process = Popen(['helm --install --upgrade --debug'.format()],
+        path_to_values_yaml = self.enrich_values_yaml()
+        helm_exec = 'helm upgrade --debug --install --namespace {} ' \
+                    '--name {} -f {} {} --recreate-pods'.format(
+                        self.namespace, self.namespace,
+                        path_to_values_yaml, self.helm_dir
+        )
+        self.logger.info("Helm execution command is: {}".format(helm_exec))
+        process = Popen([helm_exec],
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-        pass
+        return
