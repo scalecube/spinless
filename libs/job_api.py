@@ -63,6 +63,9 @@ class Job:
 
         self.logger.emit(status, message)
 
+    def end(self):
+        self.logger.end()
+
     def start(self):
         try:
             self.status.finish(JobState.RUNNING)
