@@ -36,12 +36,12 @@ def tail_f(owner, repo, job_id, interval=1.0):
     with open(log_file, 'a+') as file:
         file.seek(0)
         for line in file.readlines():
-            yield line
+            yield line + '\n'
             if '"status": "EOF"' in line:
                 return
 
         for line in tailer.follow(file):
-            yield line
+            yield line + '\n'
             if '"status": "EOF"' in line:
                 break
 
