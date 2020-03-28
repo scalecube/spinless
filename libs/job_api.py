@@ -2,8 +2,6 @@ import uuid
 from _datetime import datetime
 from enum import Enum
 from multiprocessing.context import Process
-import subprocess
-from threading import Thread
 
 from libs.log_api import *
 
@@ -20,10 +18,11 @@ class JobState(Enum):
 
 class Status:
 
-    def __init__(self, id):
-        self.start = datetime.now()
-        self.state = JobState.CREATED
+    def __init__(self, id, name="Noname"):
         self.id = id
+        self.name = name
+        self.state = JobState.CREATED
+        self.start = datetime.now()
         self.end = ""
         self.elapsed = ""
 
@@ -48,45 +47,30 @@ class Status:
 class Job:
     def __init__(self, func, args, data):
         self.id = str(uuid.uuid1())
+        self.status = Status(self.id)
         self.owner = data.get("owner", "no_owner")
         self.repo = data.get("repo", "no_repo")
-        self.status = Status(self.id)
         self.data = data
-        self.logger = JobLogger(data['owner'], data['repo'], self.id)
+        self.logger = JobLogger(self.owner, self.repo, self.id)
         self.proc = Process(target=func, args=(self, *args))
-
         return
 
-    def emit(self, status, message):
+    def emit(self, _status, message):
         if not self.logger.handlers():
             self.logger = JobLogger(self.owner, self.repo, self.id)
-
-        self.logger.emit(status, message)
+        self.logger.emit(_status, message)
 
     def end(self):
-        self.logger.end()
+        self.logger.write_eof()
 
     def start(self):
         try:
-            self.status.finish(JobState.RUNNING)
+            self.status.update(JobState.RUNNING)
             self.proc.start()
             return self
         except Exception as ex:
             self.status.finish(JobState.FAILED)
             self.__terminate()
-
-    def then(self, callback):
-        def __pool():
-            while True:
-                if not self.proc.exitcode:
-                    time.sleep(1)
-                else:
-                    self.logger.end()
-                    callback(self)
-
-        Thread(target=__pool, args=((1))).start()
-
-
 
     def stop(self):
         if self.__running():
@@ -129,8 +113,8 @@ class Job:
             return False
 
 
-def create_job(func, args, data):
-    job = Job(func, args, data)
+def create_job(func, app_logger, data):
+    job = Job(func, app_logger, data)
     jobs_dict[job.id] = job
     return job
 

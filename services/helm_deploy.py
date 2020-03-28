@@ -15,10 +15,10 @@ def create_posted_env(data):
     return posted_env
 
 
-def helm_deploy(ctx, applogger):
+def helm_deploy(job_ref, applogger):
     try:
-        data = ctx.data
-        ctx.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
+        data = job_ref.data
+        job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
 
         posted_env = create_posted_env(data)
         helm = Helm(
@@ -30,9 +30,9 @@ def helm_deploy(ctx, applogger):
         )
         helm.install_package()
 
-        ctx.emit("SUCCESS", "finished. helm deployed successfully")
+        job_ref.emit("SUCCESS", "finished. helm deployed successfully")
     except Exception as ex:
-        ctx.emit("ERROR", "failed to deploy reason {}".format(ex))
+        job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
 
     finally:
-        ctx.end()
+        job_ref.write_eof()

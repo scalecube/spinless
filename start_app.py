@@ -33,7 +33,7 @@ def kubernetes_deploy():
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
-    job = create_job(helm_deploy, (app.logger,), data).start()
+    job = create_job(helm_deploy, app.logger, data).start()
 
     return jsonify({'id': job.id})
 

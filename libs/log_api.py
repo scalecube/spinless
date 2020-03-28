@@ -16,9 +16,9 @@ def create_dir(path):
         print("Successfully created the directory %s" % path)
 
 
-def get_logger(owner, repo, id):
-    PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-    path = "{}/logs/{}/{}".format(PROJECT_FOLDER, owner, repo)
+def create_logger(owner, repo, id):
+    prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
+    path = "{}/logs/{}/{}".format(prj_dir, owner, repo)
     create_dir(path)
     logger = logging.getLogger(id)
     logger.setLevel(logging.DEBUG)
@@ -26,7 +26,7 @@ def get_logger(owner, repo, id):
     return logger
 
 
-def tail_f(owner, repo, job_id, interval=1.0):
+def tail_f(owner, repo, job_id):
 
     PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
     log_file = '{}/logs/{}/{}/{}.log'.format(PROJECT_FOLDER, owner, repo, job_id)
@@ -66,21 +66,19 @@ class JobLogger:
         self.owner = owner
         self.repo = repo
         self.id = id
-        self.logger = get_logger(owner, repo, id)
-        self.emit = self.log
-
+        self.logger = create_logger(owner, repo, id)
         return
 
     def info(self, message):
         self.logger.info('{}{}'.format(message, '\n'))
         pass
 
-    def log(self, event_status, message):
+    def emit(self, event_status, message):
         status(self.logger, self.id, event_status, message)
         pass
 
     def handlers(self):
         return self.logger.handlers.__len__() != 0
 
-    def end(self):
+    def write_eof(self):
         self.emit("EOF", '')
