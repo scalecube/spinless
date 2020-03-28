@@ -4,6 +4,7 @@ import time
 import logging
 import json
 from datetime import datetime
+import tailer
 
 
 def create_dir(path):
@@ -16,7 +17,8 @@ def create_dir(path):
 
 
 def get_logger(owner, repo, id):
-    path = "logs/{}/{}".format(owner, repo)
+    PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
+    path = "{}/logs/{}/{}".format(PROJECT_FOLDER, owner, repo)
     create_dir(path)
     logger = logging.getLogger(id)
     logger.setLevel(logging.DEBUG)
@@ -24,25 +26,20 @@ def get_logger(owner, repo, id):
     return logger
 
 
-def tail_f(path, interval=1.0):
+def tail_f(owner, repo, job_id, interval=1.0):
+
     try:
         PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-        log_file = '{}/logs/{}'.format(PROJECT_FOLDER, path)
+        log_file = '{}/logs/{}/{}/{}.log'.format(PROJECT_FOLDER, owner, repo, job_id)
         file = open(log_file, 'r')
-        while True:
-            where = file.tell()
-            line = file.readline()
-            if not line:
-                time.sleep(interval)
-                file.seek(where)
-            elif '"status": "EOF"' in line:
-                file.close()
+        for line in tailer.tail(file, 1000):
+            if '"status": "EOF"' in line:
                 break
             else:
                 yield line
 
-    except Exception as err:
-        print(err)
+    except IOError:
+        yield ''
 
 
 def status(logger, id, status, message):
@@ -68,12 +65,16 @@ class JobLogger:
         return
 
     def info(self, message):
-        self.logger.info(message)
+        self.logger.info('{}{}'.format(message, '\n'))
         pass
 
     def log(self, event_status, message):
         status(self.logger, self.id, event_status, message)
+        self.logger.handlers[0].flush()
         pass
+
+    def handlers(self):
+        return self.logger.handlers.__len__() != 0
 
     def end(self):
         self.emit("EOF", '')

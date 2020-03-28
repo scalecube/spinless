@@ -15,25 +15,26 @@ def create_posted_env(data):
     return posted_env
 
 
-def helm_deploy(ctx, logger):
-    data = ctx.data
-    logger = JobLogger(data['owner'], data['repo'], ctx.id)
-    logger.emit("RUNNING", "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
-    logger.emit("RUNNING", "starting deploy")
+def helm_deploy(ctx, applogger):
+    try:
+        data = ctx.data
+        ctx.emit("RUNNING", "starting deploying to kubernetes namespace: {}".format(data.get("namespace")))
+        ctx.emit("RUNNING", "starting deploy")
 
-    posted_env = create_posted_env(data)
-    helm = Helm(
-        logger=logger,
-        owner=data["owner"],
-        repo=data["repo"],
-        version=data["branch_name"],
-        posted_env=posted_env
-    )
-    helm.install_package()
+        posted_env = create_posted_env(data)
+        helm = Helm(
+            logger=applogger,
+            owner=data["owner"],
+            repo=data["repo"],
+            version=data["branch_name"],
+            posted_env=posted_env
+        )
+        helm.install_package()
+        ctx.emit("SUCCESS", "deployed successfully")
 
-    logger.emit("RUNNING", "OK doing installl")
-    logger.emit("RUNNING", "deployed successfully")
-    # logger.emit(JobState.FAILED.name, "failed to deploy")
-    # logger.end()
+    except Exception as ex:
+        ctx.emit("ERROR", "failed to deploy reason {}".format(ex))
+        ctx.end()
 
-    logger.end()
+    finally:
+        ctx.end()

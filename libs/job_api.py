@@ -2,6 +2,8 @@ import uuid
 from _datetime import datetime
 from enum import Enum
 from multiprocessing.context import Process
+import subprocess
+from threading import Thread
 
 from libs.log_api import *
 
@@ -50,9 +52,16 @@ class Job:
         self.repo = data.get("repo", "no_repo")
         self.status = Status(self.id)
         self.data = data
+        self.logger = JobLogger(data['owner'], data['repo'], self.id)
         self.proc = Process(target=func, args=(self, *args))
 
         return
+
+    def emit(self, status, message):
+        if not self.logger.handlers():
+            self.logger = JobLogger(self.owner, self.repo, self.id)
+
+        self.logger.emit(status, message)
 
     def start(self):
         try:
@@ -62,6 +71,19 @@ class Job:
         except Exception as ex:
             self.status.finish(JobState.FAILED)
             self.__terminate()
+
+    def then(self, callback):
+        def __pool():
+            while True:
+                if not self.proc.exitcode:
+                    time.sleep(1)
+                else:
+                    self.logger.end()
+                    callback(self)
+
+        Thread(target=__pool, args=((1))).start()
+
+
 
     def stop(self):
         if self.__running():
@@ -108,6 +130,10 @@ def create_job(func, args, data):
     job = Job(func, args, data)
     jobs_dict[job.id] = job
     return job
+
+
+def get_job(job_id):
+    return jobs_dict.get(job_id)
 
 
 def cancel_job(job_id):

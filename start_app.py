@@ -34,6 +34,7 @@ def kubernetes_deploy():
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info("Request to CI/CD is {}".format(data))
     job = create_job(helm_deploy, (app.logger,), data).start()
+
     return jsonify({'id': job.id})
 
 
@@ -60,7 +61,8 @@ def get_log_api(owner, repo, job_id):
     app.logger.info("Request to get_log  is {}".format(job_id))
     if not job_id:
         return abort(Response("No job id provided"))
-    return Response(tail_f("{}/{}/{}.log".format(owner, repo, job_id)))
+
+    return Response(tail_f(owner, repo, job_id))
 
 
 @app.route('/namespaces', methods=['GET'])
