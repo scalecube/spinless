@@ -52,7 +52,7 @@ class Job:
         self.repo = data.get("repo", "no_repo")
         self.data = data
         self.logger = JobLogger(self.owner, self.repo, self.id)
-        self.proc = Process(target=func, args=(self, *args))
+        self.proc = Process(target=func, args=(self, args))
         return
 
     def emit(self, _status, message):

@@ -35,4 +35,4 @@ def helm_deploy(job_ref, applogger):
         job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
 
     finally:
-        job_ref.write_eof()
+        job_ref.end()
