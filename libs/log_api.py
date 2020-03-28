@@ -36,7 +36,7 @@ def tail_f(owner, repo, job_id, interval=1.0):
             if '"status": "EOF"' in line:
                 break
             else:
-                yield line
+                yield line + '\n'
 
     except IOError:
         yield ''
