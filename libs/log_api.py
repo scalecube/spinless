@@ -52,7 +52,7 @@ def status(logger, id, status, message):
     data = {
         "id": id,
         "status": status,
-        "timestamp": datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),
+        "timestamp": int(time.time() * 1000),
         "message": message,
     }
     logger.info(json.dumps(data))
