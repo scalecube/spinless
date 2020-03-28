@@ -28,18 +28,24 @@ def get_logger(owner, repo, id):
 
 def tail_f(owner, repo, job_id, interval=1.0):
 
-    try:
-        PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-        log_file = '{}/logs/{}/{}/{}.log'.format(PROJECT_FOLDER, owner, repo, job_id)
-        file = open(log_file, 'r')
-        for line in tailer.tail(file, 1000):
+    PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
+    log_file = '{}/logs/{}/{}/{}.log'.format(PROJECT_FOLDER, owner, repo, job_id)
+    while not os.path.exists(log_file):
+        time.sleep(1)
+
+    with open(log_file, 'a+') as file:
+        file.seek(0)
+        for line in file.readlines():
+            yield line
+            if '"status": "EOF"' in line:
+                return
+
+        for line in tailer.follow(file):
+            yield line
             if '"status": "EOF"' in line:
                 break
-            else:
-                yield line + '\n'
 
-    except IOError:
-        yield ''
+
 
 
 def status(logger, id, status, message):
@@ -50,6 +56,7 @@ def status(logger, id, status, message):
         "message": message,
     }
     logger.info(json.dumps(data))
+    logger.handlers[0].flush()
     pass
 
 
@@ -70,7 +77,6 @@ class JobLogger:
 
     def log(self, event_status, message):
         status(self.logger, self.id, event_status, message)
-        self.logger.handlers[0].flush()
         pass
 
     def handlers(self):
