@@ -1,7 +1,8 @@
 import uuid
-from _datetime import datetime
 from enum import Enum
-from multiprocessing.context import Process
+from multiprocessing import Process, Value
+
+import psutil
 
 from libs.log_api import *
 
@@ -17,93 +18,103 @@ class JobState(Enum):
 
 
 class Status:
+    """Job state. Shared between processes"""
 
-    def __init__(self, id, name="Noname"):
-        self.id = id
+    def __init__(self, job_id, name="Noname"):
+        self.id = job_id
         self.name = name
-        self.state = JobState.CREATED
-        self.start = datetime.now()
-        self.end = ""
-        self.elapsed = ""
+        self.state = Value('b', JobState.CREATED.value)
+        self.start = time.time()
+        self.end = Value("d", 0.0)
+        self.elapsed = Value("d", 0.0)
 
-    def update(self, state):
-        self.state = state
+    def update(self, state_code):
+        self.state.value = state_code
 
-    def finish(self, state):
-        self.state = state
-        self.end = datetime.now()
-        self.elapsed = self.end - self.start
+    def finish(self, state_code):
+        self.state.value = state_code
+        curr = time.time()
+        self.end.value = curr
+        self.elapsed.value = curr - self.start
+
+    def not_done(self):
+        """Whether job is started or running"""
+        return self.state.value <= JobState.SUCCESS.value
 
     def serialize(self):
         return json.dumps({
-            "id": self.id,
-            "state": self.state.name,
-            "start": self.start.__str__(),
-            "end": self.end.__str__() or "",
-            "elapsed": self.elapsed.__str__() or ""
+            "job_id": self.id,
+            "name": self.name,
+            "state": JobState(self.state.value).name,
+            "start": int(self.start),
+            "end": int(self.end.value),
+            "elapsed": int(self.elapsed.value)
         })
 
 
 class Job:
     def __init__(self, func, args, data):
-        self.id = str(uuid.uuid1())
-        self.status = Status(self.id)
+        self.job_id = str(uuid.uuid1())
         self.owner = data.get("owner", "no_owner")
         self.repo = data.get("repo", "no_repo")
         self.data = data
-        self.logger = JobLogger(self.owner, self.repo, self.id)
+        self.logger = JobLogger(self.owner, self.repo, self.job_id)
         self.proc = Process(target=func, args=(self, args))
-        return
+
+        # status stuff
+        self.status = Status(self.job_id)
+        self.status_consumer = Job.__st_consumer()
+        self.status_consumer.send(None)
+        self.status_producer = Job.__st_producer(self)
+        self.__upd_state(self.status.state)
 
     def emit(self, _status, message):
         if not self.logger.handlers():
-            self.logger = JobLogger(self.owner, self.repo, self.id)
+            self.logger = JobLogger(self.owner, self.repo, self.job_id)
         self.logger.emit(_status, message)
 
-    def end(self):
-        self.logger.write_eof()
+    def complete_err(self):
+        self.__upd_state(JobState.FAILED)
+
+    def complete_succ(self):
+        self.__upd_state(JobState.SUCCESS)
 
     def start(self):
         try:
-            self.status.update(JobState.RUNNING)
+            self.__upd_state(JobState.RUNNING)
             self.proc.start()
-            return self
         except Exception as ex:
-            self.status.finish(JobState.FAILED)
+            self.__upd_state(JobState.FAILED)
             self.__terminate()
+        return self
 
-    def stop(self):
+    def cancel(self):
         if self.__running():
-            self.status.finish(JobState.CANCELLED)
+            self.__upd_state(JobState.CANCELLED)
         return self.__terminate()
 
-    def get_log(self):
-        def from_std(stream_to_generate):
-            line = stream_to_generate.readline()
-            while line:
-                line_strip = line.strip()
-                print("[LIVE] Streaming {} for job {}".format(line_strip, self.id))
-                yield line_strip
-                line = stream_to_generate.readline()
+    @classmethod
+    def __st_consumer(cls):
+        while True:
+            st = yield
 
-        def from_file(filename):
-            if not os.path.isfile(filename):
-                return "No log was found: {}".format(filename)
-            with open(filename) as f:
-                line = f.readline()
-                while line:
-                    strip = line.strip()
-                    print("[LOG] Streaming {} for job {}".format(strip, self.id))
-                    yield strip
-                    line = f.readline()
+    @classmethod
+    def __st_producer(cls, self):
+        while True:
+            self.status_consumer.send(self.status)
+            yield
 
-        if self.__running():
-            return from_std(self.proc.stdout)
+    def __upd_state(self, _state):
+        # Job complete
+        if _state.value > JobState.RUNNING.value:
+            self.status.finish(_state.value)
+            self.logger.write_eof()
         else:
-            return from_file(self.logfile)
+            self.status.update(_state.value)
+        next(self.status_producer)
 
     def __running(self):
-        return self.proc and self.proc.poll() is None
+        return self.proc and self.proc.pid and psutil.pid_exists(self.proc.pid)
 
     def __terminate(self):
         if self.__running():
@@ -115,7 +126,7 @@ class Job:
 
 def create_job(func, app_logger, data):
     job = Job(func, app_logger, data)
-    jobs_dict[job.id] = job
+    jobs_dict[job.job_id] = job
     return job
 
 

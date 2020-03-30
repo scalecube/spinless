@@ -1,9 +1,9 @@
+import json
+import logging
 import os
 import sys
 import time
-import logging
-import json
-from datetime import datetime
+
 import tailer
 
 
@@ -16,20 +16,19 @@ def create_dir(path):
         print("Successfully created the directory %s" % path)
 
 
-def create_logger(owner, repo, id):
+def create_logger(owner, repo, job_id):
     prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
     path = "{}/logs/{}/{}".format(prj_dir, owner, repo)
     create_dir(path)
-    logger = logging.getLogger(id)
+    logger = logging.getLogger(job_id)
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.FileHandler("{}/{}.log".format(path, id), 'w', 'utf-8'))
+    logger.addHandler(logging.FileHandler("{}/{}.log".format(path, job_id), 'w', 'utf-8'))
     return logger
 
 
 def tail_f(owner, repo, job_id):
-
-    PROJECT_FOLDER = os.path.dirname(sys.modules['__main__'].__file__)
-    log_file = '{}/logs/{}/{}/{}.log'.format(PROJECT_FOLDER, owner, repo, job_id)
+    prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
+    log_file = '{}/logs/{}/{}/{}.log'.format(prj_dir, owner, repo, job_id)
     while not os.path.exists(log_file):
         time.sleep(1)
 
@@ -46,12 +45,10 @@ def tail_f(owner, repo, job_id):
                 break
 
 
-
-
-def status(logger, id, status, message):
+def status(logger, job_id, _status, message):
     data = {
-        "id": id,
-        "status": status,
+        "id": job_id,
+        "status": _status,
         "timestamp": int(time.time() * 1000),
         "message": message,
     }
@@ -67,15 +64,12 @@ class JobLogger:
         self.repo = repo
         self.id = id
         self.logger = create_logger(owner, repo, id)
-        return
 
     def info(self, message):
         self.logger.info('{}{}'.format(message, '\n'))
-        pass
 
     def emit(self, event_status, message):
         status(self.logger, self.id, event_status, message)
-        pass
 
     def handlers(self):
         return self.logger.handlers.__len__() != 0
