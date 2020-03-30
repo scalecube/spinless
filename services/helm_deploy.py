@@ -26,7 +26,8 @@ def helm_deploy(job_ref, applogger):
             owner=data["owner"],
             repo=data["repo"],
             version=data["branch_name"],
-            posted_env=posted_env
+            posted_env=posted_env,
+            sha=posted_env[:6]
         )
         helm.install_package()
 

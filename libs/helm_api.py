@@ -9,12 +9,13 @@ from libs.vault_api import Vault
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
+    def __init__(self, logger, owner, repo, version, posted_env, sha, helm_version='0.0.1'):
         self.logger = logger
         self.owner = owner
         self.repo = repo
         self.version = version
         self.posted_env = posted_env
+        self.sha = sha
         self.helm_version = helm_version
         self.timestamp = round(time.time())
         self.path = "/tmp/{}".format(self.timestamp)
@@ -46,9 +47,9 @@ class Helm:
     def prepare_package(self):
         os.mkdir(self.path)
         data = self.get_env_from_vault()
-        url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
+        url = 'https://{}:{}@{}{}-{}-{}-{}.tgz'.format(
             data['nexus_user'], data['nexus_password'], data['nexus_repo'],
-            self.owner, self.repo, self.helm_version
+            self.owner, self.repo, self.helm_version, self.sha
         )
         r = requests.get(url)
         helm_tag_gz = '{}/{}-{}.tgz'.format(self.path, self.owner, self.repo)
@@ -78,6 +79,7 @@ class Helm:
         env.update(self.posted_env)
         default_values['env'] = env
         default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
+        default_values['sha'] = self.sha
         self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
