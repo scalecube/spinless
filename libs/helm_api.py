@@ -72,6 +72,12 @@ class Helm:
         ### Remove create role
         vault.create_role()
         vault_env = vault.get_env("env")
+        self_app_env = vault.get_self_app_env()
+        vault_addr = vault.get_common_env(self_app_env["common_env_path"])["VAULT_ADDR"]
+        vault_env = {
+            "VAULT_ADDR": vault_addr,
+            "VAULT_PATH": "secretv2/{}/{}/{}".format(self.owner, self.repo, self.version)
+        }
         env = default_values['env']
         self.logger.info("Vault values are: {}".format(vault_env))
         self.logger.info("Default values are: {}".format(env))

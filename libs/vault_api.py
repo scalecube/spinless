@@ -37,6 +37,16 @@ class Vault:
             self.logger.info("Vault get_self_app_env exception is: {}".format(e))
             return {}
 
+    def get_common_env(self, common_path):
+        client = self.auth_client()
+        try:
+            self.logger.info("Get common env data")
+            common = client.read(common_path)['data']
+            return common
+        except Exception as e:
+            self.logger.info("Vault get_common_env exception is: {}".format(e))
+            return {}
+
     def get_env(self, env_or_app):
         client = self.auth_client()
         path = "{}/{}/{}/{}/{}".format(
