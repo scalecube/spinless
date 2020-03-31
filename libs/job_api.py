@@ -60,13 +60,7 @@ class Job:
         self.data = data
         self.logger = JobLogger(self.owner, self.repo, self.job_id)
         self.proc = Process(target=func, args=(self, args))
-
-        # status stuff
         self.status = Status(self.job_id)
-        self.status_consumer = Job.__st_consumer()
-        self.status_consumer.send(None)
-        self.status_producer = Job.__st_producer(self)
-        self.__upd_state(self.status.state)
 
     def emit(self, _status, message):
         if not self.logger.handlers():
@@ -93,17 +87,6 @@ class Job:
             self.__upd_state(JobState.CANCELLED)
         return self.__terminate()
 
-    @classmethod
-    def __st_consumer(cls):
-        while True:
-            st = yield
-
-    @classmethod
-    def __st_producer(cls, self):
-        while True:
-            self.status_consumer.send(self.status)
-            yield
-
     def __upd_state(self, _state):
         # Job complete
         if _state.value > JobState.RUNNING.value:
@@ -111,7 +94,6 @@ class Job:
             self.logger.write_eof()
         else:
             self.status.update(_state.value)
-        next(self.status_producer)
 
     def __running(self):
         return self.proc and self.proc.pid and psutil.pid_exists(self.proc.pid)
