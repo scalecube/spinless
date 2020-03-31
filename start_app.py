@@ -3,7 +3,7 @@ from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 from services.helm_deploy import helm_deploy
 from libs.job_api import *
-
+1
 
 dictConfig({
     'version': 1,
@@ -35,7 +35,7 @@ def kubernetes_deploy():
     app.logger.info("Request to CI/CD is {}".format(data))
     job = create_job(helm_deploy, app.logger, data).start()
 
-    return jsonify({'id': job.id})
+    return jsonify({'id': job.job_id})
 
 
 @app.route('/kubernetes/job/cancel/<job_id>')
