@@ -3,7 +3,6 @@ from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 from services.helm_deploy import helm_deploy
 from libs.job_api import *
-1
 
 dictConfig({
     'version': 1,

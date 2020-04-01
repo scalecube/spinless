@@ -120,7 +120,7 @@ def cancel_job(job_id):
     job = jobs_dict.get(job_id)
     if not job:
         return False
-    return job.stop()
+    return job.cancel()
 
 
 def get_job_log(job_id):
