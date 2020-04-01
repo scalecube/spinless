@@ -1,8 +1,10 @@
 from logging.config import dictConfig
+
 from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
-from services.helm_deploy import helm_deploy
+
 from libs.job_api import *
+from services.helm_deploy import helm_deploy
 
 dictConfig({
     'version': 1,
@@ -41,10 +43,10 @@ def kubernetes_deploy():
 def cancel(job_id):
     app.logger.info("Request to cancel {}".format(job_id))
     if not job_id:
-        return abort(400, Response("Provide 'job_id' field."))
+        return jsonify({"message": "Provide 'job_id' field."})
     if cancel_job(job_id):
-        return Response("Canceled job {}".format(job_id))
-    return abort(400, Response("Job {} was not running".format(job_id)))
+        return jsonify({"message": "Canceled job {}".format(job_id), "id": job_id})
+    return jsonify({"message": "Job {} was not running".format(job_id)})
 
 
 @app.route('/kubernetes/job/status/<job_id>')
