@@ -5,10 +5,9 @@ import hvac
 dev_mode = os.getenv("dev_mode", False)
 
 dev_settings = {
-    "vault_addr": "localhost",
     "vault_role": "developer",
     "vault_secr_path": "secretv2",
-    "vault_token": "s.e1L8vQHYaxrCIpRcCgWwMDgC"
+    "vault_token": "s.ejLeCg6HjigbVQ2HxkQxRDxp"
 }
 
 
@@ -25,17 +24,15 @@ class Vault:
         self.app_path = "{}-{}-{}".format(owner, repo, version)
         self.dev_mode = dev_mode
         if dev_mode:
-            self.vault_server = dev_settings["vault_addr"],
             self.service_role = dev_settings["vault_role"],
             self.vault_secrets_path = dev_settings["vault_secr_path"]
         else:
-            self.vault_server = os.getenv("VAULT_ADDR")
             self.service_role = os.getenv("VAULT_ROLE")
             self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         self.logger = logger
 
         # init client
-        self.client = hvac.Client(url=self.vault_server)
+        self.client = hvac.Client()
         try:
             if not self.dev_mode:
                 f = open('/var/run/secrets/kubernetes.io/serviceaccount/token')
@@ -52,6 +49,7 @@ class Vault:
         try:
             self.logger.info("Vault secrets path is: {}".format(self.vault_secrets_path))
             env = self.client.read(self.vault_secrets_path)
+            env = self.client.write(self.vault_secrets_path)
             if not env or not env['data']:
                 self.logger.error("Data not found for secret path {}".format(self.vault_secrets_path))
                 return {}

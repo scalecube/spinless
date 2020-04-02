@@ -76,7 +76,8 @@ def create_repo_api(type, name):
     data["name"] = name
     app.logger.info("Request to create  repository  is {}".format(data))
 
-    return create_registry(app.logger, data)
+    result = create_registry(app.logger, data)
+    return result
 
 
 @app.route('/repository/<type>/<name>')

@@ -7,16 +7,12 @@ import yaml
 from subprocess import Popen, PIPE
 from libs.vault_api import Vault
 
-dev_mode = True
-
-
 class Helm:
     def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
         self.logger = logger
         self.owner = owner
         self.repo = repo
         self.version = version
-
         self.posted_env = posted_env
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
