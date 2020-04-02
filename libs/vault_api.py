@@ -6,7 +6,7 @@ dev_mode = os.getenv("dev_mode", False)
 dev_settings = {
     "vault_addr": "localhost",
     "vault_role": "developer",
-    "vault_secr_path": "secretv2/scalecube/spinless/registries/docker/repo1",
+    "vault_secr_path": "secretv2/test",
     "vault_token": "s.AUazaAyTHxBzguX6vJRwN15j"
 }
 
