@@ -30,12 +30,13 @@ class Vault:
             self.service_role = os.getenv("VAULT_ROLE")
             self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         self.logger = logger
+        self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
 
         # init client
         self.client = hvac.Client()
         try:
             if not self.dev_mode:
-                f = open('/var/run/secrets/kubernetes.io/serviceaccount/token')
+                f = open(self.vault_jwt_token)
                 jwt = f.read()
                 self.client.auth_kubernetes(self.service_role, jwt)
             else:
@@ -49,7 +50,6 @@ class Vault:
         try:
             self.logger.info("Vault secrets path is: {}".format(self.vault_secrets_path))
             env = self.client.read(self.vault_secrets_path)
-            env = self.client.write(self.vault_secrets_path)
             if not env or not env['data']:
                 self.logger.error("Data not found for secret path {}".format(self.vault_secrets_path))
                 return {}

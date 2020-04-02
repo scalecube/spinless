@@ -39,6 +39,7 @@ class Helm:
     def prepare_package(self):
         os.mkdir(self.path)
         data = self.get_env_from_vault()
+        data = data['data']
         url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
             data['nexus_user'], data['nexus_password'], data['nexus_repo'],
             self.owner, self.repo, self.helm_version
@@ -77,7 +78,8 @@ class Helm:
     def install_package(self):
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
-        process = Popen(["/usr/local/bin/helm", "upgrade", "--debug",
+        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
+        process = Popen([helm_cmd, "upgrade", "--debug",
                          "--install", "--namespace",
                          "{}".format(self.namespace), "{}".format(self.namespace),
                          "-f", "{}".format(path_to_values_yaml),

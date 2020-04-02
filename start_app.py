@@ -6,6 +6,8 @@ from flask_api import FlaskAPI
 from libs.job_api import *
 from services.helm_deploy import helm_deploy
 from services.registry_service import *
+from dotenv import load_dotenv
+load_dotenv()
 
 dictConfig({
     'version': 1,
