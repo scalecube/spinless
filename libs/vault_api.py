@@ -1,5 +1,14 @@
 import hvac
+import os
 
+dev_mode = os.getenv("dev_mode", False)
+
+dev_settings = {
+    "vault_addr": "localhost",
+    "vault_role": "developer",
+    "vault_secr_path": "secretv2/scalecube/spinless/registries/docker/repo1",
+    "vault_token": "s.AUazaAyTHxBzguX6vJRwN15j"
+}
 
 class Vault:
     def __init__(self, logger,
@@ -15,23 +24,37 @@ class Vault:
         self.repo = repo
         self.version = version
         self.app_path = "{}-{}-{}".format(owner, repo, version)
-        self.vault_server = vault_server
-        self.service_role = service_role
+
+        if dev_mode:
+            self.vault_server = dev_settings["vault_addr"],
+            self.service_role = dev_settings["vault_role"],
+            self.vault_secrets_path = dev_settings["vault_secr_path"]
+        else:
+            self.vault_server = vault_server
+            self.service_role = service_role
+            self.vault_secrets_path = vault_secrets_path
+
         self.logger = logger
-        self.vault_secrets_path = vault_secrets_path
         self.client = hvac.Client(url=vault_server)
+        self.dev_mode = dev_mode
 
     def auth_client(self):
-        f = open('/var/run/secrets/kubernetes.io/serviceaccount/token')
-        jwt = f.read()
-        self.client.auth_kubernetes(self.service_role, jwt)
+        if not self.dev_mode:
+            f = open('/var/run/secrets/kubernetes.io/serviceaccount/token')
+            jwt = f.read()
+            self.client.auth_kubernetes(self.service_role, jwt)
+        else:
+            self.client.lookup_token(dev_settings["vault_token"])
         return self.client
 
     def get_self_app_env(self):
         client = self.auth_client()
         try:
             self.logger.info("Vault secrets path is: {}".format(self.vault_secrets_path))
-            env = client.read(self.vault_secrets_path)['data']
+            env = client.read(self.vault_secrets_path)
+            if not env or not env['data']:
+                self.logger.error("Data not found for secret path {}".format(self.vault_secrets_path))
+                return {}
             return env
         except Exception as e:
             self.logger.info("Vault get_self_app_env exception is: {}".format(e))

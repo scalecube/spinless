@@ -7,6 +7,8 @@ import yaml
 from subprocess import Popen, PIPE
 from libs.vault_api import Vault
 
+dev_mode=True
+
 
 class Helm:
     def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
@@ -28,7 +30,7 @@ class Helm:
         vault = Vault(logger=self.logger,
                       vault_server=self.vault_server,
                       service_role=self.service_role,
-                      vault_secrets_path=self.vault_secrets_path
+                      vault_secrets_path=self.vault_secrets_path,
                       )
         return vault.get_self_app_env()
 
@@ -66,7 +68,8 @@ class Helm:
                       root_path="secretv2",
                       owner=self.owner,
                       repo=self.repo,
-                      version=self.version
+                      version=self.version,
+                      dev_mode=dev_mode
                       )
         ### Remove create role
         vault.create_role()
