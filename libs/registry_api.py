@@ -1,7 +1,7 @@
 class RegistryApi:
-    def __init__(self, vault_path, v_client, logger):
-        self.vault_path = vault_path
-        self.v_client = v_client
+    def __init__(self, vault, logger):
+        self.vault = vault
+        self.v_client = vault.client
         self.logger = logger
 
     def save_reg(self, reg_data):
@@ -12,7 +12,7 @@ class RegistryApi:
         if not all(k in reg_data for k in ("name", "username", "password", "path")):
             self.logger.error("Mandatory fields not provided (\"name\",\"username\", \"password\", \"path\")")
             return {"error": "Missing mandatory fields"}
-        reg_path = "{}/registry/{}/{}".format(self.vault_path, type, reg_data["name"])
+        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, type, reg_data["name"])
         secret_payload = dict((k, reg_data) for k in ("username", "password", "path"))
         try:
             self.logger.info("Saving registry data into path: {}".format(reg_path))
@@ -29,7 +29,7 @@ class RegistryApi:
         if not reg_data["name"]:
             self.logger.error("Repo \"name\" is mandatory")
             return {"error": "Repo \"name\" is mandatory"}
-        reg_path = "{}/registry/{}/{}".format(self.vault_path, reg_type, reg_data["name"])
+        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
         try:
             return self.v_client.read(reg_path)
         except Exception as e:
@@ -44,7 +44,7 @@ class RegistryApi:
         if not reg_data["name"]:
             self.logger.error("Repo \"name\" is mandatory")
             return {"error": "Repo \"name\" is mandatory"}
-        reg_path = "{}/registry/{}/{}".format(self.vault_path, reg_type, reg_data["name"])
+        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
         try:
             return self.v_client.delete(reg_path)
         except Exception as e:
