@@ -1,5 +1,6 @@
-import hvac
 import os
+
+import hvac
 
 dev_mode = os.getenv("dev_mode", False)
 
@@ -9,6 +10,7 @@ dev_settings = {
     "vault_secr_path": "secretv2/test",
     "vault_token": "s.AUazaAyTHxBzguX6vJRwN15j"
 }
+
 
 class Vault:
     def __init__(self, logger,
@@ -63,7 +65,7 @@ class Vault:
     def get_env(self, env_or_app):
         client = self.auth_client()
         path = "{}/{}/{}/{}/{}".format(
-                self.root_path, self.owner, self.repo, self.version, env_or_app)
+            self.root_path, self.owner, self.repo, self.version, env_or_app)
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
             env = client.read(path)
@@ -82,7 +84,7 @@ class Vault:
         policy_1_path = 'path "{}" '.format(policy_path)
         policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
         try:
-            client.set_policy(policy_name, policy_1_path+policy_2_path)
+            client.set_policy(policy_name, policy_1_path + policy_2_path)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
@@ -100,4 +102,3 @@ class Vault:
         except Exception as e:
             self.logger.info("Vault create_role exception is: {}".format(e))
         return
-

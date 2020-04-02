@@ -18,13 +18,14 @@ class Helm:
         self.version = version
         self.posted_env = posted_env
         self.helm_version = helm_version
-        self.timestamp = round(time.time())
+        self.timestamp = round(time.time() * 1000)
         self.path = "/tmp/{}".format(self.timestamp)
         self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
         self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
         self.vault_server = os.getenv("VAULT_ADDR")
         self.service_role = os.getenv("VAULT_ROLE")
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
+        self.vault = None
 
     def get_env_from_vault(self):
         vault = Vault(logger=self.logger,
