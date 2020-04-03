@@ -7,7 +7,6 @@ import yaml
 from subprocess import Popen, PIPE
 from libs.vault_api import Vault
 
-
 class Helm:
     def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
         self.logger = logger
@@ -16,20 +15,14 @@ class Helm:
         self.version = version
         self.posted_env = posted_env
         self.helm_version = helm_version
-        self.timestamp = round(time.time())
+        self.timestamp = round(time.time() * 1000)
         self.path = "/tmp/{}".format(self.timestamp)
         self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
         self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
-        self.vault_server = os.getenv("VAULT_ADDR")
-        self.service_role = os.getenv("VAULT_ROLE")
-        self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
+        self.vault = None
 
     def get_env_from_vault(self):
-        vault = Vault(logger=self.logger,
-                      vault_server=self.vault_server,
-                      service_role=self.service_role,
-                      vault_secrets_path=self.vault_secrets_path
-                      )
+        vault = Vault(logger=self.logger)
         return vault.get_self_app_env()
 
     def sum_all_env(self):
@@ -46,6 +39,7 @@ class Helm:
     def prepare_package(self):
         os.mkdir(self.path)
         data = self.get_env_from_vault()
+        data = data['data']
         url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
             data['nexus_user'], data['nexus_password'], data['nexus_repo'],
             self.owner, self.repo, self.helm_version
@@ -61,12 +55,9 @@ class Helm:
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
         vault = Vault(logger=self.logger,
-                      vault_server=self.vault_server,
-                      service_role=self.service_role,
-                      root_path="secretv2",
                       owner=self.owner,
                       repo=self.repo,
-                      version=self.version
+                      version=self.version,
                       )
         ### Remove create role
         vault.create_role()
@@ -87,7 +78,8 @@ class Helm:
     def install_package(self):
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
-        process = Popen(["/usr/local/bin/helm", "upgrade", "--debug",
+        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
+        process = Popen([helm_cmd, "upgrade", "--debug",
                          "--install", "--namespace",
                          "{}".format(self.namespace), "{}".format(self.namespace),
                          "-f", "{}".format(path_to_values_yaml),

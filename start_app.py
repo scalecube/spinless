@@ -5,6 +5,9 @@ from flask_api import FlaskAPI
 
 from libs.job_api import *
 from services.helm_deploy import helm_deploy
+from services.registry_service import *
+from dotenv import load_dotenv
+load_dotenv()
 
 dictConfig({
     'version': 1,
@@ -66,11 +69,31 @@ def get_log_api(owner, repo, job_id):
     return Response(tail_f(owner, repo, job_id))
 
 
-@app.route('/namespaces', methods=['GET'])
-def namespaces():
+@app.route('/repository/create/<type>/<name>', methods=['POST'])
+def create_repo_api(type, name):
     data = request.get_json()
-    app.logger.info("Request to list namespaces is {}".format(data))
-    abort(400, Response("Not implemented yet"))
+    if not data:
+        return abort(Response("No payload"))
+    data["type"] = type
+    data["name"] = name
+    app.logger.info("Request to create  repository  is {}".format(data))
+
+    result = create_registry(app.logger, data)
+    return result
+
+
+@app.route('/repository/<type>/<name>')
+def get_repo_api(type, name):
+    data = dict({"type": type, "name": name})
+    app.logger.info("Request to get  repository  is {}".format(data))
+    return get_registry(app.logger, data)
+
+
+@app.route('/repository/<type>/<name>', methods=['DELETE'])
+def delete_repo_api(type, name):
+    data = dict({"type": type, "name": name})
+    app.logger.info("Request to delete  repository  is {}".format(data))
+    return delete_registry(app.logger, data)
 
 
 if __name__ == '__main__':
