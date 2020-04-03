@@ -1,4 +1,5 @@
 STATUS_OK_ = {"status": "OK"}
+DEFAULT_REG = "default"
 
 
 class RegistryApi:
@@ -33,7 +34,7 @@ class RegistryApi:
         if not reg_data["name"]:
             self.logger.error("Repo \"name\" is mandatory")
             return {"error": "Repo \"name\" is mandatory"}
-        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
+        reg_path = "{}/registries/{}/{}".format(self.vault.vault_secrets_path, reg_type, reg_data["name"])
         try:
             reg_secret = self.v_client.read(reg_path)
             if not reg_secret or not reg_secret["data"]:
