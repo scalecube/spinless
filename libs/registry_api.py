@@ -1,3 +1,6 @@
+STATUS_OK_ = {"status": "OK"}
+
+
 class RegistryApi:
     def __init__(self, vault, logger):
         self.vault = vault
@@ -5,19 +8,19 @@ class RegistryApi:
         self.logger = logger
 
     def save_reg(self, reg_data):
-        type = reg_data["type"]
-        if type not in ("docker", "helm"):
-            self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(type))
+        reg_type = reg_data["type"]
+        if reg_type not in ("docker", "helm"):
+            self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(reg_type))
             return {"error": "Missing type (docker/helm)"}
         if not all(k in reg_data for k in ("name", "username", "password", "repo_path")):
             self.logger.error("Mandatory fields not provided (\"name\",\"username\", \"password\", \"repo_path\")")
             return {"error": "Missing mandatory fields"}
-        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, type, reg_data["name"])
+        reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
         secret_payload = dict((k, reg_data[k]) for k in ("username", "password", "repo_path"))
         try:
             self.logger.info("Saving registry data into path: {}".format(reg_path))
             self.v_client.write(reg_path, wrap_ttl=None, **secret_payload)
-            return {"status": "OK"}
+            return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(reg_path, e))
             return {"error": "Failed to write secret"}
@@ -32,7 +35,10 @@ class RegistryApi:
             return {"error": "Repo \"name\" is mandatory"}
         reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
         try:
-            return self.v_client.read(reg_path)
+            reg_secret = self.v_client.read(reg_path)
+            if not reg_secret or not reg_secret["data"]:
+                return {"error": "No such registry: {}".format(reg_data)}
+            return reg_secret["data"]
         except Exception as e:
             self.logger.info("Failed to read secret from path {}, {}".format(reg_path, e))
             return {"error": "Failed to read secret"}
@@ -47,7 +53,8 @@ class RegistryApi:
             return {"error": "Repo \"name\" is mandatory"}
         reg_path = "{}/registry/{}/{}".format(self.vault.root_path, reg_type, reg_data["name"])
         try:
-            return self.v_client.delete(reg_path)
+            self.v_client.delete(reg_path)
+            return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to delete secret from path {}, {}".format(reg_path, e))
             return {"error": "Failed to delete secret"}
