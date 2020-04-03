@@ -1,11 +1,13 @@
+import asyncio
 import time
 import os
 import requests
 import tarfile
 import yaml
 
-from subprocess import Popen, PIPE
+from libs.shell import shell_await
 from libs.vault_api import Vault
+
 
 class Helm:
     def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1', registries=None, vault=None):
@@ -78,14 +80,17 @@ class Helm:
         self.prepare_package()
         path_to_values_yaml = self.enrich_values_yaml()
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
-        process = Popen([helm_cmd, "upgrade", "--debug",
-                         "--install", "--namespace",
-                         "{}".format(self.namespace), "{}".format(self.namespace),
-                         "-f", "{}".format(path_to_values_yaml),
-                         "{}".format(self.helm_dir), "--recreate-pods"],
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        time.sleep(3)
+
+        cmd = ' '.join([helm_cmd, "upgrade", "--debug",
+                        "--install", "--namespace",
+                        "{}".format(self.namespace), "{}".format(self.namespace),
+                        "-f", "{}".format(path_to_values_yaml),
+                        "{}".format(self.helm_dir), "--recreate-pods"])
+
+        result = shell_await(cmd)
+        stdout = result.stdout
+        stderr = result.stderr
+
         self.logger.info("Helm install stdout: {}".format(stdout))
         self.logger.info("Helm install stderr: {}".format(stderr))
-        return
+        return result.code
