@@ -88,9 +88,6 @@ class Helm:
                         "{}".format(self.helm_dir), "--recreate-pods"])
 
         result = shell_await(cmd)
-        stdout = result.stdout
-        stderr = result.stderr
 
-        self.logger.info("Helm install stdout: {}".format(stdout))
-        self.logger.info("Helm install stderr: {}".format(stderr))
+        self.logger.info("Helm install stdout: {}".format(result.stdout))
         return result
