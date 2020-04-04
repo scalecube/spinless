@@ -1,4 +1,5 @@
 import asyncio
+import subprocess
 
 loop = asyncio.get_event_loop()
 
@@ -19,17 +20,17 @@ class Result:
         return self.stderr
 
 
-async def run(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE):
-    proc = await asyncio.create_subprocess_shell(
-        cmd, stdout, stderr)
+def run(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
 
-    stdout, stderr = await proc.communicate()
-    return Result(await proc.wait(),
-                  stdout,
-                  stderr)
+    (output, err) = p.communicate()
+    p_status = p.wait()
+
+    return Result(p_status,
+                  output,
+                  err)
 
 
-def shell_await(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE):
-    return loop.run_until_complete(asyncio.gather(
-        run(cmd, stdout, stderr)
-    ))[0]
+def shell_await(cmd):
+    return run(cmd)
+

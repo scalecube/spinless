@@ -93,4 +93,4 @@ class Helm:
 
         self.logger.info("Helm install stdout: {}".format(stdout))
         self.logger.info("Helm install stderr: {}".format(stderr))
-        return result.code
+        return result
