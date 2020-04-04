@@ -85,7 +85,7 @@ class Helm:
                         "--install", "--namespace",
                         "{}".format(self.namespace), "{}".format(self.namespace),
                         "-f", "{}".format(path_to_values_yaml),
-                        "{}".format(self.helm_dir), "--recreate-pods"])
+                        "{}".format(self.helm_dir)])
 
         result = shell_await(cmd)
 

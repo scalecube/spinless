@@ -20,6 +20,5 @@ def shell_await(cmd):
     for c in iter(lambda: p.stdout.read(1), b''):  # replace '' with b'' for Python 3
         string_output.write(c.decode("utf-8"))
 
-    code = p.wait()
-    return Result(code, string_output.getvalue())
+    return Result(p.wait(), string_output.getvalue())
 

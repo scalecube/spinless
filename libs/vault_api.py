@@ -80,7 +80,8 @@ class Vault:
         policy_1_path = 'path "{}" '.format(policy_path)
         policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
         try:
-            self.client.set_policy(policy_name, policy_1_path + policy_2_path)
+            # self.client.set_policy(policy_name, policy_1_path + policy_2_path) - DEPRECATED
+            self.client.sys.create_or_update_policy(policy_name, policy_1_path + policy_2_path)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
