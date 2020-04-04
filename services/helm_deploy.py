@@ -47,13 +47,16 @@ def helm_deploy(job_ref, applogger):
             posted_env=posted_env,
             registries=registries
         )
-        res = helm.install_package()
-        if res == 0:
-            job_ref.emit("SUCCESS", "finished. helm deployed successfully: {}".format(res.stdout))
-            job_ref.complete_succ()
-        else:
-            job_ref.emit("ERROR", "finished. helm deployed failed: {}".format(res.stdout))
-            job_ref.complete_err()
+        for (msg, res) in helm.install_package():
+            if not res:
+                job_ref.emit("RUNNING", msg)
+            else:
+                if res == 0:
+                    job_ref.emit("SUCCESS", "finished. helm deployed successfully: {}".format(res.stdout))
+                    job_ref.complete_succ()
+                else:
+                    job_ref.emit("ERROR", "finished. helm deployed failed: {}".format(res.stdout))
+                    job_ref.complete_err()
 
     except Exception as ex:
         job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))

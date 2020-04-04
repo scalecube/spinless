@@ -77,7 +77,10 @@ class Helm:
         return path_to_values_yaml
 
     def install_package(self):
+        yield "START: preparing package...", None
         self.prepare_package()
+        yield "DONE: package ready", None
+
         path_to_values_yaml = self.enrich_values_yaml()
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
 
@@ -87,7 +90,9 @@ class Helm:
                         "-f", "{}".format(path_to_values_yaml),
                         "{}".format(self.helm_dir)])
 
+        yield "START: installing package: {}".format(cmd), None
         result = shell_await(cmd)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))
-        return result
+        yield "COMPLETED", result
+        return
