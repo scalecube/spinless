@@ -58,4 +58,10 @@ spec:
         ports:
         - name: port-{{ .Values.service.internalPort | toString }}
           containerPort: {{ .Values.service.internalPort }}
-
+        volumeMounts:
+          - name: spinless-state-volume
+            mountPath: /opt/state
+      volumes:
+        - name: spinless-state-volume
+          persistentVolumeClaim:
+            claimName: state-volume-claim
