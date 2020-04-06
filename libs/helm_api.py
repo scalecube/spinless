@@ -1,14 +1,16 @@
+import asyncio
 import time
 import os
 import requests
 import tarfile
 import yaml
 
-from subprocess import Popen, PIPE
+from libs.shell import shell_await
 from libs.vault_api import Vault
 
+
 class Helm:
-    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1'):
+    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1', registries=None, vault=None):
         self.logger = logger
         self.owner = owner
         self.repo = repo
@@ -16,14 +18,14 @@ class Helm:
         self.posted_env = posted_env
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
-        self.path = "/tmp/{}".format(self.timestamp)
-        self.helm_dir = "{}/{}-{}".format(self.path, self.owner, self.repo)
+        self.target_path = "/tmp/{}".format(self.timestamp)
+        self.helm_dir = "{}/{}-{}".format(self.target_path, self.owner, self.repo)
         self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
-        self.vault = None
+        self.registries = registries
+        self.vault = vault
 
     def get_env_from_vault(self):
-        vault = Vault(logger=self.logger)
-        return vault.get_self_app_env()
+        return self.vault.get_self_app_env()
 
     def sum_all_env(self):
         env_from_vault = self.get_env_from_vault()
@@ -33,19 +35,18 @@ class Helm:
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
         targz = tarfile.open(helm_tag_gz, "r:gz")
-        targz.extractall(r"{}".format(self.path))
+        targz.extractall(r"{}".format(self.target_path))
         return
 
     def prepare_package(self):
-        os.mkdir(self.path)
-        data = self.get_env_from_vault()
-        data = data['data']
+        os.mkdir(self.target_path)
+        reg = self.registries["helm"]
         url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
-            data['nexus_user'], data['nexus_password'], data['nexus_repo'],
+            reg['username'], reg['password'], reg['path'],
             self.owner, self.repo, self.helm_version
         )
         r = requests.get(url)
-        helm_tag_gz = '{}/{}-{}.tgz'.format(self.path, self.owner, self.repo)
+        helm_tag_gz = '{}/{}-{}.tgz'.format(self.target_path, self.owner, self.repo)
         with open(helm_tag_gz, "wb") as helm_archive:
             helm_archive.write(r.content)
         self.untar_helm_gz(helm_tag_gz)
@@ -76,17 +77,22 @@ class Helm:
         return path_to_values_yaml
 
     def install_package(self):
+        yield "START: preparing package...", None
         self.prepare_package()
+        yield "DONE: package ready", None
+
         path_to_values_yaml = self.enrich_values_yaml()
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
-        process = Popen([helm_cmd, "upgrade", "--debug",
-                         "--install", "--namespace",
-                         "{}".format(self.namespace), "{}".format(self.namespace),
-                         "-f", "{}".format(path_to_values_yaml),
-                         "{}".format(self.helm_dir), "--recreate-pods"],
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        time.sleep(3)
-        self.logger.info("Helm install stdout: {}".format(stdout))
-        self.logger.info("Helm install stderr: {}".format(stderr))
+
+        cmd = ' '.join([helm_cmd, "upgrade", "--debug",
+                        "--install", "--namespace",
+                        "{}".format(self.namespace), "{}".format(self.namespace),
+                        "-f", "{}".format(path_to_values_yaml),
+                        "{}".format(self.helm_dir)])
+
+        yield "START: installing package: {}".format(cmd), None
+        result = shell_await(cmd)
+
+        self.logger.info("Helm install stdout: {}".format(result.stdout))
+        yield "COMPLETED", result
         return

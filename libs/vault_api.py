@@ -6,9 +6,12 @@ dev_mode = os.getenv("dev_mode", False)
 
 dev_settings = {
     "vault_role": "developer",
-    "vault_secr_path": "secretv2",
+    "vault_secr_path": "secretv2/scalecube/spinless",
     "vault_token": "s.ejLeCg6HjigbVQ2HxkQxRDxp"
 }
+
+APP_ENV_PATH = "app_env"
+APP_REG_PATH = "registry"
 
 
 class Vault:
@@ -44,14 +47,13 @@ class Vault:
         except Exception as ex:
             print("Error authenticating vault: {}".format(ex))
 
-
-
     def get_self_app_env(self):
         try:
-            self.logger.info("Vault secrets path is: {}".format(self.vault_secrets_path))
-            env = self.client.read(self.vault_secrets_path)
+            app_secret_path = self.vault_secrets_path + "/" + APP_ENV_PATH
+            self.logger.info("Vault secrets path is: {}".format(app_secret_path))
+            env = self.client.read(app_secret_path)
             if not env or not env['data']:
-                self.logger.error("Data not found for secret path {}".format(self.vault_secrets_path))
+                self.logger.error("Data not found for secret path {}".format(app_secret_path))
                 return {}
             return env
         except Exception as e:
@@ -78,7 +80,8 @@ class Vault:
         policy_1_path = 'path "{}" '.format(policy_path)
         policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
         try:
-            self.client.set_policy(policy_name, policy_1_path + policy_2_path)
+            # self.client.set_policy(policy_name, policy_1_path + policy_2_path) - DEPRECATED
+            self.client.sys.create_or_update_policy(policy_name, policy_1_path + policy_2_path)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
