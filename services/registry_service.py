@@ -8,16 +8,16 @@ def create_registry(logger, data):
     return reg_api.save_reg(data)
 
 
-def get_registry(logger, data):
+def get_registry(logger, kctx_id):
     vault = Vault(logger)
     reg_api = RegistryApi(vault, logger)
-    reg = reg_api.get_reg(data)
+    reg = reg_api.get_reg(kctx_id)
     if "error" not in reg:
         del reg["password"]
     return reg
 
 
-def delete_registry(logger, data):
+def delete_registry(logger, kctx_id):
     vault = Vault(logger)
     reg_api = RegistryApi(vault, logger)
-    return reg_api.delete_reg(data)
+    return reg_api.delete_reg(kctx_id)

@@ -6,12 +6,9 @@ dev_mode = os.getenv("dev_mode", False)
 
 dev_settings = {
     "vault_role": "developer",
-    "vault_secr_path": "secretv2/scalecube/spinless",
-    "vault_token": "s.ejLeCg6HjigbVQ2HxkQxRDxp"
 }
 
 APP_ENV_PATH = "app_env"
-APP_REG_PATH = "registry"
 
 
 class Vault:
@@ -26,12 +23,11 @@ class Vault:
         self.version = version
         self.app_path = "{}-{}-{}".format(owner, repo, version)
         self.dev_mode = dev_mode
+        self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
             self.service_role = dev_settings["vault_role"],
-            self.vault_secrets_path = dev_settings["vault_secr_path"]
         else:
             self.service_role = os.getenv("VAULT_ROLE")
-            self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
 
@@ -39,11 +35,11 @@ class Vault:
         self.client = hvac.Client()
         try:
             if not self.dev_mode:
-                f = open(self.vault_jwt_token)
-                jwt = f.read()
-                self.client.auth_kubernetes(self.service_role, jwt)
+                with open(self.vault_jwt_token)as f:
+                    jwt = f.read()
+                    self.client.auth_kubernetes(self.service_role, jwt)
             else:
-                self.client.lookup_token(dev_settings["vault_token"])
+                self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
         except Exception as ex:
             print("Error authenticating vault: {}".format(ex))
 
