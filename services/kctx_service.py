@@ -2,20 +2,20 @@ from libs.kube_api import KctxApi
 from libs.vault_api import Vault
 
 
-def create_kctx(logger, data):
+def create_kubernetes_context(logger, data):
     vault = Vault(logger)
     kctx_api = KctxApi(vault, logger)
-    return kctx_api.save_k_ctx(data)
+    return kctx_api.save_kubernetes_context(data)
 
 
-def get_kctx(logger, data):
+def get_kubernetes_context(logger, data):
     vault = Vault(logger)
     kctx_api = KctxApi(vault, logger)
-    kctx = kctx_api.get_kctx(data)
+    kctx = kctx_api.get_kubernetes_context(data)
     return kctx
 
 
-def delete_kctx(logger, data):
+def delete_kubernetes_context(logger, data):
     vault = Vault(logger)
     kctx_api = KctxApi(vault, logger)
-    return kctx_api.delete_kctx(data)
+    return kctx_api.delete_kubernetes_context(data)

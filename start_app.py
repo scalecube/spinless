@@ -98,27 +98,27 @@ def delete_repo_api(type, name):
     return delete_registry(app.logger, data)
 
 
-@app.route('/kctx/create/<name>', methods=['POST'])
-def create_kctx_api(name):
+@app.route('/kubernetes/context/create/<name>', methods=['POST'])
+def create_kubernetes_context_api(name):
     data = request.get_json()
     if not data:
         return abort(Response("No payload"))
     data["name"] = name
     app.logger.info("Request to create  kctx  is {}".format(data))
-    result = create_kctx(app.logger, data)
+    result = create_kubernetes_context(app.logger, data)
     return result
 
 
-@app.route('/kctx/<name>')
-def get_kctx_api(name):
+@app.route('/kubernetes/context/<name>')
+def get_kubernetes_context_api(name):
     app.logger.info("Request to get  kctx  is \"{}\"".format(name))
-    return get_kctx(app.logger, name)
+    return get_kubernetes_context(app.logger, name)
 
 
-@app.route('/kctx/<name>', methods=['DELETE'])
-def delete_kctx_api(name):
+@app.route('/kubernetes/context/<name>', methods=['DELETE'])
+def delete_kubernetes_context_api(name):
     app.logger.info("Request to delete  kctx  is \"{}\"".format(name))
-    return delete_kctx(app.logger, name)
+    return delete_kubernetes_context(app.logger, name)
 
 
 if __name__ == '__main__':
