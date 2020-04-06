@@ -104,20 +104,20 @@ def create_kubernetes_context_api(name):
     if not data:
         return abort(Response("No payload"))
     data["name"] = name
-    app.logger.info("Request to create  kctx  is {}".format(data))
+    app.logger.info("Request to create  kubernetes contexts  is {}".format(data))
     result = create_kubernetes_context(app.logger, data)
     return result
 
 
 @app.route('/kubernetes/contexts/<name>')
 def get_kubernetes_context_api(name):
-    app.logger.info("Request to get  kctx  is \"{}\"".format(name))
+    app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
     return get_kubernetes_context(app.logger, name)
 
 
 @app.route('/kubernetes/contexts/<name>', methods=['DELETE'])
 def delete_kubernetes_context_api(name):
-    app.logger.info("Request to delete  kctx  is \"{}\"".format(name))
+    app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
 
 
