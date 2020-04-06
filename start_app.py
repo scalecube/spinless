@@ -9,6 +9,7 @@ from services.helm_deploy import helm_deploy
 from services.kctx_service import *
 from services.registry_service import *
 from libs.infrastructure import TF
+from services.cloud_service import *
 
 load_dotenv()
 
@@ -126,6 +127,32 @@ def kubernetes_context_get(name):
 @app.route('/kubernetes/contexts/<name>', methods=['DELETE'])
 def kubernetes_context_delete(name):
     app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
+    return delete_kubernetes_context(app.logger, name)
+
+
+#
+# Cloud providers CRUD
+#
+@app.route('/cloud/providers/create/<name>', methods=['POST'])
+def create_cloud_provider_api(name):
+    data = request.get_json()
+    if not data:
+        return abort(Response("No payload"))
+    data["name"] = name
+    app.logger.info("Request to create  cloud provider  is {}".format(data))
+    result = create_kubernetes_context(app.logger, data)
+    return result
+
+
+@app.route('/cloud/providers/<name>')
+def get_cloud_provider_api(name):
+    app.logger.info("Request to get  cloud provider  is \"{}\"".format(name))
+    return get_kubernetes_context(app.logger, name)
+
+
+@app.route('/cloud/providers/<name>', methods=['DELETE'])
+def delete_cloud_provider_api(name):
+    app.logger.info("Request to delete  cloud provider  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
 
 
