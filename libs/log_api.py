@@ -18,7 +18,7 @@ def create_dir(path):
 
 def create_logger(owner, repo, job_id):
     prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
-    path = "{}/logs/{}/{}".format(prj_dir, owner, repo)
+    path = "{}/state/logs/{}/{}".format(prj_dir, owner, repo)
     create_dir(path)
     logger = logging.getLogger(job_id)
     logger.setLevel(logging.DEBUG)
