@@ -28,7 +28,7 @@ def create_logger(owner, repo, job_id):
 
 def tail_f(owner, repo, job_id):
     prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
-    log_file = '{}/logs/{}/{}/{}.log'.format(prj_dir, owner, repo, job_id)
+    log_file = '{}/state/logs/{}/{}/{}.log'.format(prj_dir, owner, repo, job_id)
     while not os.path.exists(log_file):
         time.sleep(1)
 
