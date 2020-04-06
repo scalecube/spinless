@@ -98,7 +98,7 @@ def delete_repo_api(type, name):
     return delete_registry(app.logger, data)
 
 
-@app.route('/kubernetes/context/create/<name>', methods=['POST'])
+@app.route('/kubernetes/contexts/<name>', methods=['POST'])
 def create_kubernetes_context_api(name):
     data = request.get_json()
     if not data:
@@ -109,13 +109,13 @@ def create_kubernetes_context_api(name):
     return result
 
 
-@app.route('/kubernetes/context/<name>')
+@app.route('/kubernetes/contexts/<name>')
 def get_kubernetes_context_api(name):
     app.logger.info("Request to get  kctx  is \"{}\"".format(name))
     return get_kubernetes_context(app.logger, name)
 
 
-@app.route('/kubernetes/context/<name>', methods=['DELETE'])
+@app.route('/kubernetes/contexts/<name>', methods=['DELETE'])
 def delete_kubernetes_context_api(name):
     app.logger.info("Request to delete  kctx  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
