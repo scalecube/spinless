@@ -14,6 +14,8 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s 
 RUN chmod +x kubectl
 RUN mv kubectl /usr/local/bin/kubectl
 
+ENV TF_WORKING_DIR /opt/infrastructure
+
 
 EXPOSE 5000
 CMD ["/bin/sh", "-c", "./start_app.sh"]
