@@ -8,7 +8,7 @@ RUN wget -q https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-linux-am
 RUN tar xzfv helm-v2.14.1-linux-amd64.tar.gz
 RUN mv ./linux-amd64/helm /usr/local/bin/helm
 RUN wget https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip
-RUN unzip -f terraform_0.12.24_linux_amd64.zip
+RUN unzip -u terraform_0.12.24_linux_amd64.zip
 RUN mv terraform /usr/local/bin/terraform
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
 RUN chmod +x kubectl
