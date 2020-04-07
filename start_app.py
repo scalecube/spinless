@@ -97,7 +97,8 @@ def delete_repo_api(type, name):
     app.logger.info("Request to delete  repository  is {}".format(data))
     return delete_registry(app.logger, data)
 
-@app.route('/secrets/cloud', methods = ['POST']):
+
+@app.route('/secrets/cloud', methods=['POST'])
 def add_cloud_credentials():
     data = request.get_json()
     # TODO: vault write
