@@ -36,3 +36,8 @@ variable "kube_nodes_amount" {
   type        = number
 }
 
+variable "kube_nodes_instance_type" {
+  description = "Kubernetes nodes instance type"
+  default     = "t3a.medium"
+  type        = string
+}
