@@ -28,6 +28,7 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name = "public-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = shared
   }
 }
 
@@ -39,11 +40,6 @@ resource "aws_route_table" "public_subnet_route_table" {
   }
 }
 
-resource "aws_route_table_association" "subnet_public" {
-    subnet_id = aws_subnet.public
-    gateway_id = aws_internet_gateway.public_subnet_gateway.id
-}
-
 resource "aws_subnet" "kube01" {
 
   availability_zone = var.az1
@@ -52,6 +48,7 @@ resource "aws_subnet" "kube01" {
 
   tags = {
     Name = "eks-01-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = shared
   }
 }
 
@@ -63,6 +60,7 @@ resource "aws_subnet" "kube02" {
 
   tags = {
     Name = "eks-02-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = shared
   }
 }
 
