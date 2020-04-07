@@ -62,7 +62,7 @@ def status(job_id):
 
 @app.route('/kubernetes/status/<owner>/<repo>/<job_id>')
 def get_log_api(owner, repo, job_id):
-    app.logger.info("Request to get_log  is {}".format(job_id))
+    app.logger.info("Request to get_log is {}".format(job_id))
     if not job_id:
         return abort(Response("No job id provided"))
 
@@ -94,6 +94,13 @@ def delete_repo_api(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to delete  repository  is {}".format(data))
     return delete_registry(app.logger, data)
+
+@app.route('/secrets/cloud', methods = ['POST']):
+def add_cloud_credentials():
+    data = request.get_json()
+    # TODO: vault write
+    vault = Vault()
+    return
 
 
 if __name__ == '__main__':
