@@ -4,7 +4,6 @@ resource "aws_eks_cluster" "eks" {
   version         = "1.15"
 
   vpc_config {
-    vpc_id = aws_vpc.kube_vpc.id
     endpoint_private_access = true
     endpoint_public_access = true
     security_group_ids = [aws_security_group.eks-master.id]

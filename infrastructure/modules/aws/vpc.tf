@@ -27,8 +27,8 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
-    Name = "public-subnet"
-    "kubernetes.io/cluster/${var.cluster-name}" = shared
+    "Name"                                      = "public-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
 
@@ -47,8 +47,8 @@ resource "aws_subnet" "kube01" {
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
-    Name = "eks-01-subnet"
-    "kubernetes.io/cluster/${var.cluster-name}" = shared
+    "Name"                                      = "eks-01-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
 
@@ -59,8 +59,8 @@ resource "aws_subnet" "kube02" {
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
-    Name = "eks-02-subnet"
-    "kubernetes.io/cluster/${var.cluster-name}" = shared
+    "Name"                                      = "eks-02-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
 
