@@ -34,7 +34,7 @@ app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
-
+t
 @app.route('/helm/deploy', methods=['POST'])
 def helm_deploy_start():
     data = request.get_json()
@@ -91,6 +91,10 @@ def artifact_registries_delete(type, name):
     return delete_registry(app.logger, data)
 
 
+#
+# Kubernetes context CRUD
+#
+
 @app.route('/cloud/secrets/', methods=['POST'])
 def cloud_secrets_save():
     data = request.get_json()
@@ -140,20 +144,20 @@ def create_cloud_provider_api(name):
         return abort(Response("No payload"))
     data["name"] = name
     app.logger.info("Request to create  cloud provider  is {}".format(data))
-    result = create_kubernetes_context(app.logger, data)
+    result = create_cloud_provider(app.logger, data)
     return result
 
 
 @app.route('/cloud/providers/<name>')
 def get_cloud_provider_api(name):
     app.logger.info("Request to get  cloud provider  is \"{}\"".format(name))
-    return get_kubernetes_context(app.logger, name)
+    return get_cloud_provider(app.logger, name)
 
 
 @app.route('/cloud/providers/<name>', methods=['DELETE'])
 def delete_cloud_provider_api(name):
     app.logger.info("Request to delete  cloud provider  is \"{}\"".format(name))
-    return delete_kubernetes_context(app.logger, name)
+    return delete_cloud_provider(app.logger, name)
 
 
 # Test
