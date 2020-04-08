@@ -4,10 +4,12 @@ from subprocess import Popen, PIPE
 
 
 class TF:
-    def __init__(self, workspace, aws_region,
+    def __init__(self, logger, workspace, aws_region,
                  aws_access_key, aws_secret_key, clustername,
                  az1, az2, kube_nodes_amount, kube_nodes_instance_type):
+        self.logger = logger
         self.working_dir = os.getenv('TF_WORKING_DIR')
+        self.cwd = os.getenv('TF_STATE')
         self.workspace = workspace
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
@@ -36,7 +38,8 @@ class TF:
             tfvars.write("{} = {}\n".format("kube_nodes_instance_type", self.kube_nodes_instance_type))
 
     def install_kube(self):
-        process = Popen(['terraform', 'workspace', 'new', self.workspace], stdout=PIPE, stderr=PIPE)
+        process = Popen(['terraform', 'workspace', 'new', self.workspace], cwd=self.cwd,
+                        stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         process.wait()
         self.create_vars_file()
@@ -44,7 +47,8 @@ class TF:
                          'apply',
                          '-var-file=/tmp/{}/tfvars.tf'.format(self.timestamp),
                          '-auto-approve',
-                         self.working_dir], )
+                         self.working_dir], cwd=self.cwd,
+                        stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         process.wait(timeout=900)
         self.configure_awscli()
