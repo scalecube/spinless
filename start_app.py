@@ -34,7 +34,7 @@ app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
-t
+
 @app.route('/helm/deploy', methods=['POST'])
 def helm_deploy_start():
     data = request.get_json()
@@ -136,34 +136,34 @@ def kubernetes_context_delete(name):
 #
 # Cloud providers CRUD
 #
-@app.route('/cloud/providers/create/<p_type>/<name>', methods=['POST'])
-def create_cloud_provider_api(p_type, name):
+@app.route('/cloud/providers/create/<provider_type>/<name>', methods=['POST'])
+def create_cloud_provider_api(provider_type, name):
     data = request.get_json()
     if not data:
         return abort(Response("No payload"))
     data["name"] = name
-    data["type"] = p_type
-    app.logger.info("Request to create  cloud provider  is {}/{}".format(p_type, name))
+    data["type"] = provider_type
+    app.logger.info("Request to create  cloud provider  is {}/{}".format(provider_type, name))
     result = create_cloud_provider(app.logger, data)
     return result
 
 
-@app.route('/cloud/providers/<p_type>/<name>')
-def get_cloud_provider_api(p_type, name):
-    app.logger.info("Request to get  cloud provider  is \"{}/{}\"".format(p_type, name))
-    return get_cloud_provider(app.logger, {"type": p_type, "name": name})
+@app.route('/cloud/providers/<provider_type>/<name>')
+def get_cloud_provider_api(provider_type, name):
+    app.logger.info("Request to get  cloud provider  is \"{}/{}\"".format(provider_type, name))
+    return get_cloud_provider(app.logger, {"type": provider_type, "name": name})
 
 
-@app.route('/cloud/providers/<p_type>')
-def get_cloud_provider_default_api(p_type):
-    app.logger.info("Request to get  cloud provider  is \"{}\"".format(p_type))
-    return get_cloud_provider(app.logger, {"type": p_type})
+@app.route('/cloud/providers/<provider_type>')
+def get_cloud_provider_default_api(provider_type):
+    app.logger.info("Request to get  cloud provider  is \"{}\"".format(provider_type))
+    return get_cloud_provider(app.logger, {"type": provider_type})
 
 
-@app.route('/cloud/providers/<p_type>/<name>', methods=['DELETE'])
-def delete_cloud_provider_api(p_type, name):
-    app.logger.info("Request to delete  cloud provider  is \"{}/{}\"".format(p_type, name))
-    return delete_cloud_provider(app.logger, p_type, name)
+@app.route('/cloud/providers/<provider_type>/<name>', methods=['DELETE'])
+def delete_cloud_provider_api(provider_type, name):
+    app.logger.info("Request to delete  cloud provider  is \"{}/{}\"".format(provider_type, name))
+    return delete_cloud_provider(app.logger, provider_type, name)
 
 
 # Test
