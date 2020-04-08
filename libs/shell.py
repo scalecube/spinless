@@ -1,6 +1,7 @@
 import subprocess
 from io import StringIO
 
+
 class Result:
     def __init__(self, code, stdout):
         self.code = code

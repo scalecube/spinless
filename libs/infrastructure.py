@@ -1,6 +1,7 @@
 import os
 import time
 import boto3
+from jinja2 import Environment, FileSystemLoader
 from subprocess import Popen, PIPE
 from libs.kube_api import KctxApi
 
@@ -23,6 +24,7 @@ class TF:
         self.kube_nodes_instance_type = kube_nodes_instance_type
         self.timestamp = round(time.time() * 1000)
         self.working_dir = os.getenv('TF_WORKING_DIR')
+        self.kube_config_file = "/tmp/{}/kubeconfig".format(self.timestamp)
 
     def configure_aws_cli(self):
         pass
@@ -39,8 +41,43 @@ class TF:
             tfvars.write("{} = {}\n".format("kube_nodes_amount", self.kube_nodes_amount))
             tfvars.write("{} = {}\n".format("kube_nodes_instance_type", self.kube_nodes_instance_type))
 
+    def set_aws_cli_config(self):
+        process = Popen(["aws", "configure", "set", "aws_access_key_id",
+                         "".format(self.aws_access_key)], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        process.wait()
+
+        process = Popen(["aws", "configure",
+                         "set", "aws_secret_access_key",
+                         "{}".format(self.aws_secret_key)], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        process.wait()
+
+        process = Popen(["aws", "configure",
+                         "set", "default.region",
+                         "{}".format(self.aws_region)], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        process.wait()
+
+    def generate_configmap(self):
+        client = boto3.client('iam')
+        role_arn = client.get_role(RoleName='eks-node-role')['Role']['Arn']
+        with open("/tmp/{}/nodes_cm.yaml", "w") as nodes_cm:
+            j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
+                                 trim_blocks=True)
+            gen_template = j2_env.get_template('nodes_cm.j2').render(
+                aws_iam_role_eks-node_arn=role_arn)
+            nodes_cm.write(gen_template)
+
     def apply_node_auth_configmap(self):
         self.generate_configmap()
+        process = Popen(['kubectl', 'apply', "-f",
+                         "/tmp/{}/nodes_cm.yaml"],
+                        env=dict(os.environ,
+                                 **{"KUBECONFIG": self.kube_config_file}),
+                        stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        process.wait()
 
     def install_kube(self):
         process = Popen(['terraform', 'workspace', 'new', self.workspace], cwd=self.cwd,
@@ -56,9 +93,7 @@ class TF:
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         process.wait(timeout=900)
-        KctxApi.generate_cluster_config(region=self.aws_region,
-                                        aws_access_key_id=self.aws_access_key,
-                                        aws_secret_access_key=self.aws_secret_key,
-                                        cluster_name=self.cluster_name,
-                                        config_file="/tmp/{}/kubeconfig".format(self.timestamp))
+        self.set_aws_cli_config()
+        KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
+                                        config_file=self.kube_config_file)
         self.apply_node_auth_configmap()

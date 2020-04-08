@@ -62,12 +62,9 @@ class KctxApi:
     # TODO: get region, aws_access_key_id, aws_secret_access_key from vault, aws configure
     # TODO: remove staticmethod ???
     @staticmethod
-    def generate_cluster_config(region, aws_access_key_id, aws_secret_access_key,
-                                cluster_name, config_file):
+    def generate_cluster_config(cluster_name, config_file):
         # Set up the client
-        s = boto3.Session(region_name=region,
-                          aws_access_key_id=aws_access_key_id,
-                          aws_secret_access_key=aws_secret_access_key)
+        s = boto3.Session()
         eks = s.client("eks")
 
         # get cluster details
