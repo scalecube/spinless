@@ -1,11 +1,13 @@
 import os
 import time
+import boto3
 from subprocess import Popen, PIPE
+from libs.kube_api import KctxApi
 
 
 class TF:
     def __init__(self, logger, workspace, aws_region,
-                 aws_access_key, aws_secret_key, clustername,
+                 aws_access_key, aws_secret_key, cluster_name,
                  az1, az2, kube_nodes_amount, kube_nodes_instance_type):
         self.logger = logger
         self.working_dir = os.getenv('TF_WORKING_DIR')
@@ -13,8 +15,8 @@ class TF:
         self.workspace = workspace
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
-        self.aws_secret_key= aws_secret_key
-        self.clustername = clustername
+        self.aws_secret_key = aws_secret_key
+        self.cluster_name = cluster_name
         self.az1 = az1
         self.az2 = az2
         self.kube_nodes_amount = kube_nodes_amount
@@ -31,11 +33,14 @@ class TF:
             tfvars.write("{} = {}\n".format("aws_region", self.aws_region))
             tfvars.write("{} = {}\n".format("aws_access_key", self.aws_access_key))
             tfvars.write("{} = {}\n".format("aws_secret_key", self.aws_secret_key))
-            tfvars.write("{} = {}\n".format("clustername", self.clustername))
+            tfvars.write("{} = {}\n".format("clustername", self.cluster_name))
             tfvars.write("{} = {}\n".format("az1", self.az1))
             tfvars.write("{} = {}\n".format("az2", self.az2))
             tfvars.write("{} = {}\n".format("kube_nodes_amount", self.kube_nodes_amount))
             tfvars.write("{} = {}\n".format("kube_nodes_instance_type", self.kube_nodes_instance_type))
+
+    def apply_node_auth_configmap(self):
+        self.generate_configmap()
 
     def install_kube(self):
         process = Popen(['terraform', 'workspace', 'new', self.workspace], cwd=self.cwd,
@@ -51,8 +56,9 @@ class TF:
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         process.wait(timeout=900)
-        self.configure_awscli()
-
-
-
-
+        KctxApi.generate_cluster_config(region=self.aws_region,
+                                        aws_access_key_id=self.aws_access_key,
+                                        aws_secret_access_key=self.aws_secret_key,
+                                        cluster_name=self.cluster_name,
+                                        config_file="/tmp/{}/kubeconfig".format(self.timestamp))
+        self.apply_node_auth_configmap()
