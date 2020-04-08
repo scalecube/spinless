@@ -65,8 +65,7 @@ class TF:
         with open("/tmp/{}/nodes_cm.yaml", "w") as nodes_cm:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
                                  trim_blocks=True)
-            gen_template = j2_env.get_template('nodes_cm.j2').render(
-                aws_iam_role_eks-node_arn=role_arn)
+            gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eks-node_arn=role_arn)
             nodes_cm.write(gen_template)
 
     def apply_node_auth_configmap(self):
