@@ -15,7 +15,7 @@ RUN chmod +x kubectl
 RUN mv kubectl /usr/local/bin/kubectl
 RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator
 RUN chmod +x aws-iam-authenticator
-RUN  mv aws-iam-authenticator usr/local/bin/aws-iam-authenticator
+RUN  mv aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
 
 
 ENV APP_WORKING_DIR /opt
