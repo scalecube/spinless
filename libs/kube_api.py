@@ -1,3 +1,7 @@
+import yaml
+import boto3
+
+
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
 K8S_CTX_PATH = "kctx"
@@ -54,3 +58,64 @@ class KctxApi:
         except Exception as e:
             self.logger.info("Failed to delete secret from path {}, {}".format(kctx_path, e))
             return {"error": "Failed to delete secret"}
+
+    # TODO: get region, aws_access_key_id, aws_secret_access_key from vault, aws configure
+    # TODO: remove staticmethod ???
+    @staticmethod
+    def generate_cluster_config(region, aws_access_key_id, aws_secret_access_key,
+                                cluster_name, config_file):
+        # Set up the client
+        s = boto3.Session(region_name=region,
+                          aws_access_key_id=aws_access_key_id,
+                          aws_secret_access_key=aws_secret_access_key)
+        eks = s.client("eks")
+
+        # get cluster details
+        cluster = eks.describe_cluster(name=cluster_name)
+        cluster_cert = cluster["cluster"]["certificateAuthority"]["data"]
+        cluster_ep = cluster["cluster"]["endpoint"]
+
+        # build the cluster config hash
+        cluster_config = {
+            "apiVersion": "v1",
+            "kind": "Config",
+            "clusters": [
+                {
+                    "cluster": {
+                        "server": str(cluster_ep),
+                        "certificate-authority-data": str(cluster_cert)
+                    },
+                    "name": "kubernetes"
+                }
+            ],
+            "contexts": [
+                {
+                    "context": {
+                        "cluster": "kubernetes",
+                        "user": "aws"
+                    },
+                    "name": "aws"
+                }
+            ],
+            "current-context": "aws",
+            "preferences": {},
+            "users": [
+                {
+                    "name": "aws",
+                    "user": {
+                        "exec": {
+                            "apiVersion": "client.authentication.k8s.io/v1alpha1",
+                            "command": "aws-iam-authenticator",
+                            "args": [
+                                "token", "-i", cluster_name
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+
+        # Write in YAML
+        with open(config_file, "w") as kube_config_file:
+            yaml.dump(cluster_config, kube_config_file, default_flow_style=False)
+
