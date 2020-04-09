@@ -31,7 +31,7 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
-            tfvars.write('{} = "{}"\n'.format("clustername", self.cluster_name))
+            tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
             tfvars.write('{} = "{}"\n'.format("az1", self.az1))
             tfvars.write('{} = "{}"\n'.format("az2", self.az2))
             tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
@@ -39,7 +39,7 @@ class TF:
 
     def set_aws_cli_config(self):
         process = Popen(["aws", "configure", "set", "aws_access_key_id",
-                         "".format(self.aws_access_key)], stdout=PIPE, stderr=PIPE)
+                         "{}".format(self.aws_access_key)], stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         process.wait()
 
@@ -75,26 +75,26 @@ class TF:
         process.wait()
 
     def install_kube(self):
-        process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        self.logger.info("Create namespace")
-        time.sleep(2)
-        self.logger.info("stdout id: {}".format(stdout))
-        self.logger.info("stderr id: {}".format(stderr))
-        process.wait()
-        self.create_vars_file()
-        process = Popen(['terraform',
-                         'apply',
-                         '-var-file=/tmp/{}/tfvars.tf'.format(self.timestamp),
-                         '-auto-approve',
-                         self.working_dir], cwd=self.cwd,
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        time.sleep(10)
-        self.logger.info("stdout tf apply: {}".format(stdout))
-        self.logger.info("stderr tf apply: {}".format(stderr))
-        process.wait(timeout=900)
+        # process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
+        #                 stdout=PIPE, stderr=PIPE)
+        # stdout, stderr = process.communicate()
+        # self.logger.info("Create namespace")
+        # time.sleep(2)
+        # self.logger.info("stdout id: {}".format(stdout))
+        # self.logger.info("stderr id: {}".format(stderr))
+        # process.wait()
+        # self.create_vars_file()
+        # process = Popen(['terraform',
+        #                  'apply',
+        #                  '-var-file=/tmp/{}/tfvars.tf'.format(self.timestamp),
+        #                  '-auto-approve',
+        #                  self.working_dir], cwd=self.cwd,
+        #                 stdout=PIPE, stderr=PIPE)
+        # stdout, stderr = process.communicate()
+        # time.sleep(10)
+        # self.logger.info("stdout tf apply: {}".format(stdout))
+        # self.logger.info("stderr tf apply: {}".format(stderr))
+        # process.wait(timeout=900)
         self.logger.info("Terraform finished cluster creation")
         self.set_aws_cli_config()
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
