@@ -35,7 +35,7 @@ app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
 @app.route('/helm/deploy', methods=['POST'])
-def kubernetes_deploy():
+def helm_deploy_start():
     data = request.get_json()
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
@@ -46,7 +46,7 @@ def kubernetes_deploy():
 
 
 @app.route('/helm/deploy/cancel/<job_id>')
-def cancel(job_id):
+def helm_deploy_cancel(job_id):
     app.logger.info("Request to cancel {}".format(job_id))
     if not job_id:
         return jsonify({"message": "Provide 'job_id' field."})
@@ -56,15 +56,15 @@ def cancel(job_id):
 
 
 @app.route('/helm/deploy/status/<job_id>')
-def status(job_id):
+def helm_deploy_status(job_id):
     app.logger.info("Request to status is {}".format(job_id))
     if not job_id:
         return abort(400, Response("No job id provided"))
     return get_job_status(job_id)
 
 
-@app.route('/repositories/<type>/<name>', methods=['POST'])
-def create_repo_api(type, name):
+@app.route('/artifact/registries/<type>/<name>', methods=['POST'])
+def artifact_registries_create(type, name):
     data = request.get_json()
     if not data:
         return abort(Response("No payload"))
@@ -76,22 +76,22 @@ def create_repo_api(type, name):
     return result
 
 
-@app.route('/repositories/<type>/<name>')
-def get_repo_api(type, name):
+@app.route('/artifact/registries/<type>/<name>')
+def artifact_registries_get(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to get  repository  is {}".format(data))
     return get_registry(app.logger, data)
 
 
-@app.route('/repositories/<type>/<name>', methods=['DELETE'])
-def delete_repo_api(type, name):
+@app.route('/artifact/registries/<type>/<name>', methods=['DELETE'])
+def artifact_registries_delete(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to delete  repository  is {}".format(data))
     return delete_registry(app.logger, data)
 
 
 @app.route('/secrets/cloud', methods=['POST'])
-def add_cloud_credentials():
+def secrets_cloud_save():
     data = request.get_json()
     # TODO: vault write
     vault = Vault()
@@ -99,7 +99,7 @@ def add_cloud_credentials():
 
 
 @app.route('/kubernetes/contexts/<name>', methods=['POST'])
-def create_kubernetes_context_api(name):
+def kubernetes_context_create(name):
     data = request.get_json()
     if not data:
         return abort(Response("No payload"))
@@ -110,19 +110,19 @@ def create_kubernetes_context_api(name):
 
 
 @app.route('/kubernetes/contexts/<name>')
-def get_kubernetes_context_api(name):
+def kubernetes_context_get(name):
     app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
     return get_kubernetes_context(app.logger, name)
 
 
 @app.route('/kubernetes/contexts/<name>', methods=['DELETE'])
-def delete_kubernetes_context_api(name):
+def kubernetes_context_delete(name):
     app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
 
 # Test
 @app.route("/kubernetes/create", methods=['POST'])
-def create_cluster():
+def kubernetes_cluster_create():
     data = request.get_json()
     logger = app.logger
     workspace = data['workspace']
