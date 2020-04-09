@@ -91,6 +91,9 @@ class TF:
                          self.working_dir], cwd=self.cwd,
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
+        time.sleep(10)
+        self.logger.info("stdout tf apply: {}".format(stdout))
+        self.logger.info("stderr tf apply: {}".format(stderr))
         process.wait(timeout=900)
         self.set_aws_cli_config()
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
