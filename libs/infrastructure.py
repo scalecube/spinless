@@ -66,7 +66,7 @@ class TF:
     def apply_node_auth_configmap(self):
         self.generate_configmap()
         process = Popen(['kubectl', 'apply', "-f",
-                         "/tmp/{}/nodes_cm.yaml"],
+                         "/tmp/{}/nodes_cm.yaml".format(self.timestamp)],
                         env=dict(os.environ,
                                  **{"KUBECONFIG": self.kube_config_file}),
                         stdout=PIPE, stderr=PIPE)
