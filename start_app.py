@@ -34,7 +34,7 @@ app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
-@app.route('/kubernetes/deploy', methods=['POST'])
+@app.route('/helm/deploy', methods=['POST'])
 def kubernetes_deploy():
     data = request.get_json()
     if not data:
@@ -45,7 +45,7 @@ def kubernetes_deploy():
     return jsonify({'id': job.job_id})
 
 
-@app.route('/kubernetes/job/cancel/<job_id>')
+@app.route('/helm/deploy/cancel/<job_id>')
 def cancel(job_id):
     app.logger.info("Request to cancel {}".format(job_id))
     if not job_id:
@@ -55,7 +55,7 @@ def cancel(job_id):
     return jsonify({"message": "Job {} was not running".format(job_id)})
 
 
-@app.route('/kubernetes/job/status/<job_id>')
+@app.route('/helm/deploy/status/<job_id>')
 def status(job_id):
     app.logger.info("Request to status is {}".format(job_id))
     if not job_id:
@@ -63,16 +63,7 @@ def status(job_id):
     return get_job_status(job_id)
 
 
-@app.route('/kubernetes/status/<owner>/<repo>/<job_id>')
-def get_log_api(owner, repo, job_id):
-    app.logger.info("Request to get_log is {}".format(job_id))
-    if not job_id:
-        return abort(Response("No job id provided"))
-
-    return Response(tail_f(owner, repo, job_id))
-
-
-@app.route('/repository/create/<type>/<name>', methods=['POST'])
+@app.route('/repositories/<type>/<name>', methods=['POST'])
 def create_repo_api(type, name):
     data = request.get_json()
     if not data:
@@ -85,14 +76,14 @@ def create_repo_api(type, name):
     return result
 
 
-@app.route('/repository/<type>/<name>')
+@app.route('/repositories/<type>/<name>')
 def get_repo_api(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to get  repository  is {}".format(data))
     return get_registry(app.logger, data)
 
 
-@app.route('/repository/<type>/<name>', methods=['DELETE'])
+@app.route('/repositories/<type>/<name>', methods=['DELETE'])
 def delete_repo_api(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to delete  repository  is {}".format(data))
@@ -130,7 +121,7 @@ def delete_kubernetes_context_api(name):
     return delete_kubernetes_context(app.logger, name)
 
 # Test
-@app.route("kube/deploy", methods=['POST'])
+@app.route("/kubernetes/create", methods=['POST'])
 def create_cluster():
     data = request.get_json()
     logger = app.logger
