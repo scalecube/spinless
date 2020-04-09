@@ -95,6 +95,7 @@ class TF:
         self.logger.info("stdout tf apply: {}".format(stdout))
         self.logger.info("stderr tf apply: {}".format(stderr))
         process.wait(timeout=900)
+        self.logger.info("Terraform finished cluster creation")
         self.set_aws_cli_config()
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
                                         config_file=self.kube_config_file)
