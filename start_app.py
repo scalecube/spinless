@@ -133,16 +133,6 @@ def delete_kubernetes_context_api(name):
 @app.route("kube/deploy", methods=['POST'])
 def create_cluster():
     data = request.get_json()
-    logger = app.logger
-    workspace = data['workspace']
-    aws_region = data["aws_region"]
-    aws_access_key = data["aws_access_key"]
-    aws_secret_key = data["aws_secret_key"]
-    cluster_name = data["cluster_name"]
-    az1 = data["az1"]
-    az2 = data["az2"]
-    kube_nodes_amount = data["kube_nodes_amount"]
-    kube_nodes_instance_type = data["kube_nodes_instance_type"]
     tf = TF(logger=app.logger,
             workspace=data['workspace'],
             aws_region=data["aws_region"],
@@ -154,6 +144,7 @@ def create_cluster():
             kube_nodes_amount=data["kube_nodes_amount"],
             kube_nodes_instance_type=data["kube_nodes_instance_type"])
     tf.install_kube()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
