@@ -26,7 +26,6 @@ class TF:
         self.kube_config_file = "/tmp/{}/kubeconfig".format(self.timestamp)
 
     def create_vars_file(self):
-        os.mkdir("/tmp/{}".format(self.timestamp))
         with open("/tmp/{}/tfvars.tf".format(self.timestamp), "w") as tfvars:
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
@@ -75,6 +74,7 @@ class TF:
         process.wait()
 
     def install_kube(self):
+        os.mkdir("/tmp/{}".format(self.timestamp))
         # process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
         #                 stdout=PIPE, stderr=PIPE)
         # stdout, stderr = process.communicate()
