@@ -9,6 +9,7 @@ from services.helm_deploy import helm_deploy
 from services.kctx_service import *
 from services.registry_service import *
 from libs.infrastructure import TF
+from services.cloud_service import *
 
 load_dotenv()
 
@@ -70,8 +71,7 @@ def artifact_registries_create(type, name):
         return abort(Response("No payload"))
     data["type"] = type
     data["name"] = name
-    app.logger.info("Request to create  repository  is {}".format(data))
-
+    app.logger.info("Request to create  repository  is {}/{}".format(type, name))
     result = create_registry(app.logger, data)
     return result
 
@@ -89,6 +89,10 @@ def artifact_registries_delete(type, name):
     app.logger.info("Request to delete  repository  is {}".format(data))
     return delete_registry(app.logger, data)
 
+
+#
+# Kubernetes context CRUD
+#
 
 @app.route('/cloud/secrets/', methods=['POST'])
 def cloud_secrets_save():
@@ -112,7 +116,7 @@ def kubernetes_context_create(name):
     if not data:
         return abort(Response("No payload"))
     data["name"] = name
-    app.logger.info("Request to create  kubernetes contexts  is {}".format(data))
+    app.logger.info("Request to create  kubernetes contexts  is {}".format(name))
     result = create_kubernetes_context(app.logger, data)
     return result
 
@@ -127,6 +131,39 @@ def kubernetes_context_get(name):
 def kubernetes_context_delete(name):
     app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
+
+
+#
+# Cloud providers CRUD
+#
+@app.route('/cloud/providers/create/<provider_type>/<name>', methods=['POST'])
+def create_cloud_provider_api(provider_type, name):
+    data = request.get_json()
+    if not data:
+        return abort(Response("No payload"))
+    data["name"] = name
+    data["type"] = provider_type
+    app.logger.info("Request to create  cloud provider  is {}/{}".format(provider_type, name))
+    result = create_cloud_provider(app.logger, data)
+    return result
+
+
+@app.route('/cloud/providers/<provider_type>/<name>')
+def get_cloud_provider_api(provider_type, name):
+    app.logger.info("Request to get  cloud provider  is \"{}/{}\"".format(provider_type, name))
+    return get_cloud_provider(app.logger, {"type": provider_type, "name": name})
+
+
+@app.route('/cloud/providers/<provider_type>')
+def get_cloud_provider_default_api(provider_type):
+    app.logger.info("Request to get  cloud provider  is \"{}\"".format(provider_type))
+    return get_cloud_provider(app.logger, {"type": provider_type})
+
+
+@app.route('/cloud/providers/<provider_type>/<name>', methods=['DELETE'])
+def delete_cloud_provider_api(provider_type, name):
+    app.logger.info("Request to delete  cloud provider  is \"{}/{}\"".format(provider_type, name))
+    return delete_cloud_provider(app.logger, provider_type, name)
 
 
 # Test
