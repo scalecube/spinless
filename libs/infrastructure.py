@@ -79,7 +79,7 @@ class TF:
         process.wait()
 
     def install_kube(self):
-        process = Popen(['terraform', 'workspace', 'new', self.workspace], cwd=self.cwd,
+        process = Popen(['terraform', 'workspace', 'new', self.workspace, self.working_dir], cwd=self.cwd,
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         self.logger.info("Create namespace")
