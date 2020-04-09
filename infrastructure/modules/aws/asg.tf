@@ -48,4 +48,11 @@ resource "aws_autoscaling_group" "eks-t3a-medium" {
     value               = "asg-eks-t3a-medium"
     propagate_at_launch = true
   }
+
+  tag {
+    key                 = "kubernetes.io/cluster/${var.cluster-name}"
+    value               = "shared"
+    propagate_at_launch = true
+  }
+
 }

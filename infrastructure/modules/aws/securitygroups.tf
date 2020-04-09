@@ -11,8 +11,10 @@ resource "aws_security_group" "eks-master" {
   }
 
   tags = {
-    Name = "eks-master"
+    "Name"                                             = "eks-master"
+    "kubernetes.io/cluster/${var.cluster-name}"        = "shared"
   }
+
 }
 
 resource "aws_security_group_rule" "eks-ingress-access" {
