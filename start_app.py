@@ -47,6 +47,14 @@ def helm_deploy_start():
     return jsonify({'id': job.job_id})
 
 
+@app.route('/helm/deploy/<owner>/<repo>/<job_id>')
+def get_log_api(owner, repo, job_id):
+    app.logger.info("Request to get_log  is {}".format(job_id))
+    if not job_id:
+        return abort(Response("No job id provided"))
+    return Response(tail_f(owner, repo, job_id))
+
+
 @app.route('/helm/deploy/cancel/<job_id>')
 def helm_deploy_cancel(job_id):
     app.logger.info("Request to cancel {}".format(job_id))
@@ -181,6 +189,7 @@ def kubernetes_cluster_create():
                 kube_nodes_amount=data["kube_nodes_amount"],
                 kube_nodes_instance_type=data["kube_nodes_instance_type"])
         tf.install_kube()
+
     thread = Thread(target=kube_cluster_create,
                     kwargs={'data': request.get_json()})
     thread.start()
