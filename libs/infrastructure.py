@@ -57,7 +57,7 @@ class TF:
     def generate_configmap(self):
         client = boto3.client('iam')
         role_arn = client.get_role(RoleName='eks-node-role')['Role']['Arn']
-        with open("/tmp/{}/nodes_cm.yaml", "w") as nodes_cm:
+        with open("/tmp/{}/nodes_cm.yaml".format(self.timestamp), "w") as nodes_cm:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
