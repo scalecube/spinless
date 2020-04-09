@@ -90,8 +90,16 @@ def artifact_registries_delete(type, name):
     return delete_registry(app.logger, data)
 
 
-@app.route('/secrets/cloud', methods=['POST'])
-def secrets_cloud_save():
+@app.route('/cloud/secrets/', methods=['POST'])
+def cloud_secrets_save():
+    data = request.get_json()
+    # TODO: vault write
+    vault = Vault()
+    return
+
+
+@app.route('/cloud/secrets/')
+def cloud_secrets_get():
     data = request.get_json()
     # TODO: vault write
     vault = Vault()
@@ -120,6 +128,7 @@ def kubernetes_context_delete(name):
     app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
     return delete_kubernetes_context(app.logger, name)
 
+
 # Test
 @app.route("/kubernetes/create", methods=['POST'])
 def kubernetes_cluster_create():
@@ -145,6 +154,7 @@ def kubernetes_cluster_create():
             kube_nodes_amount=data["kube_nodes_amount"],
             kube_nodes_instance_type=data["kube_nodes_instance_type"])
     tf.install_kube()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
