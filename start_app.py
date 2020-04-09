@@ -1,3 +1,4 @@
+from threading import Thread
 from logging.config import dictConfig
 
 from dotenv import load_dotenv
@@ -169,17 +170,21 @@ def delete_cloud_provider_api(provider_type, name):
 # Test
 @app.route("/kubernetes/create", methods=['POST'])
 def kubernetes_cluster_create():
-    data = request.get_json()
-    tf = TF(logger=app.logger,
-            aws_region=data["aws_region"],
-            aws_access_key=data["aws_access_key"],
-            aws_secret_key=data["aws_secret_key"],
-            cluster_name=data["cluster_name"],
-            az1=data["az1"],
-            az2=data["az2"],
-            kube_nodes_amount=data["kube_nodes_amount"],
-            kube_nodes_instance_type=data["kube_nodes_instance_type"])
-    tf.install_kube()
+    def kube_cluster_create(data):
+        tf = TF(logger=app.logger,
+                aws_region=data["aws_region"],
+                aws_access_key=data["aws_access_key"],
+                aws_secret_key=data["aws_secret_key"],
+                cluster_name=data["cluster_name"],
+                az1=data["az1"],
+                az2=data["az2"],
+                kube_nodes_amount=data["kube_nodes_amount"],
+                kube_nodes_instance_type=data["kube_nodes_instance_type"])
+        tf.install_kube()
+    thread = Thread(target=kube_cluster_create,
+                    kwargs={'data': request.get_json()})
+    thread.start()
+    return {"kube_creation": "started"}
 
 
 if __name__ == '__main__':
