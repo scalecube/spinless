@@ -46,8 +46,8 @@ class KctxApi:
 
     def delete_kubernetes_context(self, ctx_id):
         if not ctx_id:
-            self.logger.warn("Kctx \"name\" is empty, using default")
-            return {"error": "Kctx \"name\" is mandatory"}
+            self.logger.warn("No secret key provided")
+            return {"error": "No secret key provided"}
         if ctx_id == "default":
             self.logger.error("Not allowed to remove default kctx")
             return {"error": "Not allowed to remove default kctx"}
