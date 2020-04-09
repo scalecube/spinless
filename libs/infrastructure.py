@@ -28,14 +28,14 @@ class TF:
     def create_vars_file(self):
         os.mkdir("/tmp/{}".format(self.timestamp))
         with open("/tmp/{}/tfvars.tf".format(self.timestamp), "w") as tfvars:
-            tfvars.write("{} = {}\n".format("aws_region", self.aws_region))
-            tfvars.write("{} = {}\n".format("aws_access_key", self.aws_access_key))
-            tfvars.write("{} = {}\n".format("aws_secret_key", self.aws_secret_key))
-            tfvars.write("{} = {}\n".format("clustername", self.cluster_name))
-            tfvars.write("{} = {}\n".format("az1", self.az1))
-            tfvars.write("{} = {}\n".format("az2", self.az2))
-            tfvars.write("{} = {}\n".format("kube_nodes_amount", self.kube_nodes_amount))
-            tfvars.write("{} = {}\n".format("kube_nodes_instance_type", self.kube_nodes_instance_type))
+            tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
+            tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
+            tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
+            tfvars.write('{} = "{}"\n'.format("clustername", self.cluster_name))
+            tfvars.write('{} = "{}"\n'.format("az1", self.az1))
+            tfvars.write('{} = "{}"\n'.format("az2", self.az2))
+            tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
+            tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
 
     def set_aws_cli_config(self):
         process = Popen(["aws", "configure", "set", "aws_access_key_id",
