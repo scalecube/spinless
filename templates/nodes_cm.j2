@@ -5,7 +5,7 @@ metadata:
   namespace: kube-system
 data:
   mapRoles: |
-    - rolearn: {{ aws_iam_role_eks-node_arn }}
+    - rolearn: {{ aws_iam_role_eksnode_arn }}
 {% raw %}
       username: system:node:{{EC2PrivateDNSName}}
 {% endraw %}
