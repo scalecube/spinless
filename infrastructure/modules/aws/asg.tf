@@ -26,6 +26,7 @@ resource "aws_launch_configuration" "nodes_configuration" {
   image_id                    = data.aws_ami.eks-worker.id
   instance_type               = var.kube_nodes_instance_type
   name_prefix                 = "eks"
+  key_name                    = "kube_test"
   security_groups  = [aws_security_group.eks-node.id]
   user_data_base64 = base64encode(local.eks-node-userdata)
 

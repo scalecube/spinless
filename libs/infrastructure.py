@@ -75,26 +75,26 @@ class TF:
 
     def install_kube(self):
         os.mkdir("/tmp/{}".format(self.timestamp))
-        # process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
-        #                 stdout=PIPE, stderr=PIPE)
-        # stdout, stderr = process.communicate()
-        # self.logger.info("Create namespace")
-        # time.sleep(2)
-        # self.logger.info("stdout id: {}".format(stdout))
-        # self.logger.info("stderr id: {}".format(stderr))
-        # process.wait()
-        # self.create_vars_file()
-        # process = Popen(['terraform',
-        #                  'apply',
-        #                  '-var-file=/tmp/{}/tfvars.tf'.format(self.timestamp),
-        #                  '-auto-approve',
-        #                  self.working_dir], cwd=self.cwd,
-        #                 stdout=PIPE, stderr=PIPE)
-        # stdout, stderr = process.communicate()
-        # time.sleep(10)
-        # self.logger.info("stdout tf apply: {}".format(stdout))
-        # self.logger.info("stderr tf apply: {}".format(stderr))
-        # process.wait(timeout=900)
+        process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
+                        stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        self.logger.info("Create namespace")
+        time.sleep(2)
+        self.logger.info("stdout id: {}".format(stdout))
+        self.logger.info("stderr id: {}".format(stderr))
+        process.wait()
+        self.create_vars_file()
+        process = Popen(['terraform',
+                         'apply',
+                         '-var-file=/tmp/{}/tfvars.tf'.format(self.timestamp),
+                         '-auto-approve',
+                         self.working_dir], cwd=self.cwd,
+                        stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        time.sleep(10)
+        self.logger.info("stdout tf apply: {}".format(stdout))
+        self.logger.info("stderr tf apply: {}".format(stderr))
+        process.wait(timeout=900)
         self.logger.info("Terraform finished cluster creation")
         self.set_aws_cli_config()
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
