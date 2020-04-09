@@ -171,7 +171,6 @@ def delete_cloud_provider_api(provider_type, name):
 def kubernetes_cluster_create():
     data = request.get_json()
     tf = TF(logger=app.logger,
-            workspace=data['workspace'],
             aws_region=data["aws_region"],
             aws_access_key=data["aws_access_key"],
             aws_secret_key=data["aws_secret_key"],

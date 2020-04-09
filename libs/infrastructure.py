@@ -7,13 +7,12 @@ from libs.kube_api import KctxApi
 
 
 class TF:
-    def __init__(self, logger, workspace, aws_region,
-                 aws_access_key, aws_secret_key, cluster_name,
-                 az1, az2, kube_nodes_amount, kube_nodes_instance_type):
+    def __init__(self, logger, aws_region, aws_access_key,
+                 aws_secret_key, cluster_name, az1, az2,
+                 kube_nodes_amount, kube_nodes_instance_type):
         self.logger = logger
         self.working_dir = os.getenv('TF_WORKING_DIR')
         self.cwd = os.getenv('TF_STATE')
-        self.workspace = workspace
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
@@ -25,9 +24,6 @@ class TF:
         self.timestamp = round(time.time() * 1000)
         self.working_dir = os.getenv('TF_WORKING_DIR')
         self.kube_config_file = "/tmp/{}/kubeconfig".format(self.timestamp)
-
-    def configure_aws_cli(self):
-        pass
 
     def create_vars_file(self):
         os.mkdir("/tmp/{}".format(self.timestamp))
@@ -79,7 +75,7 @@ class TF:
         process.wait()
 
     def install_kube(self):
-        process = Popen(['terraform', 'workspace', 'new', self.workspace, self.working_dir], cwd=self.cwd,
+        process = Popen(['terraform', 'workspace', 'new', self.cluster_name, self.working_dir], cwd=self.cwd,
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         self.logger.info("Create namespace")
