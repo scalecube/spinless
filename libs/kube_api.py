@@ -1,6 +1,5 @@
-import yaml
 import boto3
-
+import yaml
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -17,18 +16,22 @@ class KctxApi:
         if not ctx_data:
             self.logger.error("No kube ctx data provided")
             return {"error": "No kube ctx data provided"}
-        if not all(k in ctx_data for k in ("name", "kctx_name")):
-            self.logger.error("Mandatory fields not provided (\"name\", \"kctx_name\")")
-            return {"error": "Mandatory fields not provided (\"name\", \"kctx_name\")"}
+        if not all(k in ctx_data for k in "name"):
+            self.logger.error("Mandatory fields not provided \"name\"")
+            return {"error": "Mandatory fields not provided \"name\""}
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
-        secret_payload = {"kctx_name": ctx_data["kctx_name"]}
         try:
             self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
-            self.v_client.write(kctx_path, wrap_ttl=None, **secret_payload)
+            self.v_client.write(kctx_path, wrap_ttl=None, **ctx_data)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(kctx_path, e))
             return {"error": "Failed to write secret"}
+
+    def save_aws_context(self, aws_accesskey, aws_secretkey, aws_region, kube_cfg_dict, conf_label="default"):
+        secret = {"aws_secret_key": aws_secretkey, "aws_access_key": aws_accesskey, "aws_region": aws_region,
+                  "kube_config": yaml.dump(kube_cfg_dict, default_flow_style=False), "name": conf_label}
+        return self.save_kubernetes_context(secret)
 
     def get_kubernetes_context(self, ctx_id):
         if not ctx_id:
@@ -59,64 +62,62 @@ class KctxApi:
             self.logger.info("Failed to delete secret from path {}, {}".format(kctx_path, e))
             return {"error": "Failed to delete secret"}
 
-    # TODO: get region, aws_access_key_id, aws_secret_access_key from vault, aws configure
-    # TODO: remove staticmethod ???
     @staticmethod
-    def generate_cluster_config(cluster_name, config_file, aws_region,
-                                aws_access_key, aws_secret_key):
-        # Set up the client
-        s = boto3.Session(region_name=aws_region,
-                          aws_access_key_id=aws_access_key,
-                          aws_secret_access_key=aws_secret_key
-                          )
-        eks = s.client("eks")
+    def generate_aws_kube_config(cluster_name, aws_region,
+                                 aws_access_key, aws_secret_key):
+        try:
 
-        # get cluster details
-        cluster = eks.describe_cluster(name=cluster_name)
-        cluster_cert = cluster["cluster"]["certificateAuthority"]["data"]
-        cluster_ep = cluster["cluster"]["endpoint"]
+            # Set up the client
+            s = boto3.Session(region_name=aws_region,
+                              aws_access_key_id=aws_access_key,
+                              aws_secret_access_key=aws_secret_key
+                              )
+            eks = s.client("eks")
 
-        # build the cluster config hash
-        cluster_config = {
-            "apiVersion": "v1",
-            "kind": "Config",
-            "clusters": [
-                {
-                    "cluster": {
-                        "server": str(cluster_ep),
-                        "certificate-authority-data": str(cluster_cert)
-                    },
-                    "name": "kubernetes"
-                }
-            ],
-            "contexts": [
-                {
-                    "context": {
-                        "cluster": "kubernetes",
-                        "user": "aws"
-                    },
-                    "name": "aws"
-                }
-            ],
-            "current-context": "aws",
-            "preferences": {},
-            "users": [
-                {
-                    "name": "aws",
-                    "user": {
-                        "exec": {
-                            "apiVersion": "client.authentication.k8s.io/v1alpha1",
-                            "command": "aws-iam-authenticator",
-                            "args": [
-                                "token", "-i", cluster_name
-                            ]
+            # get cluster details
+            cluster = eks.describe_cluster(name=cluster_name)
+            cluster_cert = cluster["cluster"]["certificateAuthority"]["data"]
+            cluster_ep = cluster["cluster"]["endpoint"]
+
+            # build the cluster config hash
+            cluster_config = {
+                "apiVersion": "v1",
+                "kind": "Config",
+                "clusters": [
+                    {
+                        "cluster": {
+                            "server": str(cluster_ep),
+                            "certificate-authority-data": str(cluster_cert)
+                        },
+                        "name": "kubernetes"
+                    }
+                ],
+                "contexts": [
+                    {
+                        "context": {
+                            "cluster": "kubernetes",
+                            "user": "aws"
+                        },
+                        "name": "aws"
+                    }
+                ],
+                "current-context": "aws",
+                "preferences": {},
+                "users": [
+                    {
+                        "name": "aws",
+                        "user": {
+                            "exec": {
+                                "apiVersion": "client.authentication.k8s.io/v1alpha1",
+                                "command": "aws-iam-authenticator",
+                                "args": [
+                                    "token", "-i", cluster_name
+                                ]
+                            }
                         }
                     }
-                }
-            ]
-        }
-
-        # Write in YAML
-        with open(config_file, "w") as kube_config_file:
-            yaml.dump(cluster_config, kube_config_file, default_flow_style=False)
-
+                ]
+            }
+        except Exception as ex:
+            return str(ex), 1
+        return cluster_config, 0

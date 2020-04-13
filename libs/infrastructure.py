@@ -1,9 +1,9 @@
 import os
-import sys
 import time
 from subprocess import Popen, PIPE
 
 import boto3
+import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from libs.kube_api import KctxApi
@@ -15,7 +15,7 @@ TF_VARS_FILE = 'tfvars.tf'
 class TF:
     def __init__(self, logger, aws_region, aws_access_key,
                  aws_secret_key, cluster_name, az1, az2,
-                 kube_nodes_amount, kube_nodes_instance_type):
+                 kube_nodes_amount, kube_nodes_instance_type, kctx_api):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -23,8 +23,7 @@ class TF:
         self.tf_state_dir = "{}/{}".format(curr_dir, os.getenv('TF_STATE'))
         self.tmp_root_path = "/tmp/{}".format(timestamp)
         os.mkdir(self.tmp_root_path)
-
-        self.kube_config_file = "{}/{}".format(self.tmp_root_path, KUBECONF_FILE)
+        self.kube_config_file_path = "{}/{}".format(self.tmp_root_path, KUBECONF_FILE)
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
@@ -33,6 +32,7 @@ class TF:
         self.az2 = az2
         self.kube_nodes_amount = kube_nodes_amount
         self.kube_nodes_instance_type = kube_nodes_instance_type
+        self.kctx_api = kctx_api
 
     def __create_vars_file(self):
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
@@ -78,7 +78,7 @@ class TF:
         process = Popen(['kubectl', 'apply', "-f",
                          "{}/nodes_cm.yaml".format(self.tmp_root_path)],
                         env=dict(os.environ,
-                                 **{"KUBECONFIG": self.kube_config_file,
+                                 **{"KUBECONFIG": self.kube_config_file_path,
                                     "cc": self.aws_region,
                                     "AWS_ACCESS_KEY_ID": self.aws_access_key,
                                     "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
@@ -122,25 +122,28 @@ class TF:
         else:
             yield "RUNNING: Terraform has successfully created cluster", None
 
-        yield "RUNNING: Setting aws config", None
-        # aws_conf_result = self.__set_aws_cli_config()
-        # if aws_conf_result != 0:
-        #     yield "FAILED: Failed to create aws config", 1
-        # else:
-        #     yield "RUNNING: AWS config set successfully", None
-
-        yield "RUNNING: Generating cluster config...", None
-        KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
-                                        config_file=self.kube_config_file,
-                                        aws_region=self.aws_region,
-                                        aws_access_key=self.aws_access_key,
-                                        aws_secret_key=self.aws_secret_key
-                                        )
-        yield "RUNNING: Generated cluster config: success", None
+        #
+        yield "RUNNING: Generating kubernetes cluster config...", None
+        kube_config, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
+                                                       aws_region=self.aws_region,
+                                                       aws_access_key=self.aws_access_key,
+                                                       aws_secret_key=self.aws_secret_key
+                                                       )
+        if(err == 0 ):
+            yield "RUNNING: Kubernetes config generated successfully", None
+        else:
+            yield "ERROR: Failed to create kubernetes config: {}".format(kube_config), err
+        # Write kube conf in YAML
+        with open(self.kube_config_file_path, "w") as kube_config_file:
+            yaml.dump(kube_config, kube_config_file, default_flow_style=False)
+        yield "RUNNING: Write kubernetes config to file: success", None
 
         yield "RUNNING: Applying node auth configmap...", None
         auth_conf_map_result = self.__apply_node_auth_configmap()
         if auth_conf_map_result != 0:
             yield "FAILED: Failed to apply node config map...", auth_conf_map_result
         else:
-            yield "SUCCESS: Cluster creation and conf setup complete", 0
+            yield "SUCCESS: Cluster creation and conf setup complete", None
+
+        # If deployment was successful, save kubernetes context to vault
+        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_config, self.cluster_name)
