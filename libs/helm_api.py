@@ -106,8 +106,7 @@ class Helm:
                "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
                "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
                }
-        # result = shell_await(cmd, env)
-        result = shell_await(cmd)
+        result = shell_await(cmd, env)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))
         yield "COMPLETED", result
