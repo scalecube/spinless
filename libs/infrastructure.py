@@ -61,7 +61,11 @@ class TF:
         return result + process.wait()
 
     def __generate_configmap(self):
-        client = boto3.client('iam')
+        client = boto3.client('iam',
+                              region_name=self.aws_region,
+                              aws_access_key_id=self.aws_access_key,
+                              aws_secret_access_key=self.aws_secret_key,
+                              )
         role_arn = client.get_role(RoleName='eks-node-role')['Role']['Arn']
         with open("{}/nodes_cm.yaml".format(self.tmp_root_path), "w") as nodes_cm:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
@@ -75,7 +79,7 @@ class TF:
                          "{}/nodes_cm.yaml".format(self.tmp_root_path)],
                         env=dict(os.environ,
                                  **{"KUBECONFIG": self.kube_config_file,
-                                    "AWS_DEFAULT_REGION": self.aws_region,
+                                    "cc": self.aws_region,
                                     "AWS_ACCESS_KEY_ID": self.aws_access_key,
                                     "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
                                     }),
