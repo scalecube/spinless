@@ -19,8 +19,8 @@ RUN  mv aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
 
 
 ENV APP_WORKING_DIR /opt
-ENV TF_WORKING_DIR /opt/infrastructure
-ENV TF_STATE /opt/state/tfstate
+ENV TF_WORKING_DIR /infrastructure
+ENV TF_STATE state/tfstate
 
 EXPOSE 5000
 CMD ["/bin/sh", "-c", "./start_app.sh"]
