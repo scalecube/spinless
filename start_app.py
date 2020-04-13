@@ -144,7 +144,7 @@ def kubernetes_context_delete(name):
 #
 # Cloud providers CRUD
 #
-@app.route('/cloud/providers/create/<provider_type>/<name>', methods=['POST'])
+@app.route('/cloud/providers/<provider_type>/<name>', methods=['POST'])
 def create_cloud_provider_api(provider_type, name):
     data = request.get_json()
     if not data:
