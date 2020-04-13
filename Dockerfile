@@ -4,9 +4,9 @@ WORKDIR /opt
 COPY . /opt
 RUN pip install -r requirements.txt
 RUN apt update && apt install -y jq vim mc
-RUN wget -q https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-linux-amd64.tar.gz
-RUN tar xzfv helm-v2.14.1-linux-amd64.tar.gz
-RUN mv ./linux-amd64/helm /usr/local/bin/helm
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+RUN chmod 700 get_helm.sh
+RUN ./get_helm.sh
 RUN wget https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip
 RUN unzip -u terraform_0.12.24_linux_amd64.zip
 RUN mv terraform /usr/local/bin/terraform
