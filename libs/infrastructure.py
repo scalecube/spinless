@@ -22,6 +22,7 @@ class TF:
         self.tf_working_dir = "{}/{}".format(curr_dir, os.getenv('TF_WORKING_DIR'))
         self.cwd = "{}/{}".format(curr_dir, os.getenv('TF_STATE'))
         self.tmp_root_path = "/tmp/{}".format(timestamp)
+        self.kube_config_file = "{}/{}".format(self.tmp_root_path, KUBECONF_FILE)
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
@@ -57,7 +58,7 @@ class TF:
                          "{}".format(self.aws_region)], stdout=PIPE, stderr=PIPE)
         return result + process.wait()
 
-    def generate_configmap(self):
+    def __generate_configmap(self):
         client = boto3.client('iam')
         role_arn = client.get_role(RoleName='eks-node-role')['Role']['Arn']
         with open("{}/nodes_cm.yaml".format(self.tmp_root_path), "w") as nodes_cm:
@@ -67,7 +68,7 @@ class TF:
             nodes_cm.write(gen_template)
 
     def __apply_node_auth_configmap(self):
-        self.generate_configmap()
+        self.__generate_configmap()
         process = Popen(['kubectl', 'apply', "-f",
                          "{}/nodes_cm.yaml".format(self.tmp_root_path)],
                         env=dict(os.environ,
@@ -78,6 +79,14 @@ class TF:
 
     def install_kube(self):
         os.mkdir(self.tmp_root_path)
+
+        _cmd_init = ['terraform', 'init', self.tf_working_dir]
+        yield "START: Terraform init: {}".format(_cmd_init), None
+        process = Popen(_cmd_init, cwd=self.cwd,
+                        stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        yield "RUNNING: Terraform init complete!", None
+
         _cmd_wksps = ['terraform', 'workspace', 'new', self.cluster_name, self.tf_working_dir]
         yield "START: Creating Workspace: {}".format(_cmd_wksps), None
         process = Popen(_cmd_wksps, cwd=self.cwd,
@@ -121,7 +130,7 @@ class TF:
 
         yield "RUNNING: Generating cluster config...", None
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
-                                        config_file="{}/{}".format(self.tmp_root_path, KUBECONF_FILE))
+                                        config_file=self.kube_config_file)
         yield "RUNNING: Generated cluster config: success", None
 
         yield "RUNNING: Applying node auth configmap...", None

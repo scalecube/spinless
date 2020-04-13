@@ -1,4 +1,3 @@
-from threading import Thread
 from logging.config import dictConfig
 
 from dotenv import load_dotenv
@@ -6,12 +5,11 @@ from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 
 from libs.job_api import *
+from services.cloud_service import *
 from services.helm_deploy import helm_deploy
 from services.kctx_service import *
-from services.kubernetes_service import kube_cluster_create
+from services.kuber_service import kube_cluster_create
 from services.registry_service import *
-from libs.infrastructure import TF
-from services.cloud_service import *
 
 load_dotenv()
 
@@ -184,16 +182,8 @@ def kubernetes_cluster_create():
         return abort(Response("Give some payload"))
     app.logger.info("Request create cluster is {}".format(data))
     job = create_job(kube_cluster_create, app.logger, data).start()
-
     return jsonify({'id': job.job_id})
-
-
-    thread = Thread(target=kube_cluster_create,
-                    kwargs={'data': request.get_json(), 'logger' : app.logger})
-    thread.start()
-    return {"kube_creation": "started"}
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
-
