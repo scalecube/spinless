@@ -1,8 +1,8 @@
-import asyncio
-import time
 import os
-import requests
 import tarfile
+import time
+
+import requests
 import yaml
 
 from libs.shell import shell_await
@@ -10,7 +10,8 @@ from libs.vault_api import Vault
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1', registries=None, vault=None):
+    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1', registries=None, vault=None,
+                 k8s_cluster_conf=None):
         self.logger = logger
         self.owner = owner
         self.repo = repo
@@ -19,10 +20,12 @@ class Helm:
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
         self.target_path = "/tmp/{}".format(self.timestamp)
+        self.kube_conf_path = "/tmp/{}/{}".format(self.timestamp, "kubeconfig")
         self.helm_dir = "{}/{}-{}".format(self.target_path, self.owner, self.repo)
         self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
         self.registries = registries
         self.vault = vault
+        self.k8s_cluster_conf = k8s_cluster_conf
 
     def get_env_from_vault(self):
         return self.vault.get_self_app_env()
@@ -90,9 +93,21 @@ class Helm:
                         "-f", "{}".format(path_to_values_yaml),
                         "{}".format(self.helm_dir)])
 
+        kubeconfig = self.k8s_cluster_conf.get("conf")
+        if not kubeconfig:
+            yield "FAILED: no kube ctx", "Failed"
+        with open(self.kube_conf_path, "w") as kubeconf_file:
+            yaml.dump(kubeconfig, kubeconf_file)
+
         yield "START: installing package: {}".format(cmd), None
+
+        env = {"KUBECONFIG": self.kube_conf_path,
+               "AWS_DEFAULT_REGION": self.k8s_cluster_conf.get("aws_region"),
+               "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
+               "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
+               }
+        # result = shell_await(cmd, env)
         result = shell_await(cmd)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))
         yield "COMPLETED", result
-        return

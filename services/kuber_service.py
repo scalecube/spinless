@@ -9,6 +9,7 @@ DEFAULT_CLOUD = {"type": "eks", "name": "default"}
 def kube_cluster_create(job_ref, app_logger):
     try:
         data = job_ref.data
+        app_logger.info("Starting cluster creation...")
         job_ref.emit("RUNNING: Start cluster creation job: {}".format(data.get("namespace")), None)
 
         # use vault later
@@ -21,20 +22,20 @@ def kube_cluster_create(job_ref, app_logger):
         cluster_name = data["cluster_name"]
         job_ref.emit("RUNNING: using cloud profile:{} to create cluster: {}".format(cloud_profile_req, cluster_name),
                      None)
-        terraform = TF(app_logger, cloud_profile["aws_region"], cloud_profile["aws_access_key"],
-                       cloud_profile["aws_secret_key"],
-                       cluster_name, cloud_profile["az1"], cloud_profile["az2"], cloud_profile["kube_nodes_amount"],
-                       data["kube_nodes_instance_type"], kctx_api)
+        terraform = TF(app_logger, cloud_profile.get("aws_region"), cloud_profile.get("aws_access_key"),
+                       cloud_profile.get("aws_secret_key"),
+                       cluster_name, cloud_profile.get("az1"), cloud_profile.get("az2"), cloud_profile.get("kube_nodes_amount"),
+                       data.get("kube_nodes_instance_type"), kctx_api)
 
         for (msg, res) in terraform.install_kube():
             if not res:
                 job_ref.emit("RUNNING", msg)
             else:
                 if res == 0:
-                    job_ref.emit("SUCCESS", "finished. helm deployed successfully: {}".format(res.stdout))
+                    job_ref.emit("SUCCESS", "finished. cluster created successfully")
                     job_ref.complete_succ()
                 else:
-                    job_ref.emit("ERROR", "finished. helm deployed failed: {}".format(res.stdout))
+                    job_ref.emit("ERROR", "finished. cluster creation failed")
                     job_ref.complete_err()
                 # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break

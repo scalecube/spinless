@@ -1,4 +1,5 @@
 from libs.helm_api import Helm
+from libs.kube_api import KctxApi
 from libs.registry_api import RegistryApi
 from libs.vault_api import Vault
 
@@ -30,22 +31,25 @@ def __prepare_regs(data, registry_api):
     return registries
 
 
-def helm_deploy(job_ref, applogger):
+def helm_deploy(job_ref, app_logger):
     try:
         data = job_ref.data
         job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
         posted_env = create_posted_env(data)
 
-        vault = Vault(logger=applogger)
-        registry_api = RegistryApi(vault, applogger)
+        vault = Vault(logger=app_logger)
+        registry_api = RegistryApi(vault, app_logger)
+        kctx_api = KctxApi(vault, app_logger)
+        k8s_cluster_conf = kctx_api.get_kubernetes_context(data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name"))
         registries = __prepare_regs(data, registry_api)
         helm = Helm(
-            logger=applogger,
+            logger=app_logger,
             owner=data["owner"],
             repo=data["repo"],
             version=data["branch_name"],
             posted_env=posted_env,
-            registries=registries
+            registries=registries,
+            k8s_cluster_conf=k8s_cluster_conf
         )
         for (msg, res) in helm.install_package():
             if not res:

@@ -1,5 +1,5 @@
 STATUS_OK_ = {"status": "OK"}
-APP_REG_PATH = "registry"
+APP_REG_PATH = "registries"
 
 
 class RegistryApi:

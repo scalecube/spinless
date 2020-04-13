@@ -101,23 +101,6 @@ def artifact_registries_delete(type, name):
 #
 # Kubernetes context CRUD
 #
-
-@app.route('/cloud/secrets/', methods=['POST'])
-def cloud_secrets_save():
-    data = request.get_json()
-    # TODO: vault write
-    vault = Vault()
-    return
-
-
-@app.route('/cloud/secrets/')
-def cloud_secrets_get():
-    data = request.get_json()
-    # TODO: vault write
-    vault = Vault()
-    return
-
-
 @app.route('/kubernetes/contexts/<name>', methods=['POST'])
 def kubernetes_context_create(name):
     data = request.get_json()
@@ -174,7 +157,9 @@ def delete_cloud_provider_api(provider_type, name):
     return delete_cloud_provider(app.logger, provider_type, name)
 
 
+#
 # Create cluster api
+#
 @app.route("/kubernetes/create", methods=['POST'])
 def kubernetes_cluster_create():
     data = request.get_json()
