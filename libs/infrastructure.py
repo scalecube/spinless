@@ -79,7 +79,7 @@ class TF:
                          "{}/nodes_cm.yaml".format(self.tmp_root_path)],
                         env=dict(os.environ,
                                  **{"KUBECONFIG": self.kube_config_file_path,
-                                    "cc": self.aws_region,
+                                    "AWS_DEFAULT_REGION": self.aws_region,
                                     "AWS_ACCESS_KEY_ID": self.aws_access_key,
                                     "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
                                     }),
