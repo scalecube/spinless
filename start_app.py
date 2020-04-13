@@ -1,4 +1,3 @@
-from threading import Thread
 from logging.config import dictConfig
 
 from dotenv import load_dotenv
@@ -6,11 +5,11 @@ from flask import request, jsonify, Response, abort
 from flask_api import FlaskAPI
 
 from libs.job_api import *
+from services.cloud_service import *
 from services.helm_deploy import helm_deploy
 from services.kctx_service import *
+from services.kuber_service import kube_cluster_create
 from services.registry_service import *
-from libs.infrastructure import TF
-from services.cloud_service import *
 
 load_dotenv()
 
@@ -175,25 +174,15 @@ def delete_cloud_provider_api(provider_type, name):
     return delete_cloud_provider(app.logger, provider_type, name)
 
 
-# Test
+# Create cluster api
 @app.route("/kubernetes/create", methods=['POST'])
 def kubernetes_cluster_create():
-    def kube_cluster_create(data):
-        tf = TF(logger=app.logger,
-                aws_region=data["aws_region"],
-                aws_access_key=data["aws_access_key"],
-                aws_secret_key=data["aws_secret_key"],
-                cluster_name=data["cluster_name"],
-                az1=data["az1"],
-                az2=data["az2"],
-                kube_nodes_amount=data["kube_nodes_amount"],
-                kube_nodes_instance_type=data["kube_nodes_instance_type"])
-        tf.install_kube()
-
-    thread = Thread(target=kube_cluster_create,
-                    kwargs={'data': request.get_json()})
-    thread.start()
-    return {"kube_creation": "started"}
+    data = request.get_json()
+    if not data:
+        return abort(Response("Give some payload"))
+    app.logger.info("Request create cluster is {}".format(data))
+    job = create_job(kube_cluster_create, app.logger, data).start()
+    return jsonify({'id': job.job_id})
 
 
 if __name__ == '__main__':

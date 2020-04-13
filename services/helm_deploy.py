@@ -57,6 +57,8 @@ def helm_deploy(job_ref, applogger):
                 else:
                     job_ref.emit("ERROR", "finished. helm deployed failed: {}".format(res.stdout))
                     job_ref.complete_err()
+                # Don't go further in job. it's over. if that failed, it will not continue the flow.
+                break
 
     except Exception as ex:
         job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
