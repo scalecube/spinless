@@ -74,7 +74,11 @@ class TF:
         process = Popen(['kubectl', 'apply', "-f",
                          "{}/nodes_cm.yaml".format(self.tmp_root_path)],
                         env=dict(os.environ,
-                                 **{"KUBECONFIG": self.kube_config_file}),
+                                 **{"KUBECONFIG": self.kube_config_file,
+                                    "AWS_DEFAULT_REGION": self.aws_region,
+                                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
+                                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
+                                    }),
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         return process.wait()
@@ -115,15 +119,19 @@ class TF:
             yield "RUNNING: Terraform has successfully created cluster", None
 
         yield "RUNNING: Setting aws config", None
-        aws_conf_result = self.__set_aws_cli_config()
-        if aws_conf_result != 0:
-            yield "FAILED: Failed to create aws config", 1
-        else:
-            yield "RUNNING: AWS config set successfully", None
+        # aws_conf_result = self.__set_aws_cli_config()
+        # if aws_conf_result != 0:
+        #     yield "FAILED: Failed to create aws config", 1
+        # else:
+        #     yield "RUNNING: AWS config set successfully", None
 
         yield "RUNNING: Generating cluster config...", None
         KctxApi.generate_cluster_config(cluster_name=self.cluster_name,
-                                        config_file=self.kube_config_file)
+                                        config_file=self.kube_config_file,
+                                        aws_region=self.aws_region,
+                                        aws_access_key=self.aws_access_key,
+                                        aws_secret_key=self.aws_secret_key
+                                        )
         yield "RUNNING: Generated cluster config: success", None
 
         yield "RUNNING: Applying node auth configmap...", None
