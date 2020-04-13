@@ -1,5 +1,6 @@
 from libs.cloud_provider_api import CloudApi
 from libs.infrastructure import TF
+from libs.kube_api import KctxApi
 from libs.vault_api import Vault
 
 
@@ -10,10 +11,10 @@ def kube_cluster_create(job_ref, applogger):
 
         # use vault later
         vault = Vault(logger=applogger)
-        cloud_provider_api = CloudApi(vault, applogger)
+        kctx_api = KctxApi(vault, applogger)
         terraform = TF(applogger, data["aws_region"], data["aws_access_key"], data["aws_secret_key"],
                        data["cluster_name"], data["az1"], data["az2"], data["kube_nodes_amount"],
-                       data["kube_nodes_instance_type"])
+                       data["kube_nodes_instance_type"], kctx_api)
 
         for (msg, res) in terraform.install_kube():
             if not res:
