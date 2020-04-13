@@ -17,11 +17,13 @@ class TF:
                  aws_secret_key, cluster_name, az1, az2,
                  kube_nodes_amount, kube_nodes_instance_type):
         self.logger = logger
-        curr_dir = os.path.dirname(sys.modules['__main__'].__file__)
+        curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
         self.tf_working_dir = "{}/{}".format(curr_dir, os.getenv('TF_WORKING_DIR'))
-        self.cwd = "{}/{}".format(curr_dir, os.getenv('TF_STATE'))
+        self.tf_state_dir = "{}/{}".format(curr_dir, os.getenv('TF_STATE'))
         self.tmp_root_path = "/tmp/{}".format(timestamp)
+        os.mkdir(self.tmp_root_path)
+
         self.kube_config_file = "{}/{}".format(self.tmp_root_path, KUBECONF_FILE)
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
@@ -78,18 +80,9 @@ class TF:
         return process.wait()
 
     def install_kube(self):
-        os.mkdir(self.tmp_root_path)
-
-        _cmd_init = ['terraform', 'init', self.tf_working_dir]
-        yield "START: Terraform init: {}".format(_cmd_init), None
-        process = Popen(_cmd_init, cwd=self.cwd,
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        yield "RUNNING: Terraform init complete!", None
-
         _cmd_wksps = ['terraform', 'workspace', 'new', self.cluster_name, self.tf_working_dir]
         yield "START: Creating Workspace: {}".format(_cmd_wksps), None
-        process = Popen(_cmd_wksps, cwd=self.cwd,
+        process = Popen(_cmd_wksps, cwd=self.tf_state_dir,
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         self.logger.info("Create namespace")
@@ -108,7 +101,7 @@ class TF:
                       '-auto-approve',
                       self.tf_working_dir]
         yield "RUNNING: Actually creating cloud. This may take time... {}".format(_cmd_apply), None
-        process = Popen(_cmd_apply, cwd=self.cwd,
+        process = Popen(_cmd_apply, cwd=self.tf_state_dir,
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         time.sleep(10)
