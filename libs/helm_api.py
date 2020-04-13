@@ -106,6 +106,9 @@ class Helm:
                "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
                "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
                }
+        create_namespace_cmd = ["kubectl", "create", "namespace", "{}".format(self.namespace)]
+        shell_await(create_namespace_cmd, env)
+        self.logger.info("Kubernetes namespace {} created".format(self.namespace))
         result = shell_await(cmd, env)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))

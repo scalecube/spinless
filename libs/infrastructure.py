@@ -125,11 +125,11 @@ class TF:
         #
         yield "RUNNING: Generating kubernetes cluster config...", None
         kube_config, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
-                                                       aws_region=self.aws_region,
-                                                       aws_access_key=self.aws_access_key,
-                                                       aws_secret_key=self.aws_secret_key
-                                                       )
-        if(err == 0 ):
+                                                            aws_region=self.aws_region,
+                                                            aws_access_key=self.aws_access_key,
+                                                            aws_secret_key=self.aws_secret_key
+                                                            )
+        if err == 0:
             yield "RUNNING: Kubernetes config generated successfully", None
         else:
             yield "ERROR: Failed to create kubernetes config: {}".format(kube_config), err
