@@ -1,6 +1,5 @@
-import yaml
 import boto3
-
+import yaml
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -17,18 +16,22 @@ class KctxApi:
         if not ctx_data:
             self.logger.error("No kube ctx data provided")
             return {"error": "No kube ctx data provided"}
-        if not all(k in ctx_data for k in ("name", "kctx_name")):
-            self.logger.error("Mandatory fields not provided (\"name\", \"kctx_name\")")
-            return {"error": "Mandatory fields not provided (\"name\", \"kctx_name\")"}
+        if not all(k in ctx_data for k in "name"):
+            self.logger.error("Mandatory fields not provided \"name\"")
+            return {"error": "Mandatory fields not provided \"name\""}
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
-        secret_payload = {"kctx_name": ctx_data["kctx_name"]}
         try:
             self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
-            self.v_client.write(kctx_path, wrap_ttl=None, **secret_payload)
+            self.v_client.write(kctx_path, wrap_ttl=None, **ctx_data)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(kctx_path, e))
             return {"error": "Failed to write secret"}
+
+    def save_aws_context(self, aws_secretkey, aws_accesskey, aws_region, kube_cfg_dict, conf_label="default"):
+        secret = {"aws_secret_key": aws_secretkey, "aws_access_key": aws_accesskey, "aws_region": aws_region,
+                  "kube_config": yaml.dump(kube_cfg_dict, default_flow_style=False), "name": conf_label}
+        return self.save_kubernetes_context(secret)
 
     def get_kubernetes_context(self, ctx_id):
         if not ctx_id:
@@ -119,4 +122,3 @@ class KctxApi:
         # Write in YAML
         with open(config_file, "w") as kube_config_file:
             yaml.dump(cluster_config, kube_config_file, default_flow_style=False)
-
