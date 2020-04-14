@@ -33,18 +33,10 @@ class Vault:
 
         # init client
         self.client = hvac.Client()
-        try:
-            if not self.dev_mode:
-                with open(self.vault_jwt_token)as f:
-                    jwt = f.read()
-                    self.client.auth_kubernetes(self.service_role, jwt)
-            else:
-                self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
-        except Exception as ex:
-            print("Error authenticating vault: {}".format(ex))
 
     def get_self_app_env(self):
         try:
+            self.__auth_client()
             app_secret_path = self.vault_secrets_path + "/" + APP_ENV_PATH
             self.logger.info("Vault secrets path is: {}".format(app_secret_path))
             env = self.client.read(app_secret_path)
@@ -61,6 +53,7 @@ class Vault:
             self.root_path, self.owner, self.repo, self.version, env_or_app)
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
+            self.__auth_client()
             env = self.client.read(path)
             self.logger.info("ENV from vault is {}: ".format(env))
             return env['data']
@@ -77,6 +70,7 @@ class Vault:
         policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
         try:
             # self.client.set_policy(policy_name, policy_1_path + policy_2_path) - DEPRECATED
+            self.__auth_client()
             self.client.sys.create_or_update_policy(policy_name, policy_1_path + policy_2_path)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
@@ -86,6 +80,7 @@ class Vault:
         self.logger.info("Creating service role")
         policy_name = self.create_policy()
         try:
+            self.__auth_client()
             self.client.create_role("{}-role".format(self.app_path),
                                     mount_point="kubernetes",
                                     bound_service_account_names="{}".format(self.app_path),
@@ -94,3 +89,15 @@ class Vault:
         except Exception as e:
             self.logger.info("Vault create_role exception is: {}".format(e))
         return
+
+    # Vault's token ttl is too short so this should be called prior to any operation
+    def __auth_client(self):
+        try:
+            if not self.dev_mode:
+                with open(self.vault_jwt_token)as f:
+                    jwt = f.read()
+                    self.client.auth_kubernetes(self.service_role, jwt)
+            else:
+                self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
+        except Exception as ex:
+            print("Error authenticating vault: {}".format(ex))
