@@ -26,6 +26,8 @@ def __parse_reg_from_data(data, reg_type):
 
 def __prepare_regs(data, registry_api):
     helm_reg = registry_api.get_reg(__parse_reg_from_data(data, "helm"))
+    if "error" in helm_reg:
+        return helm_reg
     docker_reg = registry_api.get_reg(__parse_reg_from_data(data, "docker"))
     registries = {"helm": helm_reg, "docker": docker_reg}
     return registries
@@ -40,8 +42,23 @@ def helm_deploy(job_ref, app_logger):
         vault = Vault(logger=app_logger)
         registry_api = RegistryApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
-        k8s_cluster_conf = kctx_api.get_kubernetes_context(data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name"))
+
+        # read cluster config
+        kube_profile_req = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
+        k8s_cluster_conf = kctx_api.get_kubernetes_context(kube_profile_req)
+        if "error" in k8s_cluster_conf:
+            job_ref.emit("ERROR", "Failed to get k8 conf for {}. Reason: {}".format(kube_profile_req, k8s_cluster_conf.get("error")))
+            job_ref.complete_err()
+            return
+
+        # read registries config
         registries = __prepare_regs(data, registry_api)
+        if "error" in registries:
+            job_ref.emit("ERROR", "Failed to get registries data for {}. Reason: {}".format(data.get("registry"),
+                                                                                            registries.get("error")))
+            job_ref.complete_err()
+            return
+
         helm = Helm(
             logger=app_logger,
             owner=data["owner"],

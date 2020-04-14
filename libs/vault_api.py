@@ -90,6 +90,18 @@ class Vault:
             self.logger.info("Vault create_role exception is: {}".format(e))
         return
 
+    def read(self, path):
+        self.__auth_client()
+        return self.client.read(path)
+
+    def write(self, path, **data):
+        self.__auth_client()
+        self.client.write(path, wrap_ttl=None, **data)
+
+    def delete(self, path):
+        self.__auth_client()
+        self.client.delete(path)
+
     # Vault's token ttl is too short so this should be called prior to any operation
     def __auth_client(self):
         try:

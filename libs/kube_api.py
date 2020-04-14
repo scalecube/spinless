@@ -9,7 +9,6 @@ K8S_CTX_PATH = "kctx"
 class KctxApi:
     def __init__(self, vault, logger):
         self.vault = vault
-        self.v_client = vault.client
         self.logger = logger
 
     def save_kubernetes_context(self, ctx_data):
@@ -22,7 +21,7 @@ class KctxApi:
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
         try:
             self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
-            self.v_client.write(kctx_path, wrap_ttl=None, **ctx_data)
+            self.vault.write(kctx_path, wrap_ttl=None, **ctx_data)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(kctx_path, e))
@@ -39,7 +38,7 @@ class KctxApi:
             ctx_id = DEFAULT_K8S_CTX_ID
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_id)
         try:
-            kctx_secret = self.v_client.read(kctx_path)
+            kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
                 return {"error": "No such kctx: {}".format(ctx_id)}
             return kctx_secret["data"]
@@ -56,7 +55,7 @@ class KctxApi:
             return {"error": "Not allowed to remove default kctx"}
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_id)
         try:
-            self.v_client.delete(kctx_path)
+            self.vault.delete(kctx_path)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to delete secret from path {}, {}".format(kctx_path, e))
