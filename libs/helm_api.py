@@ -5,7 +5,7 @@ import time
 import requests
 import yaml
 
-from libs.shell import shell_await
+from libs.shell import shell_await, Result
 from libs.vault_api import Vault
 
 
@@ -95,7 +95,7 @@ class Helm:
 
         kubeconfig = self.k8s_cluster_conf.get("conf")
         if not kubeconfig:
-            yield "FAILED: no kube ctx", "Failed"
+            yield "FAILED: no kube ctx", Result(1, "Failed")
         with open(self.kube_conf_path, "w") as kubeconf_file:
             yaml.dump(kubeconfig, kubeconf_file)
 
