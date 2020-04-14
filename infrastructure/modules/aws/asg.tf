@@ -59,7 +59,7 @@ resource "aws_autoscaling_group" "eks-t3a-medium" {
   for_each             = var.nodePools
 
   desired_capacity     = each.value["count"]
-  launch_configuration = "aws_lc_${each.key}"
+  launch_configuration = "aws_lc_${each.key}.id"
   max_size             = each.value["maxCount"]
   min_size             = each.value["minCount"]
   name                 = "asg-eks-${each.value["taint"]}"
