@@ -73,7 +73,7 @@ def helm_deploy(job_ref, app_logger):
             if not res:
                 job_ref.emit("RUNNING", msg)
             else:
-                if res == 0:
+                if res.code == 0:
                     job_ref.emit("SUCCESS", "finished. helm deployed successfully: {}".format(res.stdout))
                     job_ref.complete_succ()
                 else:

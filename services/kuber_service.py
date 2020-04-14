@@ -22,9 +22,14 @@ def kube_cluster_create(job_ref, app_logger):
         cluster_name = data["cluster_name"]
         job_ref.emit("RUNNING: using cloud profile:{} to create cluster: {}".format(cloud_profile_req, cluster_name),
                      None)
-        terraform = TF(app_logger, cloud_profile.get("aws_region"), cloud_profile.get("aws_access_key"),
+
+        terraform = TF(app_logger,
+                       cloud_profile.get("aws_region"),
+                       cloud_profile.get("aws_access_key"),
                        cloud_profile.get("aws_secret_key"),
-                       cluster_name, cloud_profile.get("az1"), cloud_profile.get("az2"), cloud_profile.get("kube_nodes_amount"),
+                       cluster_name, cloud_profile.get("az1"),
+                       cloud_profile.get("az2"),
+                       cloud_profile.get("kube_nodes_amount"),
                        data.get("kube_nodes_instance_type"), kctx_api)
 
         for (msg, res) in terraform.install_kube():
