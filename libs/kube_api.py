@@ -16,7 +16,7 @@ class KctxApi:
         if not ctx_data:
             self.logger.error("No kube ctx data provided")
             return {"error": "No kube ctx data provided"}
-        if not all(k in ctx_data for k in "name"):
+        if "name" not in ctx_data:
             self.logger.error("Mandatory fields not provided \"name\"")
             return {"error": "Mandatory fields not provided \"name\""}
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
