@@ -47,9 +47,10 @@ def helm_deploy(job_ref, app_logger):
         kube_profile_req = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
         k8s_cluster_conf = kctx_api.get_kubernetes_context(kube_profile_req)
         if "error" in k8s_cluster_conf:
-            job_ref.emit("ERROR", "Failed to get k8 conf for {}. Reason: {}".format(kube_profile_req, k8s_cluster_conf.get("error")))
-            job_ref.complete_err()
-            return
+            job_ref.emit("WARNING",
+                         "Failed to get k8 conf for {}. Reason: {}. Will use default kube context for current vm".format(
+                             kube_profile_req, k8s_cluster_conf.get("error")))
+            k8s_cluster_conf = {}
 
         # read registries config
         registries = __prepare_regs(data, registry_api)

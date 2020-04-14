@@ -5,7 +5,7 @@ import time
 import requests
 import yaml
 
-from libs.shell import shell_await, Result
+from libs.shell import shell_await
 from libs.vault_api import Vault
 
 
@@ -84,32 +84,38 @@ class Helm:
         self.prepare_package()
         yield "DONE: package ready", None
 
-        path_to_values_yaml = self.enrich_values_yaml()
-        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
-
-        cmd = ' '.join([helm_cmd, "upgrade", "--debug",
-                        "--install", "--namespace",
-                        "{}".format(self.namespace), "{}".format(self.namespace),
-                        "-f", "{}".format(path_to_values_yaml),
-                        "{}".format(self.helm_dir)])
-
         kubeconfig = self.k8s_cluster_conf.get("conf")
         if not kubeconfig:
-            yield "FAILED: no kube ctx", Result(1, "Failed")
-        with open(self.kube_conf_path, "w") as kubeconf_file:
-            yaml.dump(kubeconfig, kubeconf_file)
+            yield "WARNING: no kube ctx. Deploying to default cluster", None
+        else:
+            with open(self.kube_conf_path, "w") as kubeconf_file:
+                yaml.dump(kubeconfig, kubeconf_file)
 
-        yield "START: installing package: {}".format(cmd), None
+        # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
+        if all(k in self.k8s_cluster_conf for k in ("aws_region", "aws_access_key", "aws_secret_key")):
+            env = {"KUBECONFIG": self.kube_conf_path,
+                   "AWS_DEFAULT_REGION": self.k8s_cluster_conf.get("aws_region"),
+                   "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
+                   "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
+                   }
+        else:
+            env = {}
 
-        env = {"KUBECONFIG": self.kube_conf_path,
-               "AWS_DEFAULT_REGION": self.k8s_cluster_conf.get("aws_region"),
-               "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
-               "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
-               }
+        # create k8 namespace if necessary
         create_namespace_cmd = ["kubectl", "create", "namespace", "{}".format(self.namespace)]
         shell_await(create_namespace_cmd, env)
         self.logger.info("Kubernetes namespace {} created".format(self.namespace))
-        result = shell_await(cmd, env)
+
+        # actually call helm install
+        path_to_values_yaml = self.enrich_values_yaml()
+        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
+        helm_install_cmd = [helm_cmd, "upgrade", "--debug",
+                            "--install", "--namespace",
+                            self.namespace, self.namespace,
+                            "-f", path_to_values_yaml,
+                            self.helm_dir]
+        yield "START: installing package: {}".format(helm_install_cmd), None
+        result = shell_await(helm_install_cmd, env)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))
         yield "COMPLETED", result
