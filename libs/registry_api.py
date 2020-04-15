@@ -19,7 +19,7 @@ class RegistryApi:
         secret_payload = dict((k, reg_data[k]) for k in ("username", "password", "repo_path"))
         try:
             self.logger.info("Saving registry data into path: {}".format(reg_path))
-            self.vault.write(reg_path, wrap_ttl=None, **secret_payload)
+            self.vault.write(reg_path, **secret_payload)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(reg_path, e))

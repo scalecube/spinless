@@ -22,7 +22,7 @@ class CloudApi:
                                            data.pop("name"))
         try:
             self.logger.info("Saving data into path: {}".format(secret_path))
-            self.vault.write(secret_path, wrap_ttl=None, **data)
+            self.vault.write(secret_path, **data)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(secret_path, e))
