@@ -85,10 +85,13 @@ class Helm:
         yield "DONE: package ready", None
 
         kubeconfig = self.k8s_cluster_conf.get("conf")
+        self.logger.info("Kubeconfig: {}".format(kubeconfig))
         if not kubeconfig:
             yield "WARNING: no kube ctx. Deploying to default cluster", None
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
+                self.logger.info("kubeconfig is {}".format(kubeconfig))
+                self.logger.info("self.k8s_cluster_conf is {}".format(self.k8s_cluster_conf))
                 yaml.dump(kubeconfig, kubeconf_file)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
