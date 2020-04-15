@@ -99,7 +99,7 @@ class Helm:
             with open(self.kube_conf_path, "w") as kubeconf_file:
                 self.logger.info("kubeconfig is {}".format(kubeconfig))
                 self.logger.info("self.k8s_cluster_conf is {}".format(self.k8s_cluster_conf))
-                yaml.dump(kubeconfig, kubeconf_file)
+                yaml.dump(eval(kubeconfig), kubeconf_file)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
         if all(k in self.k8s_cluster_conf for k in ("aws_region", "aws_access_key", "aws_secret_key")):

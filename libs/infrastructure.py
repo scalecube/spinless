@@ -146,4 +146,4 @@ class TF:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
         # If deployment was successful, save kubernetes context to vault
-        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_config, self.cluster_name)
+        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, str(kube_config), self.cluster_name)
