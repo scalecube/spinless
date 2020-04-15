@@ -8,6 +8,8 @@ import yaml
 from libs.shell import shell_await
 from libs.vault_api import Vault
 
+DOCKERJSON_KEY = ".dockerjson"
+
 
 class Helm:
     def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None, vault=None,
@@ -85,7 +87,7 @@ class Helm:
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
-        return path_to_values_yaml
+        return path_to_values_yaml, default_values
 
     def install_package(self):
         yield "START: preparing package...", None
@@ -117,14 +119,17 @@ class Helm:
         shell_await(create_namespace_cmd, env)
         self.logger.info("Kubernetes namespace {} created".format(self.namespace))
 
+        path_to_values_yaml, values_content = self.enrich_values_yaml()
+        dockerjson = values_content.get(DOCKERJSON_KEY)
         # actually call helm install
-        path_to_values_yaml = self.enrich_values_yaml()
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
                             "--install", "--namespace",
                             self.namespace, self.namespace,
                             "-f", path_to_values_yaml,
                             self.helm_dir]
+        if dockerjson:
+            helm_install_cmd.append('--set').append('dockerjsontoken={}'.format(dockerjson))
         yield "START: installing package: {}".format(helm_install_cmd), None
         result = shell_await(helm_install_cmd, env)
 
