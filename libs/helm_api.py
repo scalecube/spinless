@@ -21,7 +21,7 @@ class Helm:
         self.timestamp = round(time.time() * 1000)
         self.target_path = "/tmp/{}".format(self.timestamp)
         self.kube_conf_path = "/tmp/{}/{}".format(self.timestamp, "kubeconfig")
-        self.helm_dir = "{}/{}-{}".format(self.target_path, self.owner, self.repo)
+        self.helm_dir = "{}/{}".format(self.target_path, self.repo)
         self.namespace = namespace
         self.registries = registries
         self.vault = vault
@@ -42,21 +42,21 @@ class Helm:
         return
 
     def prepare_package(self):
-        # os.mkdir(self.target_path)
-        # reg = self.registries["helm"]
-        # helm_reg_url = 'https://{}:{}@{}.tgz'.format(
-        #     reg['username'], reg['password'], reg['path'])
-        # chart_path = "{}/{}/{}-{}.tgz".format(self.owner, self.repo, self.repo, self.helm_version)
-        # url = "{}/{}".format(helm_reg_url, chart_path)
         os.mkdir(self.target_path)
         reg = self.registries["helm"]
-        url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
-            reg['username'], reg['password'], reg['path'],
-            self.owner, self.repo, self.helm_version
-        )
+        helm_reg_url = 'https://{}:{}@{}'.format(
+            reg['username'], reg['password'], reg['path'])
+        chart_path = "{}/{}/{}-{}.tgz".format(self.owner, self.repo, self.repo, self.helm_version)
+        url = "{}{}".format(helm_reg_url, chart_path)
+        # os.mkdir(self.target_path)
+        # reg = self.registries["helm"]
+        # url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
+        #     reg['username'], reg['password'], reg['path'],
+        #     self.owner, self.repo, self.helm_version
+        # )
         # TODO: report error if no package was found
         r = requests.get(url)
-        helm_tag_gz = '{}/{}-{}.tgz'.format(self.target_path, self.owner, self.repo)
+        helm_tag_gz = '{}/{}.tgz'.format(self.target_path, self.repo)
         with open(helm_tag_gz, "wb") as helm_archive:
             helm_archive.write(r.content)
         self.untar_helm_gz(helm_tag_gz)
@@ -73,8 +73,8 @@ class Helm:
 
         ### Remove create role
         vault.create_role()
-        vault_env = vault.get_env("env")
-        env = default_values['env']
+        vault_env = vault.get_env()
+        env = default_values.get('env', {})
         self.logger.info("Vault values are: {}".format(vault_env))
         self.logger.info("Default values are: {}".format(env))
         env.update(vault_env)
