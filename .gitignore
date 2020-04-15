@@ -40,3 +40,12 @@ override.tf.json
 # example: *tfplan*
 
 /logs/
+
+!.idea
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/dictionaries/sergeyr.xml
+/.idea/spinless.iml
+/.idea/vcs.xml
+/.idea/workspace.xml

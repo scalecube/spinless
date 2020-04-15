@@ -16,12 +16,12 @@ class Vault:
                  root_path="secretv2",
                  owner=None,
                  repo=None,
-                 version=None):
+                 branch_name=None):
         self.root_path = root_path
         self.owner = owner
         self.repo = repo
-        self.version = version
-        self.app_path = "{}-{}-{}".format(owner, repo, version)
+        self.branch_name = branch_name
+        self.app_path = "{}-{}-{}".format(owner, repo, branch_name)
         self.dev_mode = dev_mode
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
@@ -50,7 +50,7 @@ class Vault:
 
     def get_env(self, env_or_app):
         path = "{}/{}/{}/{}/{}".format(
-            self.root_path, self.owner, self.repo, self.version, env_or_app)
+            self.root_path, self.owner, self.repo, self.branch_name, env_or_app)
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
             self.__auth_client()

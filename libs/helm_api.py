@@ -10,19 +10,19 @@ from libs.vault_api import Vault
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, version, posted_env, helm_version='0.0.1', registries=None, vault=None,
+    def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None, vault=None,
                  k8s_cluster_conf=None):
         self.logger = logger
         self.owner = owner
         self.repo = repo
-        self.version = version
+        self.branch_name = branch_name
         self.posted_env = posted_env
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
         self.target_path = "/tmp/{}".format(self.timestamp)
         self.kube_conf_path = "/tmp/{}/{}".format(self.timestamp, "kubeconfig")
         self.helm_dir = "{}/{}-{}".format(self.target_path, self.owner, self.repo)
-        self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.version)
+        self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.branch_name)
         self.registries = registries
         self.vault = vault
         self.k8s_cluster_conf = k8s_cluster_conf
@@ -42,6 +42,12 @@ class Helm:
         return
 
     def prepare_package(self):
+        # os.mkdir(self.target_path)
+        # reg = self.registries["helm"]
+        # helm_reg_url = 'https://{}:{}@{}.tgz'.format(
+        #     reg['username'], reg['password'], reg['path'])
+        # chart_path = "{}/{}/{}-{}.tgz".format(self.owner, self.repo, self.repo, self.helm_version)
+        # url = "{}/{}".format(helm_reg_url, chart_path)
         os.mkdir(self.target_path)
         reg = self.registries["helm"]
         url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
@@ -62,7 +68,7 @@ class Helm:
         vault = Vault(logger=self.logger,
                       owner=self.owner,
                       repo=self.repo,
-                      version=self.version,
+                      branch_name=self.branch_name,
                       )
         ### Remove create role
         vault.create_role()
@@ -85,7 +91,7 @@ class Helm:
         self.prepare_package()
         yield "DONE: package ready", None
 
-        kubeconfig = self.k8s_cluster_conf.get("conf")
+        kubeconfig = self.k8s_cluster_conf.get("kube_config")
         self.logger.info("Kubeconfig: {}".format(kubeconfig))
         if not kubeconfig:
             yield "WARNING: no kube ctx. Deploying to default cluster", None

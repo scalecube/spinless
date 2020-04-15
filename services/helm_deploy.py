@@ -65,9 +65,10 @@ def helm_deploy(job_ref, app_logger):
 
         helm = Helm(
             logger=app_logger,
-            owner=data["owner"],
-            repo=data["repo"],
-            version=data["branch_name"],
+            owner=data.get("owner"),
+            repo=data.get("repo"),
+            branch_name=data.get("branch_name"),
+            helm_version=data.get("helm_chart_version", "0.0.1"),
             posted_env=posted_env,
             registries=registries,
             k8s_cluster_conf=k8s_cluster_conf
