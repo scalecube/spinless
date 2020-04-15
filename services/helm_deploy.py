@@ -43,6 +43,9 @@ def helm_deploy(job_ref, app_logger):
         registry_api = RegistryApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
 
+        job_ref.emit("RUNNING", "kctx_api: {}".format(kctx_api))
+        job_ref.emit("RUNNING", "data: {}".format(data))
+
         # read cluster config
         kube_profile_req = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
         k8s_cluster_conf = kctx_api.get_kubernetes_context(kube_profile_req)
