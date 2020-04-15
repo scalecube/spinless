@@ -7,7 +7,7 @@ def create_cloud_provider(logger, data):
     vault = Vault(logger)
     repo = CloudApi(vault, logger)
     if not __check_type(data.get("type")):
-        return {"error": "type not supported: {}".format(type)}
+        return {"error": "type not supported: {}".format(data.get("type"))}
     return repo.save_cloud_provider(data)
 
 

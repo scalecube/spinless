@@ -48,6 +48,7 @@ class Helm:
             reg['username'], reg['password'], reg['path'],
             self.owner, self.repo, self.helm_version
         )
+        # TODO: report error if no package was found
         r = requests.get(url)
         helm_tag_gz = '{}/{}-{}.tgz'.format(self.target_path, self.owner, self.repo)
         with open(helm_tag_gz, "wb") as helm_archive:

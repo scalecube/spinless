@@ -21,7 +21,7 @@ class KctxApi:
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
         try:
             self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
-            self.vault.write(kctx_path, wrap_ttl=None, **ctx_data)
+            self.vault.write(kctx_path, **ctx_data)
             return STATUS_OK_
         except Exception as e:
             self.logger.info("Failed to write secret to path {}, {}".format(kctx_path, e))
