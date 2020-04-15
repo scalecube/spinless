@@ -70,6 +70,7 @@ class Helm:
                       repo=self.repo,
                       branch_name=self.branch_name,
                       )
+
         ### Remove create role
         vault.create_role()
         vault_env = vault.get_env("env")
