@@ -31,8 +31,6 @@ class Vault:
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
 
-        # init client
-        self.client = hvac.Client()
 
     def get_self_app_env(self):
         try:
@@ -104,6 +102,7 @@ class Vault:
 
     # Vault's token ttl is too short so this should be called prior to any operation
     def __auth_client(self):
+        self.client = hvac.Client()
         try:
             if not self.dev_mode:
                 with open(self.vault_jwt_token)as f:
