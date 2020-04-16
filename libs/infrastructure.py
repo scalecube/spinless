@@ -66,7 +66,7 @@ class TF:
                               aws_access_key_id=self.aws_access_key,
                               aws_secret_access_key=self.aws_secret_key,
                               )
-        role_arn = client.get_role(RoleName='eks-node-role')['Role']['Arn']
+        role_arn = client.get_role(RoleName='eks-node-role-{}'.format(self.cluster_name))['Role']['Arn']
         with open("{}/nodes_cm.yaml".format(self.tmp_root_path), "w") as nodes_cm:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
                                  trim_blocks=True)
