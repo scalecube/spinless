@@ -1,5 +1,5 @@
 resource "aws_iam_role" "eks-node" {
-  name = "eks-node-role"
+  name = "eks-node-role-${var.cluster-name}"
 
   assume_role_policy = <<POLICY
 {
@@ -33,6 +33,6 @@ resource "aws_iam_role_policy_attachment" "eks-node-AmazonEC2ContainerRegistryRe
 }
 
 resource "aws_iam_instance_profile" "eks-node" {
-  name = "eks-node"
+  name = "eks-node-${var.cluster-name}"
   role = aws_iam_role.eks-node.name
 }

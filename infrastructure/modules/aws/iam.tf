@@ -1,5 +1,5 @@
 resource "aws_iam_role" "eks-cluster-role" {
-  name = "eks-cluster-role"
+  name = "eks-cluster-role-${var.cluster-name}"
 
   assume_role_policy = <<POLICY
 {
@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "eks-AmazonEKSServicePolicy" {
 }
 
 resource "aws_iam_role_policy" "eks-cluster-service-linked-role" {
-  name = "service-linked-role"
+  name = "service-linked-role-${var.cluster-name}"
   role = aws_iam_role.eks-cluster-role.name
 
   policy = <<EOF
