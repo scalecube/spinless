@@ -139,12 +139,11 @@ class Helm:
         yield "COMPLETED", result
 
     def __dockerjson(self, valuesyaml, registries):
-        result = ""
         if registries.get("docker"):
             result = registries.get("docker").get("dockerjsontoken", "")
-        result =  valuesyaml.get("dockerjsontoken", "")
+        else:
+            result = valuesyaml.get("dockerjsontoken", "")
         if not result or result == "":
             self.logger.warn(
                 "Using default docker registry since didn't find dockerjson neither in values nor in registry data.")
         return result
-
