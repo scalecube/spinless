@@ -46,9 +46,9 @@ class Vault:
             self.logger.info("Vault get_self_app_env exception is: {}".format(e))
             return {}
 
-    def get_env(self, env_or_app):
-        path = "{}/{}/{}/{}/{}".format(
-            self.root_path, self.owner, self.repo, self.branch_name, env_or_app)
+    def get_env(self):
+        path = "{}/{}/{}/{}".format(
+            self.root_path, self.owner, self.repo, self.branch_name)
         self.logger.info("Get_env in vault path is: {}".format(path))
         try:
             self.__auth_client()
