@@ -11,7 +11,7 @@ from libs.vault_api import Vault
 
 class Helm:
     def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None, vault=None,
-                 k8s_cluster_conf=None):
+                 k8s_cluster_conf=None, namespace="default"):
         self.logger = logger
         self.owner = owner
         self.repo = repo
@@ -22,7 +22,7 @@ class Helm:
         self.target_path = "/tmp/{}".format(self.timestamp)
         self.kube_conf_path = "/tmp/{}/{}".format(self.timestamp, "kubeconfig")
         self.helm_dir = "{}/{}-{}".format(self.target_path, self.owner, self.repo)
-        self.namespace = "{}-{}-{}".format(self.owner, self.repo, self.branch_name)
+        self.namespace = namespace
         self.registries = registries
         self.vault = vault
         self.k8s_cluster_conf = k8s_cluster_conf

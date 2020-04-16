@@ -71,7 +71,8 @@ def helm_deploy(job_ref, app_logger):
             helm_version=data.get("helm_chart_version", "0.0.1"),
             posted_env=posted_env,
             registries=registries,
-            k8s_cluster_conf=k8s_cluster_conf
+            k8s_cluster_conf=k8s_cluster_conf,
+            namespace=data.get("namespace", "default")
         )
         for (msg, res) in helm.install_package():
             if not res:
