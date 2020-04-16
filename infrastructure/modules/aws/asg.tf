@@ -40,7 +40,7 @@ resource "aws_autoscaling_group" "eks-t3a-medium" {
   launch_configuration = aws_launch_configuration.nodes_configuration.id
   max_size             = var.kube_nodes_amount
   min_size             = 1
-  name                 = "asg-eks-t3a-medium"
+  name                 = "asg-eks-t3a-medium-${var.cluster-name}"
   vpc_zone_identifier = [aws_subnet.kube01.id]
 
   tag {
