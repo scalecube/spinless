@@ -5,10 +5,10 @@ import time
 import requests
 import yaml
 
-from libs.shell import shell_await
+from libs.shell import shell_await, Result
 from libs.vault_api import Vault
 
-DOCKERJSON_KEY = ".dockerjson"
+DOCKERJSON_KEY = "dockerjsontoken"
 
 
 class Helm:
@@ -50,19 +50,11 @@ class Helm:
             reg['username'], reg['password'], reg['path'])
         chart_path = "{}/{}/{}-{}.tgz".format(self.owner, self.repo, self.repo, self.helm_version)
         url = "{}{}".format(helm_reg_url, chart_path)
-        # os.mkdir(self.target_path)
-        # reg = self.registries["helm"]
-        # url = 'https://{}:{}@{}{}-{}-{}.tgz'.format(
-        #     reg['username'], reg['password'], reg['path'],
-        #     self.owner, self.repo, self.helm_version
-        # )
-        # TODO: report error if no package was found
         r = requests.get(url)
-        helm_tag_gz = '{}/{}.tgz'.format(self.target_path, self.repo)
-        with open(helm_tag_gz, "wb") as helm_archive:
-            helm_archive.write(r.content)
-        self.untar_helm_gz(helm_tag_gz)
-        return
+        if r.status_code != 200:
+            return "Failed to find artifact in path {}".format(chart_path), 1
+        else:
+            return r.content, 0
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
@@ -91,8 +83,15 @@ class Helm:
 
     def install_package(self):
         yield "START: preparing package...", None
-        self.prepare_package()
-        yield "DONE: package ready", None
+        result, err = self.prepare_package()
+        if err != 0:
+            yield "FAILED: preparing package...", Result(err, result)
+        else:
+            helm_tag_gz_path = '{}/{}.tgz'.format(self.target_path, self.repo)
+            with open(helm_tag_gz_path, "wb") as helm_archive:
+                helm_archive.write(result)
+            self.untar_helm_gz(helm_tag_gz_path)
+        yield "RUNNING: package ready", None
 
         kubeconfig = self.k8s_cluster_conf.get("kube_config")
         self.logger.info("Kubeconfig: {}".format(kubeconfig))
@@ -120,7 +119,9 @@ class Helm:
         self.logger.info("Kubernetes namespace {} created".format(self.namespace))
 
         path_to_values_yaml, values_content = self.enrich_values_yaml()
-        dockerjson = values_content.get(DOCKERJSON_KEY)
+
+        dockerjson = self.__dockerjson(values_content, self.registries)
+
         # actually call helm install
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
@@ -129,9 +130,21 @@ class Helm:
                             "-f", path_to_values_yaml,
                             self.helm_dir]
         if dockerjson:
-            helm_install_cmd.append('--set').append('dockerjsontoken={}'.format(dockerjson))
+            helm_install_cmd.append('--set')
+            helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
         yield "START: installing package: {}".format(helm_install_cmd), None
         result = shell_await(helm_install_cmd, env)
 
         self.logger.info("Helm install stdout: {}".format(result.stdout))
         yield "COMPLETED", result
+
+    def __dockerjson(self, valuesyaml, registries):
+        result = ""
+        if registries.get("docker"):
+            result = registries.get("docker").get("dockerjsontoken", "")
+        result =  valuesyaml.get("dockerjsontoken", "")
+        if not result or result == "":
+            self.logger.warn(
+                "Using default docker registry since didn't find dockerjson neither in values nor in registry data.")
+        return result
+
