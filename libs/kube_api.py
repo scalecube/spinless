@@ -19,13 +19,16 @@ class KctxApi:
             self.logger.error("Mandatory fields not provided \"name\"")
             return {"error": "Mandatory fields not provided \"name\""}
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
-        try:
-            self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
-            self.vault.write(kctx_path, **ctx_data)
-            return STATUS_OK_
-        except Exception as e:
-            self.logger.info("Failed to write secret to path {}, {}".format(kctx_path, e))
-            return {"error": "Failed to write secret"}
+        attempts = 0
+        while attempts < 3:
+            try:
+                self.logger.info("Saving kube ctx data into path: {}".format(kctx_path))
+                self.vault.write(kctx_path, **ctx_data)
+                return STATUS_OK_
+            except Exception as e:
+                self.logger.info("Failed to write secret to path {}, {}; attempt = {}".format(kctx_path, e, attempts))
+                attempts += 1
+        return {"error": "Failed to write secret"}
 
     def save_aws_context(self, aws_accesskey, aws_secretkey, aws_region, kube_cfg_dict, conf_label="default"):
         secret = {"aws_secret_key": aws_secretkey, "aws_access_key": aws_accesskey, "aws_region": aws_region,
