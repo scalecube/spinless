@@ -5,7 +5,7 @@ import time
 import requests
 import yaml
 
-from libs.shell import shell_await, Result
+from libs.shell import shell_await
 from libs.vault_api import Vault
 
 DOCKERJSON_KEY = "dockerjsontoken"
@@ -83,20 +83,20 @@ class Helm:
 
     def install_package(self):
         yield "START: preparing package...", None
-        result, err = self.prepare_package()
+        prepare_pkg_result, err = self.prepare_package()
         if err != 0:
-            yield "FAILED: preparing package...", Result(err, result)
+            yield "Preparing package failed: {}".format(prepare_pkg_result), err
         else:
             helm_tag_gz_path = '{}/{}.tgz'.format(self.target_path, self.repo)
             with open(helm_tag_gz_path, "wb") as helm_archive:
-                helm_archive.write(result)
+                helm_archive.write(prepare_pkg_result)
             self.untar_helm_gz(helm_tag_gz_path)
-        yield "RUNNING: package ready", None
+        yield "Package ready", None
 
         kubeconfig = self.k8s_cluster_conf.get("kube_config")
         self.logger.info("Kubeconfig: {}".format(kubeconfig))
         if not kubeconfig:
-            yield "WARNING: no kube ctx. Deploying to default cluster", None
+            yield "WARNING: No kube ctx. Deploying to default cluster", None
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
                 self.logger.info("kubeconfig is {}".format(kubeconfig))
@@ -132,11 +132,12 @@ class Helm:
         if dockerjson:
             helm_install_cmd.append('--set')
             helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
-        yield "START: installing package: {}".format(helm_install_cmd), None
-        result = shell_await(helm_install_cmd, env)
-
-        self.logger.info("Helm install stdout: {}".format(result.stdout))
-        yield "COMPLETED", result
+        yield "Installing package: {}".format(helm_install_cmd), None
+        helm_install_res, stdout_iter = shell_await(helm_install_cmd, env)
+        for s in stdout_iter:
+            self.logger.info("Helm install stdout: {}".format(stdout_iter))
+            yield s, None
+        yield "Helm command complete", helm_install_res
 
     def __dockerjson(self, valuesyaml, registries):
         if registries.get("docker"):

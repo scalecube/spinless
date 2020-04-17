@@ -74,15 +74,15 @@ def helm_deploy(job_ref, app_logger):
             k8s_cluster_conf=k8s_cluster_conf,
             namespace=data.get("namespace", "default")
         )
-        for (msg, res) in helm.install_package():
-            if not res:
+        for (msg, code) in helm.install_package():
+            if not code:
                 job_ref.emit("RUNNING", msg)
             else:
-                if res.code == 0:
-                    job_ref.emit("SUCCESS", "finished. helm deployed successfully: {}".format(res.stdout))
+                if code == 0:
+                    job_ref.emit("SUCCESS", "Helm deployed successfully")
                     job_ref.complete_succ()
                 else:
-                    job_ref.emit("ERROR", "finished. helm deployed failed: {}".format(res.stdout))
+                    job_ref.emit("ERROR", "Helm deploy failed")
                     job_ref.complete_err()
                 # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break
