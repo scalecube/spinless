@@ -17,6 +17,33 @@ resource "aws_iam_role" "eks-node" {
 POLICY
 }
 
+
+resource "aws_iam_role_policy" "cluster-autoscaler" {
+ name        = "cluster-autoscaler-${var.cluster-name}"
+ role = aws_iam_role.eks-node.id
+
+ policy = <<POLICY
+{
+   "Version": "2012-10-17",
+   "Statement": [
+     {
+           "Effect": "Allow",
+           "Action": [
+               "autoscaling:DescribeAutoScalingGroups",
+               "autoscaling:DescribeAutoScalingInstances",
+               "autoscaling:DescribeLaunchConfigurations",
+               "autoscaling:SetDesiredCapacity",
+               "autoscaling:TerminateInstanceInAutoScalingGroup",
+               "autoscaling:DescribeTags"
+           ],
+           "Resource": "*"
+       }
+   ]
+}
+POLICY
+}
+
+
 resource "aws_iam_role_policy_attachment" "eks-node-AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role = aws_iam_role.eks-node.name
