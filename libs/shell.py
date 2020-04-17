@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+
 def shell_await(cmd, env=None):
     if env is None:
         env = {}
@@ -13,6 +14,6 @@ def shell_await(cmd, env=None):
             line = p.stdout.readline()
             if not line:
                 break
-            yield str(line.rstrip())
+            yield line.rstrip().decode("utf-8")
 
     return p.wait(), output()

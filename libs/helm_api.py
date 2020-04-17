@@ -135,7 +135,6 @@ class Helm:
         yield "Installing package: {}".format(helm_install_cmd), None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env)
         for s in stdout_iter:
-            self.logger.info("Helm install stdout: {}".format(stdout_iter))
             yield s, None
         yield "Helm command complete", helm_install_res
 
