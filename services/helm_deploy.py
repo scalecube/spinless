@@ -39,7 +39,10 @@ def helm_deploy(job_ref, app_logger):
         job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
         posted_env = create_posted_env(data)
 
-        vault = Vault(logger=app_logger)
+        vault = Vault(logger=app_logger,
+                      owner=data.get("owner"),
+                      repo=data.get("repo"),
+                      branch_name=data.get("branch_name"))
         registry_api = RegistryApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
 
@@ -62,6 +65,9 @@ def helm_deploy(job_ref, app_logger):
                                                                                             registries.get("error")))
             job_ref.complete_err()
             return
+
+        ### Create role
+        vault.create_role()
 
         helm = Helm(
             logger=app_logger,

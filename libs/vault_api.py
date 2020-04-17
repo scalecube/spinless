@@ -31,34 +31,7 @@ class Vault:
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
 
-
-    def get_self_app_env(self):
-        try:
-            self.__auth_client()
-            app_secret_path = self.vault_secrets_path + "/" + APP_ENV_PATH
-            self.logger.info("Vault secrets path is: {}".format(app_secret_path))
-            env = self.client.read(app_secret_path)
-            if not env or not env['data']:
-                self.logger.error("Data not found for secret path {}".format(app_secret_path))
-                return {}
-            return env
-        except Exception as e:
-            self.logger.info("Vault get_self_app_env exception is: {}".format(e))
-            return {}
-
-    def get_env(self):
-        path = "{}/{}/{}/{}".format(
-            self.root_path, self.owner, self.repo, self.branch_name)
-        self.logger.info("Get_env in vault path is: {}".format(path))
-        try:
-            self.__auth_client()
-            env = self.client.read(path)
-            return env['data']
-        except Exception as e:
-            self.logger.info("Vault get_env exception is: {}".format(e))
-            return {}
-
-    def create_policy(self):
+    def __create_policy(self):
         policy_name = "{}-{}-policy".format(self.owner, self.repo)
         policy_path = "{}/{}/{}/*".format(self.root_path, self.owner, self.repo)
         self.logger.info("Policy name is: {}".format(policy_name))
@@ -75,7 +48,7 @@ class Vault:
 
     def create_role(self):
         self.logger.info("Creating service role")
-        policy_name = self.create_policy()
+        policy_name = self.__create_policy()
         try:
             self.__auth_client()
             self.client.create_role("{}-role".format(self.app_path),

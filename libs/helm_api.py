@@ -6,13 +6,10 @@ import requests
 import yaml
 
 from libs.shell import shell_await
-from libs.vault_api import Vault
-
-DOCKERJSON_KEY = "dockerjsontoken"
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None, vault=None,
+    def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None,
                  k8s_cluster_conf=None, namespace="default"):
         self.logger = logger
         self.owner = owner
@@ -26,16 +23,7 @@ class Helm:
         self.helm_dir = "{}/{}".format(self.target_path, self.repo)
         self.namespace = namespace
         self.registries = registries
-        self.vault = vault
         self.k8s_cluster_conf = k8s_cluster_conf
-
-    def get_env_from_vault(self):
-        return self.vault.get_self_app_env()
-
-    def sum_all_env(self):
-        env_from_vault = self.get_env_from_vault()
-        all_env = env_from_vault.update(self.posted_env)
-        return all_env
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
@@ -52,25 +40,15 @@ class Helm:
         url = "{}{}".format(helm_reg_url, chart_path)
         r = requests.get(url)
         if r.status_code != 200:
-            return "Failed to find artifact in path {}".format(chart_path), 1
+            return "Failed to find artifact in path {} or {} not available}".format(chart_path, reg['path']), 1
         else:
             return r.content, 0
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
-        vault = Vault(logger=self.logger,
-                      owner=self.owner,
-                      repo=self.repo,
-                      branch_name=self.branch_name,
-                      )
-
-        ### Remove create role
-        vault.create_role()
-        vault_env = vault.get_env()
         env = default_values.get('env', {})
         self.logger.info("Default values are: {}".format(env))
-        env.update(vault_env)
         env.update(self.posted_env)
         default_values['env'] = env
         default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
@@ -81,7 +59,7 @@ class Helm:
         return path_to_values_yaml, default_values
 
     def install_package(self):
-        yield "START: preparing package...", None
+        yield "Preparing package...", None
         prepare_pkg_result, err = self.prepare_package()
         if err != 0:
             yield "Preparing package failed: {}".format(prepare_pkg_result), err
