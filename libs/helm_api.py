@@ -69,7 +69,6 @@ class Helm:
         vault.create_role()
         vault_env = vault.get_env()
         env = default_values.get('env', {})
-        self.logger.info("Vault values are: {}".format(vault_env))
         self.logger.info("Default values are: {}".format(env))
         env.update(vault_env)
         env.update(self.posted_env)
@@ -92,15 +91,11 @@ class Helm:
                 helm_archive.write(prepare_pkg_result)
             self.untar_helm_gz(helm_tag_gz_path)
         yield "Package ready", None
-
         kubeconfig = self.k8s_cluster_conf.get("kube_config")
-        self.logger.info("Kubeconfig: {}".format(kubeconfig))
         if not kubeconfig:
             yield "WARNING: No kube ctx. Deploying to default cluster", None
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
-                self.logger.info("kubeconfig is {}".format(kubeconfig))
-                self.logger.info("self.k8s_cluster_conf is {}".format(self.k8s_cluster_conf))
                 yaml.dump(eval(kubeconfig), kubeconf_file)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
@@ -133,7 +128,7 @@ class Helm:
             helm_install_cmd.append('--set')
             helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
         yield "Installing package: {}".format(helm_install_cmd), None
-        helm_install_res, stdout_iter = shell_await(helm_install_cmd, env)
+        helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         for s in stdout_iter:
             yield s, None
         yield "Helm command complete", helm_install_res
