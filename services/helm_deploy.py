@@ -75,7 +75,7 @@ def helm_deploy(job_ref, app_logger):
             namespace=data.get("namespace", "default")
         )
         for (msg, code) in helm.install_package():
-            if not code:
+            if code is None:
                 job_ref.emit("RUNNING", msg)
             else:
                 if code == 0:
