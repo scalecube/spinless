@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+import re
 
 import tailer
 
@@ -39,11 +40,16 @@ def tail_f(owner, repo, job_id):
                 return
             yield line + '\n'
 
-
         for line in tailer.follow(file):
             yield line + '\n'
             if '"status": "EOF"' in line:
                 break
+
+
+def redacted(message):
+    msg = re.sub(r"(dockerconfigjson).*(=|:)(.*)?\s*(>*)", "dockerconfigjson=[REDACTED]", message)
+    msg = re.sub(r"(dockerjsontoken).*(=|:)(.*)?\s*(>*)", "dockerjsontoken=[REDACTED]", msg)
+    return msg
 
 
 def status(logger, job_id, _status, message):
@@ -51,7 +57,7 @@ def status(logger, job_id, _status, message):
         "id": job_id,
         "status": _status,
         "timestamp": int(time.time() * 1000),
-        "message": message,
+        "message": redacted(message),
     }
     logger.info(json.dumps(data))
     logger.handlers[0].flush()
