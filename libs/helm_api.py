@@ -87,7 +87,8 @@ class Helm:
             env = {}
 
         # create k8 namespace if necessary
-        create_namespace_cmd = ["kubectl", "create", "namespace", "{}".format(self.namespace)]
+        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
+        create_namespace_cmd = [kubectl, "create", "namespace", "{}".format(self.namespace)]
         shell_await(create_namespace_cmd, env)
         self.logger.info("Kubernetes namespace {} created".format(self.namespace))
 

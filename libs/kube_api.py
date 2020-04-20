@@ -3,6 +3,8 @@ import os
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
+from libs.shell import shell_await
+
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
 K8S_CTX_PATH = "kctx"
@@ -138,8 +140,13 @@ class KctxApi:
                                  trim_blocks=True)
             gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
             vault_sa.write(gen_template)
-
-        # create_namespace_cmd = ["kubectl", "create", "-f", sa_path]
-        # shell_await(create_namespace_cmd)
-        self.logger.info("Created vault service account for cluster \"{}\"".format(cluster_name))
+        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
+        create_namespace_cmd = [kubectl, "create", "-f", sa_path]
+        res, outp = shell_await(create_namespace_cmd, with_output=True)
+        for s in outp:
+            self.logger.info(s)
+        if res == 0:
+            self.logger.info("Created vault service account for cluster \"{}\"".format(cluster_name))
+        else:
+            self.logger.error("Failed to create vault sa, {}".format(res))
         return {"result": "OK"}
