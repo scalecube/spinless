@@ -55,7 +55,7 @@ def post_cluster_create(job_ref, app_logger):
         cluster_name = job_ref.data.get("cluster_name")
         vault = Vault(logger=app_logger)
         kube_api = KctxApi(vault, app_logger)
-        create_vault_sa_res = kube_api.create_vault_sa(cluster_name)
+        create_vault_sa_res = kube_api.create_cluster_roles(cluster_name)
         return create_vault_sa_res
 
 
