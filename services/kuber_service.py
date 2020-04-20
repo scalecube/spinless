@@ -48,16 +48,3 @@ def kube_cluster_create(job_ref, app_logger):
     except Exception as ex:
         job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
         job_ref.complete_err()
-
-
-def post_cluster_create(job_ref, app_logger):
-    try:
-        cluster_name = job_ref.data.get("cluster_name")
-        vault = Vault(logger=app_logger)
-        kube_api = KctxApi(vault, app_logger)
-        create_vault_sa_res = kube_api.create_cluster_roles(cluster_name)
-        return create_vault_sa_res
-
-
-    except Exception as ex:
-        app_logger.error(ex)
