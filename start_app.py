@@ -8,7 +8,7 @@ from libs.job_api import *
 from services.cloud_service import *
 from services.helm_deploy import helm_deploy
 from services.kctx_service import *
-from services.kuber_service import kube_cluster_create
+from services.kuber_service import kube_cluster_create, post_cluster_create
 from services.registry_service import *
 
 load_dotenv()
@@ -167,6 +167,17 @@ def kubernetes_cluster_create():
         return abort(Response("Give some payload"))
     app.logger.info("Request create cluster is {}".format(data))
     job = create_job(kube_cluster_create, app.logger, data).start()
+    return jsonify({'id': job.job_id})
+
+
+#
+# Fake api
+#
+@app.route("/kubernetes/fake", methods=['POST'])
+def kubernetes_cluster_fake():
+    data = request.get_json()
+    app.logger.info("Request fake  is {}".format(data))
+    job = create_job(post_cluster_create, app.logger, data).start()
     return jsonify({'id': job.job_id})
 
 

@@ -1,5 +1,7 @@
+import os
+
 import boto3
-import yaml
+from jinja2 import Environment, FileSystemLoader
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -127,3 +129,17 @@ class KctxApi:
         except Exception as ex:
             return str(ex), 1
         return cluster_config, 0
+
+    def create_vault_sa(self, cluster_name, root_path="{}/state/tmp".format(os.getcwd())):
+        os.makedirs(root_path, exist_ok=True)
+        sa_path = "{}/vault_sa.yaml".format(root_path)
+        with open(sa_path, "w") as vault_sa:
+            j2_env = Environment(loader=FileSystemLoader("templates"),
+                                 trim_blocks=True)
+            gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
+            vault_sa.write(gen_template)
+
+        # create_namespace_cmd = ["kubectl", "create", "-f", sa_path]
+        # shell_await(create_namespace_cmd)
+        self.logger.info("Created vault service account for cluster \"{}\"".format(cluster_name))
+        return {"result": "OK"}
