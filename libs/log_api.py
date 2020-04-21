@@ -57,7 +57,7 @@ def status(logger, job_id, _status, message):
         "id": job_id,
         "status": _status,
         "timestamp": int(time.time() * 1000),
-        "message": redacted(message),
+        "message": message,
     }
     logger.info(json.dumps(data))
     logger.handlers[0].flush()
