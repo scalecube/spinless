@@ -9,12 +9,12 @@ from libs.shell import shell_await
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, branch_name, posted_env, helm_version, registries=None,
-                 k8s_cluster_conf=None, namespace="default"):
+    def __init__(self, logger, owner, repo, branch, posted_env, helm_version, registries=None,
+                 k8s_cluster_conf=None, namespace="default", service_role=None, cluster_name=None):
         self.logger = logger
         self.owner = owner
         self.repo = repo
-        self.branch_name = branch_name
+        self.branch = branch
         self.posted_env = posted_env
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
@@ -24,6 +24,8 @@ class Helm:
         self.namespace = namespace
         self.registries = registries
         self.k8s_cluster_conf = k8s_cluster_conf
+        self.service_role = service_role
+        self.cluster_name = cluster_name
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
@@ -52,6 +54,12 @@ class Helm:
         env.update(self.posted_env)
         default_values['env'] = env
         default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
+
+        # Set vault address inte values.yaml if vault.addr key exists
+        default_values.get("vault", {})["addr"] = os.getenv("VAULT_ADDR", "http://localhost:8200/")
+        default_values.get("vault")["role"] = self.service_role
+        default_values.get("vault")["jwtprovider"] = "kubernetes-{}".format(self.cluster_name)
+
         self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
         with open(path_to_values_yaml, "w") as spinless_values_yaml:

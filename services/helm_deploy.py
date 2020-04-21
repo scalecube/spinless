@@ -8,7 +8,7 @@ def create_posted_env(data):
     posted_env = {
         'OWNER': data.get("owner", "no_owner"),
         'REPO': data.get("repo", "no_repo"),
-        'BRANCH_NAME': data.get("branch_name", "no_branch_name"),
+        'BRANCH': data.get("branch", "no_branch"),
         'SHA': data.get("sha", "no_sha"),
         'PR': data.get("issue_number", "no_issue_number"),
         'NAMESPACE': data.get("namespace", "no_namespace")
@@ -42,7 +42,7 @@ def helm_deploy(job_ref, app_logger):
         vault = Vault(logger=app_logger,
                       owner=data.get("owner"),
                       repo=data.get("repo"),
-                      branch_name=data.get("branch_name"))
+                      branch=data.get("branch"))
         registry_api = RegistryApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
 
@@ -50,12 +50,12 @@ def helm_deploy(job_ref, app_logger):
         job_ref.emit("RUNNING", "data: {}".format(data))
 
         # read cluster config
-        kube_profile_req = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
-        k8s_cluster_conf = kctx_api.get_kubernetes_context(kube_profile_req)
+        cluster_name = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
+        k8s_cluster_conf = kctx_api.get_kubernetes_context(cluster_name)
         if "error" in k8s_cluster_conf:
             job_ref.emit("WARNING",
                          "Failed to get k8 conf for {}. Reason: {}. Will use default kube context for current vm".format(
-                             kube_profile_req, k8s_cluster_conf.get("error")))
+                             cluster_name, k8s_cluster_conf.get("error")))
             k8s_cluster_conf = {}
 
         # read registries config
@@ -67,18 +67,20 @@ def helm_deploy(job_ref, app_logger):
             return
 
         ### Create role
-        vault.create_role()
+        service_role, err_code = vault.create_role(cluster_name)
 
         helm = Helm(
             logger=app_logger,
             owner=data.get("owner"),
             repo=data.get("repo"),
-            branch_name=data.get("branch_name"),
+            branch=data.get("branch"),
             helm_version=data.get("helm_chart_version", "0.0.1"),
             posted_env=posted_env,
             registries=registries,
             k8s_cluster_conf=k8s_cluster_conf,
-            namespace=data.get("namespace", "default")
+            namespace=data.get("namespace", "default"),
+            service_role=service_role,
+            cluster_name=cluster_name
         )
         for (msg, code) in helm.install_package():
             if code is None:

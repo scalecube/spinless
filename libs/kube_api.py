@@ -41,15 +41,12 @@ class KctxApi:
 
     def get_kubernetes_context(self, ctx_id):
         self.logger.info("Getting kube context")
-        self.logger.info("K8S_CTX_PATH is {}".format(K8S_CTX_PATH))
         if not ctx_id:
             self.logger.warn("Kube ctx \"name\" is empty, using \"default\"")
             ctx_id = DEFAULT_K8S_CTX_ID
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_id)
-        self.logger.info("kctx_path is: ".format(kctx_path))
         try:
             kctx_secret = self.vault.read(kctx_path)
-            self.logger.info("kctx_path: ".format(kctx_path))
             if not kctx_secret or not kctx_secret["data"]:
                 return {"error": "No such kctx: {}".format(ctx_id)}
             return kctx_secret["data"]
