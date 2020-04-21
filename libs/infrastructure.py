@@ -35,6 +35,7 @@ class TF:
 
     def __create_vars_file(self):
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
+            self.logger.info("tfvars file is: {}/tfvars.tf".format(self.tmp_root_path))
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
