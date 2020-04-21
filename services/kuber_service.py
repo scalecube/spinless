@@ -30,7 +30,7 @@ def kube_cluster_create(job_ref, app_logger):
                        cluster_name, cloud_profile.get("az1"),
                        cloud_profile.get("az2"),
                        cloud_profile.get("kube_nodes_amount"),
-                       data.get("kube_nodes_instance_type"), kctx_api)
+                       cloud_profile.get("kube_nodes_instance_type"), kctx_api)
 
         for (msg, res) in terraform.install_kube():
             if not res:
