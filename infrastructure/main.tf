@@ -8,4 +8,5 @@ module "aws" {
   az1               = var.az1
   az2               = var.az2
   kube_nodes_amount = var.kube_nodes_amount
+  kube_nodes_instance_type = var.kube_nodes_instance_type
 }
