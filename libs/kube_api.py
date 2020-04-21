@@ -101,17 +101,32 @@ class KctxApi:
             return str(ex), 1
         return gen_template, 0
 
-    def create_cluster_roles(self, cluster_name, root_path="{}/state/tmp".format(os.getcwd())):
-        os.makedirs(root_path, exist_ok=True)
-        sa_path = "{}/vault_sa.yaml".format(root_path)
-        with open(sa_path, "w") as vault_sa:
-            j2_env = Environment(loader=FileSystemLoader("templates"),
-                                 trim_blocks=True)
-            gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
-            vault_sa.write(gen_template)
-        create_namespace_cmd = ['kubectl', "create", "-f", sa_path]
-        res, outp = shell_await(create_namespace_cmd, with_output=True)
+    def create_cluster_roles(self, cluster_name, aws_access_key,
+                             aws_secret_key, aws_region, kube_conf_str, root_path):
+        try:
+            os.makedirs(root_path, exist_ok=True)
+            sa_path = "{}/vault_sa.yaml".format(root_path)
+            with open(sa_path, "w") as vault_sa:
+                j2_env = Environment(loader=FileSystemLoader("templates"),
+                                     trim_blocks=True)
+                gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
+                vault_sa.write(gen_template)
+            create_namespace_cmd = ['kubectl', "create", "-f", sa_path]
+            # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
+            env = {"KUBECONFIG": kube_conf_str,
+                   "AWS_DEFAULT_REGION": aws_region,
+                   "AWS_ACCESS_KEY_ID": aws_access_key,
+                   "AWS_SECRET_ACCESS_KEY": aws_secret_key
+                   }
+            res, outp = shell_await(create_namespace_cmd, env=env, with_output=True)
+            for s in outp:
+                self.logger.info(s)
+            if res != 0:
+                return res, "Failed to create service role in newly created cluster"
+            self.logger("SA for Vault created in newly created cluster.")
+        except Exception as ex:
+            return 1, str(ex)
 
         # Create vault mount point
         create_k8_auth_res = self.vault.enable_k8_auth(cluster_name)
-        return {"result": "OK"}
+        return create_k8_auth_res

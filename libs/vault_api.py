@@ -72,14 +72,18 @@ class Vault:
         self.__auth_client()
         self.client.delete(path)
 
-
     def enable_k8_auth(self, cluster_name):
-        self.__auth_client()
-        ### Configure auth here
-        return self.client.sys.enable_auth_method(
-            method_type='kubernetes',
-            path='kubernetes-{}'.format(cluster_name),
-        )
+        try:
+            self.__auth_client()
+            ### Configure auth here
+            self.client.sys.enable_auth_method(
+                method_type='kubernetes',
+                path='kubernetes-{}'.format(cluster_name),
+            )
+            return 0
+        except Exception as e:
+            self.logger.error("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
+            return 1
 
     # Vault's token ttl is too short so this should be called prior to any operation
     def __auth_client(self):
@@ -93,4 +97,3 @@ class Vault:
                 self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
         except Exception as ex:
             print("Error authenticating vault: {}".format(ex))
-

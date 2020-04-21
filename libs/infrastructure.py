@@ -141,10 +141,13 @@ class TF:
         else:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
-        self.kctx_api.create_cluster_roles(self.cluster_name, self.tmp_root_path)
+        roles_res = self.kctx_api.create_cluster_roles(self.cluster_name,  self.aws_access_key,
+                                           self.aws_secret_key, self.aws_region, str(kube_conf_str), self.tmp_root_path)
+        if roles_res != 0:
+            yield "FAILED: Failed setup vault account in new cluster. Aborting.", roles_res
+
         yield "RUNNING: Creating Vault SA created and registering auth mount point", None
 
         # If deployment was successful, save kubernetes context to vault
         self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, str(kube_conf_str),
                                        self.cluster_name)
-
