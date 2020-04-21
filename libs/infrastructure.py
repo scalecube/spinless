@@ -3,7 +3,6 @@ import time
 from subprocess import Popen, PIPE
 
 import boto3
-import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from libs.kube_api import KctxApi
@@ -122,21 +121,17 @@ class TF:
         else:
             yield "RUNNING: Terraform has successfully created cluster", None
 
-        #
         yield "RUNNING: Generating kubernetes cluster config...", None
-        kube_config, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
-                                                            aws_region=self.aws_region,
-                                                            aws_access_key=self.aws_access_key,
-                                                            aws_secret_key=self.aws_secret_key
-                                                            )
+        kube_conf_str, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
+                                                              aws_region=self.aws_region,
+                                                              aws_access_key=self.aws_access_key,
+                                                              aws_secret_key=self.aws_secret_key,
+                                                              conf_path=self.kube_config_file_path
+                                                              )
         if err == 0:
             yield "RUNNING: Kubernetes config generated successfully", None
         else:
-            yield "ERROR: Failed to create kubernetes config: {}".format(kube_config), err
-        # Write kube conf in YAML
-        with open(self.kube_config_file_path, "w") as kube_config_file:
-            yaml.dump(kube_config, kube_config_file, default_flow_style=False)
-        yield "RUNNING: Write kubernetes config to file: success", None
+            yield "ERROR: Failed to create kubernetes config", err
 
         yield "RUNNING: Applying node auth configmap...", None
         auth_conf_map_result = self.__apply_node_auth_configmap()
@@ -145,5 +140,10 @@ class TF:
         else:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
+        self.kctx_api.create_cluster_roles(self.cluster_name, self.tmp_root_path)
+        yield "RUNNING: Creating Vault SA created and registering auth mount point", None
+
         # If deployment was successful, save kubernetes context to vault
-        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, str(kube_config), self.cluster_name)
+        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, str(kube_conf_str),
+                                       self.cluster_name)
+

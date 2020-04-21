@@ -3,11 +3,11 @@ import subprocess
 
 
 def shell_await(cmd, env=None, with_output=False):
-    if env is None:
-        env = {}
-    else:
+    if env:
         env = dict(os.environ, **env)
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    else:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def output():
         if not with_output:

@@ -1,5 +1,9 @@
+import os
+
 import boto3
-import yaml
+from jinja2 import Environment, FileSystemLoader
+
+from libs.shell import shell_await
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -70,9 +74,8 @@ class KctxApi:
 
     @staticmethod
     def generate_aws_kube_config(cluster_name, aws_region,
-                                 aws_access_key, aws_secret_key):
+                                 aws_access_key, aws_secret_key, conf_path):
         try:
-
             # Set up the client
             s = boto3.Session(region_name=aws_region,
                               aws_access_key_id=aws_access_key,
@@ -85,45 +88,30 @@ class KctxApi:
             cluster_cert = cluster["cluster"]["certificateAuthority"]["data"]
             cluster_ep = cluster["cluster"]["endpoint"]
 
-            # build the cluster config hash
-            cluster_config = {
-                "apiVersion": "v1",
-                "kind": "Config",
-                "clusters": [
-                    {
-                        "cluster": {
-                            "server": str(cluster_ep),
-                            "certificate-authority-data": str(cluster_cert)
-                        },
-                        "name": "kubernetes"
-                    }
-                ],
-                "contexts": [
-                    {
-                        "context": {
-                            "cluster": "kubernetes",
-                            "user": "aws"
-                        },
-                        "name": "aws"
-                    }
-                ],
-                "current-context": "aws",
-                "preferences": {},
-                "users": [
-                    {
-                        "name": "aws",
-                        "user": {
-                            "exec": {
-                                "apiVersion": "client.authentication.k8s.io/v1alpha1",
-                                "command": "aws-iam-authenticator",
-                                "args": [
-                                    "token", "-i", cluster_name
-                                ]
-                            }
-                        }
-                    }
-                ]
-            }
+            # build the cluster config and write to file
+            with open(conf_path, "w") as kube_conf:
+                j2_env = Environment(loader=FileSystemLoader("templates"),
+                                     trim_blocks=True)
+                gen_template = j2_env.get_template('cluster_config.j2').render(
+                    cert_authority=str(cluster_cert),
+                    cluster_endpoint=str(cluster_ep),
+                    cluster_name=cluster_name)
+                kube_conf.write(gen_template)
         except Exception as ex:
             return str(ex), 1
-        return cluster_config, 0
+        return gen_template, 0
+
+    def create_cluster_roles(self, cluster_name, root_path="{}/state/tmp".format(os.getcwd())):
+        os.makedirs(root_path, exist_ok=True)
+        sa_path = "{}/vault_sa.yaml".format(root_path)
+        with open(sa_path, "w") as vault_sa:
+            j2_env = Environment(loader=FileSystemLoader("templates"),
+                                 trim_blocks=True)
+            gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
+            vault_sa.write(gen_template)
+        create_namespace_cmd = ['kubectl', "create", "-f", sa_path]
+        res, outp = shell_await(create_namespace_cmd, with_output=True)
+
+        # Create vault mount point
+        create_k8_auth_res = self.vault.enable_k8_auth(cluster_name)
+        return {"result": "OK"}
