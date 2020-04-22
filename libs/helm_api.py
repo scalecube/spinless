@@ -108,7 +108,7 @@ class Helm:
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
                             "--install", "--namespace",
-                            self.namespace, self.namespace,
+                            self.namespace, "{}-{}-{}".format(self.owner, self.repo, self.namespace),
                             "-f", path_to_values_yaml,
                             self.helm_dir]
         if dockerjson:
