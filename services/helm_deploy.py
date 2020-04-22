@@ -68,13 +68,16 @@ def helm_deploy(job_ref, app_logger):
 
         ### Create role
         service_role, err_code = vault.create_role(cluster_name)
+        helm_name = data.get("helm",{}).get("name", data.get("repo"))
+        helm_version = data.get("helm",{}).get("version", "0.0.1")
 
         helm = Helm(
             logger=app_logger,
             owner=data.get("owner"),
             repo=data.get("repo"),
             branch=data.get("branch"),
-            helm_version=data.get("helm_chart_version", "0.0.1"),
+            helm_name=helm_name,
+            helm_version=helm_version,
             posted_env=posted_env,
             registries=registries,
             k8s_cluster_conf=k8s_cluster_conf,

@@ -9,7 +9,7 @@ from libs.shell import shell_await
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, branch, posted_env, helm_version, registries=None,
+    def __init__(self, logger, owner, repo, branch, helm_name, helm_version, posted_env, registries=None,
                  k8s_cluster_conf=None, namespace="default", service_role=None, cluster_name=None):
         self.logger = logger
         self.owner = owner
@@ -26,6 +26,8 @@ class Helm:
         self.k8s_cluster_conf = k8s_cluster_conf
         self.service_role = service_role
         self.cluster_name = cluster_name
+        # this will not be used for now
+        self.helm_name = helm_name
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
@@ -42,7 +44,7 @@ class Helm:
         url = "{}{}".format(helm_reg_url, chart_path)
         r = requests.get(url)
         if r.status_code != 200:
-            return "Failed to find artifact in path {} or {} not available}".format(chart_path, reg['path']), 1
+            return "Failed to find artifact in path {} or {} not available".format(chart_path, reg['path']), 1
         else:
             return r.content, 0
 
