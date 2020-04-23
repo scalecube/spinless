@@ -48,11 +48,11 @@ class KctxApi:
         try:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
-                return {"error": "No such kctx: {}".format(ctx_id)}
-            return kctx_secret["data"]
+                return "No such kctx: {}".format(ctx_id), 1
+            return kctx_secret["data"], 0
         except Exception as e:
             self.logger.info("Failed to read secret from path {}, {}".format(kctx_path, e))
-            return {"error": "Failed to read secret"}
+            return "Failed to read secret", 1
 
     def delete_kubernetes_context(self, ctx_id):
         if not ctx_id:

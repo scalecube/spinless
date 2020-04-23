@@ -9,13 +9,13 @@ from libs.shell import shell_await
 
 
 class Helm:
-    def __init__(self, logger, owner, repo, branch, helm_name, helm_version, posted_env, registries=None,
+    def __init__(self, logger, owner, repo, branch, helm_name, helm_version, posted_values, registries=None,
                  k8s_cluster_conf=None, namespace="default", service_role=None, cluster_name=None):
         self.logger = logger
         self.owner = owner
         self.repo = repo
         self.branch = branch
-        self.posted_env = posted_env
+        self.posted_values = posted_values
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
         self.target_path = "/tmp/{}".format(self.timestamp)
@@ -51,16 +51,14 @@ class Helm:
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
-        env = default_values.get('env', {})
-        self.logger.info("Default values are: {}".format(env))
-        env.update(self.posted_env)
-        default_values['env'] = env
+        self.logger.info("Default values are: {}".format(default_values))
+        # update values with ones posted in request
+        default_values.update(self.posted_values)
         default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
-
         # Set vault address inte values.yaml if vault.addr key exists
-        default_values.get("vault", {})["addr"] = os.getenv("VAULT_ADDR", "http://localhost:8200/")
-        default_values.get("vault")["role"] = self.service_role
-        default_values.get("vault")["jwtprovider"] = "kubernetes-{}".format(self.cluster_name)
+        default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
+                                   "role": self.service_role,
+                                   "jwtprovider": "kubernetes-{}".format(self.cluster_name)}
 
         self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)

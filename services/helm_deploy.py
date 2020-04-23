@@ -4,16 +4,20 @@ from libs.registry_api import RegistryApi
 from libs.vault_api import Vault
 
 
-def create_posted_env(data):
-    posted_env = {
-        'OWNER': data.get("owner", "no_owner"),
-        'REPO': data.get("repo", "no_repo"),
-        'BRANCH': data.get("branch", "no_branch"),
-        'SHA': data.get("sha", "no_sha"),
-        'PR': data.get("issue_number", "no_issue_number"),
-        'NAMESPACE': data.get("namespace", "no_namespace")
+def __create_posted_values(data):
+    if not all(k in data for k in ("owner", "repo", "branch", "namespace")):
+        return "Not all mandatory fields provided: \"owner\", \"repo\", \"branch\", \"namespace\"", 1
+    posted_values = {
+        'owner': data.get("owner", "no_owner"),
+        'repo': data.get("repo", "no_repo"),
+        'branch': data.get("branch", "no_branch"),
+        'version': data.get("version", data.get("branch")),
+        'environment_tags': data.get("environment_tags", data.get("branch")),
+        'namespace': data.get("namespace", "no_namespace"),
+        'sha': data.get("sha", "no_sha"),
+        'issue_number': data.get("issue_number", "no_issue_number")
     }
-    return posted_env
+    return posted_values, 0
 
 
 def __parse_reg_from_data(data, reg_type):
@@ -37,7 +41,11 @@ def helm_deploy(job_ref, app_logger):
     try:
         data = job_ref.data
         job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
-        posted_env = create_posted_env(data)
+        posted_values, err = __create_posted_values(data)
+        if err != 0:
+            job_ref.emit("ERROR", posted_values)
+            job_ref.complete_err()
+            return
 
         vault = Vault(logger=app_logger,
                       owner=data.get("owner"),
@@ -46,16 +54,15 @@ def helm_deploy(job_ref, app_logger):
         registry_api = RegistryApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
 
-        job_ref.emit("RUNNING", "kctx_api: {}".format(kctx_api))
         job_ref.emit("RUNNING", "data: {}".format(data))
 
         # read cluster config
         cluster_name = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
-        k8s_cluster_conf = kctx_api.get_kubernetes_context(cluster_name)
-        if "error" in k8s_cluster_conf:
+        k8s_cluster_conf, err = kctx_api.get_kubernetes_context(cluster_name)
+        if err != 0:
             job_ref.emit("WARNING",
                          "Failed to get k8 conf for {}. Reason: {}. Will use default kube context for current vm".format(
-                             cluster_name, k8s_cluster_conf.get("error")))
+                             cluster_name, k8s_cluster_conf))
             k8s_cluster_conf = {}
 
         # read registries config
@@ -68,8 +75,8 @@ def helm_deploy(job_ref, app_logger):
 
         ### Create role
         service_role, err_code = vault.create_role(cluster_name)
-        helm_name = data.get("helm",{}).get("name", data.get("repo"))
-        helm_version = data.get("helm",{}).get("version", "0.0.1")
+        helm_name = data.get("helm", {}).get("name", data.get("repo"))
+        helm_version = data.get("helm", {}).get("version", "0.0.1")
 
         helm = Helm(
             logger=app_logger,
@@ -78,7 +85,7 @@ def helm_deploy(job_ref, app_logger):
             branch=data.get("branch"),
             helm_name=helm_name,
             helm_version=helm_version,
-            posted_env=posted_env,
+            posted_values=posted_values,
             registries=registries,
             k8s_cluster_conf=k8s_cluster_conf,
             namespace=data.get("namespace", "default"),

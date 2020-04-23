@@ -11,7 +11,7 @@ def create_kubernetes_context(logger, data):
 def get_kubernetes_context(logger, data):
     vault = Vault(logger)
     kctx_api = KctxApi(vault, logger)
-    kctx = kctx_api.get_kubernetes_context(data)
+    kctx, err = kctx_api.get_kubernetes_context(data)
     return kctx
 
 

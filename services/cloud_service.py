@@ -3,6 +3,7 @@ from libs.vault_api import Vault
 
 __SUPPORTED_TYPES = "eks"
 
+
 def create_cloud_provider(logger, data):
     vault = Vault(logger)
     repo = CloudApi(vault, logger)
@@ -22,6 +23,7 @@ def delete_cloud_provider(logger, type, name):
     vault = Vault(logger)
     repo = CloudApi(vault, logger)
     return repo.delete_cloud_provider(type, name)
+
 
 def __check_type(type):
     return type and type in __SUPPORTED_TYPES

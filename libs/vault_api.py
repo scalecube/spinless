@@ -2,18 +2,16 @@ import os
 
 import hvac
 
-dev_mode = os.getenv("dev_mode", False)
+SECRET_ROOT_DEFAULT = "secretv2"
 
-dev_settings = {
-    "vault_role": "developer",
-}
+dev_mode = os.getenv("dev_mode", False)
 
 APP_ENV_PATH = "app_env"
 
 
 class Vault:
     def __init__(self, logger,
-                 root_path="secretv2",
+                 root_path=SECRET_ROOT_DEFAULT,
                  owner=None,
                  repo=None,
                  branch=None):
@@ -25,7 +23,7 @@ class Vault:
         self.dev_mode = dev_mode
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
-            self.service_role = dev_settings["vault_role"],
+            self.service_role = "developer",
         else:
             self.service_role = os.getenv("VAULT_ROLE")
         self.logger = logger
@@ -61,7 +59,6 @@ class Vault:
         except Exception as e:
             self.logger.info("Vault create_role exception is: {}".format(e))
             return str(e), 1
-
 
     def read(self, path):
         self.__auth_client()
