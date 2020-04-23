@@ -44,6 +44,7 @@ class Vault:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
 
+
     def create_role(self, cluster_name):
         self.logger.info("Creating service role")
         policy_name = self.__create_policy()
