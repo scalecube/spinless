@@ -1,3 +1,5 @@
+import os
+
 from libs.cloud_provider_api import CloudApi
 from libs.infrastructure import TF
 from libs.kube_api import KctxApi
@@ -48,3 +50,18 @@ def kube_cluster_create(job_ref, app_logger):
     except Exception as ex:
         job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
         job_ref.complete_err()
+
+
+def post_cluster_operations(job_ref, app_logger):
+    try:
+        data = job_ref.data
+        cl_name = data["cluster_name"]
+        vault = Vault(logger=app_logger)
+        kctx_api = KctxApi(vault, app_logger)
+
+        roles_res = kctx_api.provision_vault(cl_name, "",
+                                             "", "", "",
+                                             "{}/tmp".format(os.getcwd()))
+        app_logger.info("RES:{}".format(roles_res))
+    except Exception as e:
+        app_logger.error(str(e))

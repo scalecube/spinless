@@ -44,7 +44,6 @@ class Vault:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
 
-
     def create_role(self, cluster_name):
         self.logger.info("Creating service role")
         policy_name = self.__create_policy()
@@ -73,18 +72,24 @@ class Vault:
         self.__auth_client()
         self.client.delete(path)
 
-    def enable_k8_auth(self, cluster_name):
+    def enable_k8_auth(self, cluster_name, reviewer_jwt, kube_ca, kube_serv):
         try:
             self.__auth_client()
             ### Configure auth here
+            mount_point = 'kubernetes-{}'.format(cluster_name)
             self.client.sys.enable_auth_method(
                 method_type='kubernetes',
-                path='kubernetes-{}'.format(cluster_name),
+                path=mount_point,
             )
-            return 0
+            self.client.create_kubernetes_configuration(
+                kubernetes_host=kube_serv,
+                kubernetes_ca_cert=kube_ca,
+                token_reviewer_jwt=reviewer_jwt,
+                mount_point=mount_point)
+            return 0, "success"
         except Exception as e:
             self.logger.error("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
-            return 1
+            return 1, str(e)
 
     # Vault's token ttl is too short so this should be called prior to any operation
     def __auth_client(self):

@@ -1,9 +1,13 @@
+import base64
 import os
+import shlex
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
 from libs.shell import shell_await
+
+VALUT_AUTH = "vault-auth"
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -98,32 +102,64 @@ class KctxApi:
             return str(ex), 1
         return gen_template, 0
 
-    def create_cluster_roles(self, cluster_name, aws_access_key,
-                             aws_secret_key, aws_region, kube_conf_str, root_path):
+    def provision_vault(self, cluster_name, aws_access_key,
+                        aws_secret_key, aws_region, kube_conf_str, root_path):
         try:
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
             with open(sa_path, "w") as vault_sa:
                 j2_env = Environment(loader=FileSystemLoader("templates"),
                                      trim_blocks=True)
-                gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=cluster_name)
+                gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VALUT_AUTH)
                 vault_sa.write(gen_template)
-            create_namespace_cmd = ['kubectl', "create", "-f", sa_path]
-            # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
+            create_roles_cmd = ['kubectl', "create", "-f", sa_path]
+            # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud will be used
             env = {"KUBECONFIG": kube_conf_str,
                    "AWS_DEFAULT_REGION": aws_region,
                    "AWS_ACCESS_KEY_ID": aws_access_key,
                    "AWS_SECRET_ACCESS_KEY": aws_secret_key
                    }
-            res, outp = shell_await(create_namespace_cmd, env=env, with_output=True)
+
+            res, outp = shell_await(create_roles_cmd, env=env, with_output=True)
             for s in outp:
                 self.logger.info(s)
             if res != 0:
-                return res, "Failed to create service role in newly created cluster"
-            self.logger("SA for Vault created in newly created cluster.")
+                self.logger.warn("Failed to create service role in newly created cluster")
+            else:
+                self.logger.info("SA for Vault created in newly created cluster.")
+            return self.__configure_kubernetes_mountpoint(env, cluster_name)
         except Exception as ex:
             return 1, str(ex)
 
+    def __configure_kubernetes_mountpoint(self, env, cluster_name):
+        # getting reviewet token
+        tok_rew_cmd = shlex.split("kubectl get secret vault-auth -o go-template='{{ .data.token }}'")
+        res, outp = shell_await(tok_rew_cmd, env=env, with_output=True)
+        if res != 0:
+            for s in outp:
+                self.logger.info(s)
+            return res, "Failed to get vault-auth jwt token"
+        reviewer_jwt = base64.standard_b64decode(outp.__next__()).decode("utf-8")
+
+        # get kube CA
+        kube_ca_cmd = shlex.split(
+            "kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'")
+        res, outp = shell_await(kube_ca_cmd, env=env, with_output=True)
+        if res != 0:
+            for s in outp:
+                self.logger.info(s)
+            return res, "Failed to get kube ca"
+        kube_ca = base64.standard_b64decode(outp.__next__()).decode("utf-8")
+
+        # get kube server
+        kube_server_cmd = shlex.split(
+            "kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}'")
+        res, outp = shell_await(kube_server_cmd, env=env, with_output=True)
+        if res != 0:
+            for s in outp:
+                self.logger.info(s)
+            return res, "Failed to get kube ca"
+        kube_server = outp.__next__()
+
         # Create vault mount point
-        create_k8_auth_res = self.vault.enable_k8_auth(cluster_name)
-        return create_k8_auth_res
+        return self.vault.enable_k8_auth(cluster_name, reviewer_jwt, kube_ca, kube_server)
