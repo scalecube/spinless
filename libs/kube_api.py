@@ -3,6 +3,7 @@ import os
 import shlex
 
 import boto3
+import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from libs.shell import shell_await
@@ -105,6 +106,10 @@ class KctxApi:
     def provision_vault(self, cluster_name, aws_access_key,
                         aws_secret_key, aws_region, kube_conf_str, root_path):
         try:
+            kubeconf_path = "{}/kubeconf".format(root_path)
+            with open(kubeconf_path, "w") as f:
+                yaml.dump(kube_conf_str, f)
+
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
             with open(sa_path, "w") as vault_sa:
@@ -114,7 +119,7 @@ class KctxApi:
                 vault_sa.write(gen_template)
             create_roles_cmd = ['kubectl', "create", "-f", sa_path]
             # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud will be used
-            env = {"KUBECONFIG": kube_conf_str,
+            env = {"KUBECONFIG": kubeconf_path,
                    "AWS_DEFAULT_REGION": aws_region,
                    "AWS_ACCESS_KEY_ID": aws_access_key,
                    "AWS_SECRET_ACCESS_KEY": aws_secret_key
