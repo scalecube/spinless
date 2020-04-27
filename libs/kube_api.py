@@ -108,7 +108,7 @@ class KctxApi:
         try:
             kubeconf_path = "{}/kubeconf".format(root_path)
             with open(kubeconf_path, "w") as f:
-                yaml.dump(kube_conf_str, f)
+                yaml.dump(eval(kube_conf_str), f)
 
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
