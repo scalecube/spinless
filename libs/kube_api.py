@@ -3,7 +3,6 @@ import os
 import shlex
 
 import boto3
-import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from libs.shell import shell_await
@@ -131,6 +130,7 @@ class KctxApi:
                 self.logger.info("SA for Vault created in newly created cluster.")
             return self.__configure_kubernetes_mountpoint(env, cluster_name)
         except Exception as ex:
+            self.logger.error("Error provisioning vault: {}".format(str(ex)))
             return 1, str(ex)
 
     def __configure_kubernetes_mountpoint(self, env, cluster_name):

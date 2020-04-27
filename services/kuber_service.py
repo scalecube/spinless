@@ -1,4 +1,6 @@
-import os
+import base64
+
+from jinja2 import Environment, FileSystemLoader
 
 from libs.cloud_provider_api import CloudApi
 from libs.infrastructure import TF
@@ -55,13 +57,18 @@ def kube_cluster_create(job_ref, app_logger):
 def post_cluster_operations(job_ref, app_logger):
     try:
         data = job_ref.data
-        cl_name = data["cluster_name"]
         vault = Vault(logger=app_logger)
-        kctx_api = KctxApi(vault, app_logger)
 
-        roles_res = kctx_api.provision_vault(cl_name, "",
-                                             "", "", "",
-                                             "{}/tmp".format(os.getcwd()))
-        app_logger.info("RES:{}".format(roles_res))
+        with open("/tmp/conf-tmp", "w") as kube_conf:
+            j2_env = Environment(loader=FileSystemLoader("templates"),
+                                 trim_blocks=True)
+            gen_template = j2_env.get_template('tmp.j2').render()
+            kube_conf.write(gen_template)
+
+        kube_conf_base64 = base64.standard_b64encode(gen_template.encode("utf-8")).decode("utf-8")
+        vault.write("secretv2/tmp", **{"conf": kube_conf_base64})
+        result_b64 = vault.read("secretv2/tmp")["data"]["conf"]
+
+        app_logger.info("RESULT b64:{}".format(result_b64))
     except Exception as e:
         app_logger.error(str(e))
