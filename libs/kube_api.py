@@ -104,12 +104,8 @@ class KctxApi:
         return gen_template, 0
 
     def provision_vault(self, cluster_name, aws_access_key,
-                        aws_secret_key, aws_region, kube_conf_str, root_path):
+                        aws_secret_key, aws_region, kubeconf_path, root_path):
         try:
-            kubeconf_path = "{}/kubeconf".format(root_path)
-            with open(kubeconf_path, "w") as f:
-                yaml.dump(eval(kube_conf_str), f)
-
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
             with open(sa_path, "w") as vault_sa:

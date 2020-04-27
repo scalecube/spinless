@@ -1,4 +1,5 @@
 import os
+import shlex
 import time
 from subprocess import Popen, PIPE
 
@@ -6,6 +7,7 @@ import boto3
 from jinja2 import Environment, FileSystemLoader
 
 from libs.kube_api import KctxApi
+from libs.shell import shell_await
 
 KUBECONF_FILE = "kubeconfig"
 TF_VARS_FILE = 'tfvars.tf'
@@ -103,19 +105,14 @@ class TF:
         yield "RUNNING: Creating Terraform vars", None
         self.__create_vars_file()
         yield "RUNNING: Terraform vars created", None
-        _cmd_apply = ['terraform',
-                      'apply',
-                      '-var-file={}/{}'.format(self.tmp_root_path, TF_VARS_FILE),
-                      '-auto-approve',
-                      self.tf_working_dir]
+        _cmd_apply = "terraform apply -var-file={}/{} -auto-approve {}".format(self.tmp_root_path, TF_VARS_FILE,
+                                                                               self.tf_working_dir)
         yield "RUNNING: Actually creating cloud. This may take time... {}".format(_cmd_apply), None
-        process = Popen(_cmd_apply, cwd=self.tf_state_dir,
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        time.sleep(10)
-        self.logger.info("stdout tf apply: {}".format(stdout))
-        self.logger.info("stderr tf apply: {}".format(stderr))
-        err_code_apply = process.wait(timeout=900)
+        err_code_apply, outp = shell_await(shlex.split(_cmd_apply), with_output=True, cwd=self.tf_state_dir,
+                                           timeout=900)
+        for s in outp:
+            self.logger.info(s)
+            yield "Creating cluster: {}".format(s), None
         self.logger.info("Terraform finished cluster creation. Errcode: {}".format(err_code_apply))
         if err_code_apply != 0:
             yield "FAILED: Failed to create cluster", err_code_apply
@@ -142,7 +139,8 @@ class TF:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
         roles_res = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
-                                                  self.aws_secret_key, self.aws_region, str(kube_conf_str), self.tmp_root_path)
+                                                  self.aws_secret_key, self.aws_region, self.kube_config_file_path,
+                                                  self.tmp_root_path)
         if roles_res != 0:
             yield "FAILED: Failed setup vault account in new cluster. Aborting.", roles_res
 
