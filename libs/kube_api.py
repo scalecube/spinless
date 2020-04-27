@@ -115,6 +115,7 @@ class KctxApi:
                 vault_sa.write(gen_template)
             create_roles_cmd = ['kubectl', "create", "-f", sa_path]
             # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud will be used
+            self.logger.info("using kubeconf in path: {}".format(kubeconf_path))
             env = {"KUBECONFIG": kubeconf_path,
                    "AWS_DEFAULT_REGION": aws_region,
                    "AWS_ACCESS_KEY_ID": aws_access_key,
