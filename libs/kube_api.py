@@ -39,9 +39,9 @@ class KctxApi:
                 attempts += 1
         return {"error": "Failed to write secret"}
 
-    def save_aws_context(self, aws_accesskey, aws_secretkey, aws_region, kube_cfg_dict, conf_label="default"):
+    def save_aws_context(self, aws_accesskey, aws_secretkey, aws_region, kube_cfg_base64, conf_label="default"):
         secret = {"aws_secret_key": aws_secretkey, "aws_access_key": aws_accesskey, "aws_region": aws_region,
-                  "kube_config": kube_cfg_dict, "name": conf_label}
+                  "kube_config": kube_cfg_base64, "name": conf_label}
         return self.save_kubernetes_context(secret)
 
     def get_kubernetes_context(self, ctx_id):

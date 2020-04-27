@@ -1,3 +1,4 @@
+import base64
 import os
 import tarfile
 import time
@@ -77,12 +78,13 @@ class Helm:
                 helm_archive.write(prepare_pkg_result)
             self.untar_helm_gz(helm_tag_gz_path)
         yield "Package ready", None
-        kubeconfig = self.k8s_cluster_conf.get("kube_config")
-        if not kubeconfig:
+        kubeconfig_base64 = self.k8s_cluster_conf.get("kube_config")
+        if not kubeconfig_base64:
             yield "WARNING: No kube ctx. Deploying to default cluster", None
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
-                yaml.dump(eval(kubeconfig), kubeconf_file)
+                kubeconf_str = eval(base64.standard_b64decode(kubeconfig_base64.encode("utf-8")).decode("utf-8"))
+                yaml.dump(kubeconf_str, kubeconf_file)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
         if all(k in self.k8s_cluster_conf for k in ("aws_region", "aws_access_key", "aws_secret_key")):

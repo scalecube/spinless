@@ -1,9 +1,9 @@
 import json
 import logging
 import os
+import re
 import sys
 import time
-import re
 
 import tailer
 
@@ -12,7 +12,7 @@ def create_dir(path):
     try:
         os.makedirs(path)
     except OSError:
-        print("Creation of the directory %s failed" % path)
+        pass
     else:
         print("Successfully created the directory %s" % path)
 

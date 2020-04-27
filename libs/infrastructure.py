@@ -1,3 +1,4 @@
+import base64
 import os
 import shlex
 import time
@@ -139,7 +140,8 @@ class TF:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
         # If deployment was successful, save kubernetes context to vault
-        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, str(kube_conf_str),
+        kube_conf_base64 = base64.standard_b64decode(kube_conf_str.encode("utf-8")).decode("utf-8")
+        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
                                        self.cluster_name)
 
         roles_res = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
