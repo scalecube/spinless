@@ -37,7 +37,7 @@ def kube_cluster_create(job_ref, app_logger):
                        cloud_profile.get("kube_nodes_instance_type"), kctx_api)
 
         for (msg, res) in terraform.install_kube():
-            if not res:
+            if res is None:
                 job_ref.emit("RUNNING", msg)
             else:
                 if res == 0:

@@ -144,10 +144,10 @@ class TF:
         self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
                                        self.cluster_name)
 
-        roles_res = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
+        roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
                                                   self.aws_secret_key, self.aws_region, self.kube_config_file_path,
                                                   self.tmp_root_path)
         if roles_res != 0:
-            yield "FAILED: Failed setup vault account in new cluster. Aborting.", roles_res
+            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
 
-        yield "RUNNING: Creating Vault SA created and registering auth mount point", None
+        yield "SUCCESS: vault provisioning complete", 0
