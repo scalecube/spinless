@@ -135,7 +135,7 @@ class KctxApi:
 
     def __configure_kubernetes_mountpoint(self, env, cluster_name):
         # getting reviewet token
-        tok_rew_cmd = shlex.split("kubectl get secret vault-auth -o go-template='{{ .data.token }}'")
+        tok_rew_cmd = shlex.split("kubectl -n default get secret vault-auth -o go-template='{{ .data.token }}'")
         res, outp = shell_await(tok_rew_cmd, env=env, with_output=True)
         if res != 0:
             for s in outp:
@@ -145,7 +145,7 @@ class KctxApi:
 
         # get kube CA
         kube_ca_cmd = shlex.split(
-            "kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'")
+            "kubectl -n default config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'")
         res, outp = shell_await(kube_ca_cmd, env=env, with_output=True)
         if res != 0:
             for s in outp:
@@ -155,7 +155,7 @@ class KctxApi:
 
         # get kube server
         kube_server_cmd = shlex.split(
-            "kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}'")
+            "kubectl -n default config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}'")
         res, outp = shell_await(kube_server_cmd, env=env, with_output=True)
         if res != 0:
             for s in outp:
