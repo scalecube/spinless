@@ -100,7 +100,7 @@ def helm_deploy(job_ref, app_logger):
                     job_ref.emit("SUCCESS", "Helm deployed successfully")
                     job_ref.complete_succ()
                 else:
-                    job_ref.emit("ERROR", "Helm deploy failed")
+                    job_ref.emit("ERROR", "Helm deploy failed: {}".format(msg))
                     job_ref.complete_err()
                 # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break
