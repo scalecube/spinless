@@ -19,11 +19,19 @@ def kube_cluster_create(job_ref, app_logger):
         # use vault later
         vault = Vault(logger=app_logger)
 
+        # check mandatory params
+        if not all(k in data for k in ("cloud_profile", "cluster_name", "dns_suffix")):
+            job_ref.emit("ERROR",
+                         "Not all mandatory params: {}".format(["cloud_profile", "cluster_name", "dns_suffix"]))
+            job_ref.complete_err()
+            return
+
         cloud_provider_api = CloudApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
-        cloud_profile_req = data.get("cloud_profile", DEFAULT_CLOUD)
+        cloud_profile_req = data["cloud_profile"]
         cloud_profile = cloud_provider_api.get_cloud_provider(cloud_profile_req)
         cluster_name = data["cluster_name"]
+        dns_suffix = data["dns_suffix"]
         job_ref.emit("RUNNING: using cloud profile:{} to create cluster: {}".format(cloud_profile_req, cluster_name),
                      None)
 
@@ -34,7 +42,9 @@ def kube_cluster_create(job_ref, app_logger):
                        cluster_name, cloud_profile.get("az1"),
                        cloud_profile.get("az2"),
                        cloud_profile.get("kube_nodes_amount"),
-                       cloud_profile.get("kube_nodes_instance_type"), kctx_api)
+                       cloud_profile.get("kube_nodes_instance_type"),
+                       kctx_api,
+                       dns_suffix)
 
         for (msg, res) in terraform.install_kube():
             if res is None:
