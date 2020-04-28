@@ -49,9 +49,22 @@ class Helm:
         else:
             return r.content, 0
 
+
+
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
+
+        # inti traefik vaules id necessary:
+        if default_values.get("traefik"):
+            dns_suffix = self.k8s_cluster_conf.get("dns_suffix")
+            if not dns_suffix:
+                self.logger.warn("traefik ocnf found in chart but nothing configured for cluster")
+            else:
+                self.logger.info("Trafik config detected in values.yaml. "
+                                 "Setting up the traefik values with dns suffix: {}".format(dns_suffix))
+                default_values["traefik"]["dns_suffix"] = dns_suffix
+
         self.logger.info("Default values are: {}".format(default_values))
         # update values with ones posted in request
         default_values.update(self.posted_values)
