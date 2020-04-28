@@ -88,7 +88,7 @@ class Vault:
                 mount_point=mount_point)
             return 0, "success"
         except Exception as e:
-            self.logger.error("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
+            self.logger.warning("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
             return 1, str(e)
 
     # Vault's token ttl is too short so this should be called prior to any operation
