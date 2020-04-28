@@ -91,21 +91,22 @@ class TF:
         return process.wait()
 
     def install_kube(self):
-        _cmd_wksps = ['terraform', 'workspace', 'new', self.cluster_name, self.tf_working_dir]
+
+        # Create terraform workspace
+        _cmd_wksps = 'terraform workspace new {} {}'.format(self.cluster_name, self.tf_working_dir)
         yield "START: Creating Workspace: {}".format(_cmd_wksps), None
-        process = Popen(_cmd_wksps, cwd=self.tf_state_dir,
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        self.logger.info("Create namespace")
-        time.sleep(2)
-        self.logger.info("stdout id: {}".format(stdout))
-        self.logger.info("stderr id: {}".format(stderr))
-        process.wait()
+        wksp_res, outp = shell_await(shlex.split(_cmd_wksps), with_output=True, cwd=self.tf_state_dir)
+        for s in outp:
+            self.logger.info(s)
+            yield "Creating workspace: {}".format(s), None
         yield "RUNNING: Terraform workspace created: {}", None
 
+        # Create terraform vars
         yield "RUNNING: Creating Terraform vars", None
         self.__create_vars_file()
         yield "RUNNING: Terraform vars created", None
+
+        # Terraform apply - actual creation of cluster
         _cmd_apply = "terraform apply -var-file={}/{} -auto-approve {}".format(self.tmp_root_path, TF_VARS_FILE,
                                                                                self.tf_working_dir)
         yield "RUNNING: Actually creating cloud. This may take time... {}".format(_cmd_apply), None
@@ -120,6 +121,7 @@ class TF:
         else:
             yield "RUNNING: Terraform has successfully created cluster", None
 
+        # Generate cluster config
         yield "RUNNING: Generating kubernetes cluster config...", None
         kube_conf_str, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
                                                               aws_region=self.aws_region,
@@ -132,6 +134,7 @@ class TF:
         else:
             yield "ERROR: Failed to create kubernetes config", err
 
+        # Apply node auth confmap
         yield "RUNNING: Applying node auth configmap...", None
         auth_conf_map_result = self.__apply_node_auth_configmap()
         if auth_conf_map_result != 0:
@@ -145,8 +148,8 @@ class TF:
                                        self.cluster_name)
 
         roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
-                                                  self.aws_secret_key, self.aws_region, self.kube_config_file_path,
-                                                  self.tmp_root_path)
+                                                       self.aws_secret_key, self.aws_region, self.kube_config_file_path,
+                                                       self.tmp_root_path)
         if roles_res != 0:
             yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
 
