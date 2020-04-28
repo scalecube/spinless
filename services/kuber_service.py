@@ -41,10 +41,10 @@ def kube_cluster_create(job_ref, app_logger):
                 job_ref.emit("RUNNING", msg)
             else:
                 if res == 0:
-                    job_ref.emit("SUCCESS", "finished. cluster created successfully")
+                    job_ref.emit("SUCCESS", "Finished. cluster created successfully:  {}".format(msg))
                     job_ref.complete_succ()
                 else:
-                    job_ref.emit("ERROR", "finished. cluster creation failed")
+                    job_ref.emit("ERROR", "Finished. cluster creation failed: {}".format(msg))
                     job_ref.complete_err()
                 # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break

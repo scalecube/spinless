@@ -5,7 +5,7 @@
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="VAULT_ADDR" value="https://vault-secrets.exchange.om2.com/" />
+      <env name="VAULT_ADDR" value="https://vault-secrets.exchange.om2.com" />
       <env name="VAULT_SECRETS_PATH" value="secretv2/scalecube/spinless" />
       <env name="VAULT_ROLE" value="scalecube-spinless" />
       <env name="VAULT_JWT_PATH" value="/var/run/secrets/kubernetes.io/serviceaccount/token" />

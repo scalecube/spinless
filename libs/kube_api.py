@@ -77,7 +77,7 @@ class KctxApi:
     def generate_aws_kube_config(cluster_name, aws_region,
                                  aws_access_key, aws_secret_key, conf_path):
         try:
-            # Set up the client
+            # # Set up the client
             s = boto3.Session(region_name=aws_region,
                               aws_access_key_id=aws_access_key,
                               aws_secret_access_key=aws_secret_key
@@ -128,13 +128,14 @@ class KctxApi:
                 self.logger.warn("Failed to create service role in newly created cluster")
             else:
                 self.logger.info("SA for Vault created in newly created cluster.")
-            return self.__configure_kubernetes_mountpoint(env, cluster_name)
+            code, msg = self.__configure_kubernetes_mountpoint(env, cluster_name)
+            return 0, "Vault integration complete with status: {}:{} ".format(code, msg)
         except Exception as ex:
             self.logger.error("Error provisioning vault: {}".format(str(ex)))
             return 1, str(ex)
 
     def __configure_kubernetes_mountpoint(self, env, cluster_name):
-        # getting reviewet token
+        # getting reviewer token
         tok_rew_cmd = shlex.split("kubectl -n default get secret vault-auth -o go-template='{{ .data.token }}'")
         res, outp = shell_await(tok_rew_cmd, env=env, with_output=True)
         if res != 0:

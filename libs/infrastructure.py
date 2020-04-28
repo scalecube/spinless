@@ -152,5 +152,4 @@ class TF:
                                                        self.tmp_root_path)
         if roles_res != 0:
             yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
-
-        yield "SUCCESS: vault provisioning complete", 0
+        yield "Vault provisioning complete", 0
