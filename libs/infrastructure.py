@@ -17,7 +17,7 @@ TF_VARS_FILE = 'tfvars.tf'
 class TF:
     def __init__(self, logger, aws_region, aws_access_key,
                  aws_secret_key, cluster_name, az1, az2,
-                 kube_nodes_amount, kube_nodes_instance_type, kctx_api):
+                 kube_nodes_amount, kube_nodes_instance_type, kctx_api, dns_suffix):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -35,6 +35,7 @@ class TF:
         self.kube_nodes_amount = kube_nodes_amount
         self.kube_nodes_instance_type = kube_nodes_instance_type
         self.kctx_api = kctx_api
+        self.dns_suffix = dns_suffix
 
     def __create_vars_file(self):
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
@@ -145,7 +146,7 @@ class TF:
         # If deployment was successful, save kubernetes context to vault
         kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
         self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
-                                       self.cluster_name)
+                                       self.cluster_name, self.dns_suffix)
 
         roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
                                                        self.aws_secret_key, self.aws_region, self.kube_config_file_path,
