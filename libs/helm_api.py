@@ -96,8 +96,8 @@ class Helm:
             yield "WARNING: No kube ctx. Deploying to default cluster", None
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
-                kubeconf_str = eval(base64.standard_b64decode(kubeconfig_base64.encode("utf-8")).decode("utf-8"))
-                yaml.dump(kubeconf_str, kubeconf_file)
+                kubeconf_str = base64.standard_b64decode(kubeconfig_base64.encode("utf-8")).decode("utf-8")
+                kubeconf_file.writelines(kubeconf_str)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
         if all(k in self.k8s_cluster_conf for k in ("aws_region", "aws_access_key", "aws_secret_key")):
