@@ -77,7 +77,7 @@ class KctxApi:
     def generate_aws_kube_config(cluster_name, aws_region,
                                  aws_access_key, aws_secret_key, conf_path):
         try:
-            # # Set up the client
+            # Set up the client
             s = boto3.Session(region_name=aws_region,
                               aws_access_key_id=aws_access_key,
                               aws_secret_access_key=aws_secret_key
