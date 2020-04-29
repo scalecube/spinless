@@ -35,7 +35,7 @@ class Vault:
         self.logger.info("Policy name is: {}".format(policy_name))
         self.logger.info("Policy path is: {}".format(policy_path))
         policy_1_path = 'path "{}" '.format(policy_path)
-        policy_2_path = '{ capabilities = ["create", "read", "update", "delete", "list"]}'
+        policy_2_path = '{ capabilities = ["read", "list"]}'
         try:
             # self.client.set_policy(policy_name, policy_1_path + policy_2_path) - DEPRECATED
             self.__auth_client()
