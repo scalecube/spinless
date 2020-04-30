@@ -77,16 +77,19 @@ class TF:
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
             nodes_cm.write(gen_template)
 
-    def __apply_node_auth_configmap(self):
+    def __apply_node_auth_configmap(self, kube_env):
         self.__generate_configmap()
+        kube_cmd = "kubectl apply -f {}/nodes_cm.yaml".format(self.tmp_root_path)
+        res, outp = shell_await(kube_cmd, env=kube_env, with_output=True)
+        if res != 0:
+            for s in outp:
+                self.logger.info(s)
+            return res, "Failed to create nodes_cm"
+        kube_ca = base64.standard_b64decode(outp.__next__()).decode("utf-8")
+
+
         process = Popen(['kubectl', 'apply', "-f",
-                         "{}/nodes_cm.yaml".format(self.tmp_root_path)],
-                        env=dict(os.environ,
-                                 **{"KUBECONFIG": self.kube_config_file_path,
-                                    "AWS_DEFAULT_REGION": self.aws_region,
-                                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
-                                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
-                                    }),
+                         "{}/nodes_cm.yaml".format(self.tmp_root_path)]),
                         stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         return process.wait()
@@ -135,9 +138,14 @@ class TF:
         else:
             yield "ERROR: Failed to create kubernetes config", err
 
+        kube_env = {"KUBECONFIG": self.kube_config_file_path,
+                    "AWS_DEFAULT_REGION": self.aws_region,
+                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
+                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
+                    }
         # Apply node auth confmap
         yield "RUNNING: Applying node auth configmap...", None
-        auth_conf_map_result = self.__apply_node_auth_configmap()
+        auth_conf_map_result = self.__apply_node_auth_configmap(kube_env)
         if auth_conf_map_result != 0:
             yield "FAILED: Failed to apply node config map...", auth_conf_map_result
         else:
@@ -148,9 +156,20 @@ class TF:
         self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
                                        self.cluster_name, self.dns_suffix)
 
+        # Provision Vault
         roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
                                                        self.aws_secret_key, self.aws_region, self.kube_config_file_path,
                                                        self.tmp_root_path)
         if roles_res != 0:
             yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
+
+        # Set up storage
+        storage_res, msg = self.kctx_api.setup_storage(self.aws_access_key,
+                                                       self.aws_secret_key, self.aws_region, self.kube_config_file_path,
+                                                       self.tmp_root_path)
+        if storage_resp != 0:
+            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
+
+        # Set up traefik
+
         yield "Vault provisioning complete", 0
