@@ -52,7 +52,7 @@ USERDATA
   }
 }
 
-resource "aws_autoscaling_group" "eks-t3a-medium" {
+resource "aws_autoscaling_group" "nodePool" {
   for_each             = var.nodePools
 
   desired_capacity     = each.value["count"]
