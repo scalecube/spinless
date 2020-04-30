@@ -41,3 +41,31 @@ variable "kube_nodes_instance_type" {
   default     = "t3a.medium"
   type        = string
 }
+
+variable "nodePools" {
+  description = "ASG"
+  default     = {
+        "pool1" = {
+          "count" = 1,
+          "minCount" = 1,
+          "maxCount" = 2,
+          "instanceType" = "t3a.medium",
+          "taint" = "gateway"
+        },
+        "pool2" = {
+          "count" = 2,
+          "minCount" = 2,
+          "maxCount" = 4,
+          "instanceType" = "t3a.micro",
+          "taint" = "market-service"
+        },
+        "pool3" = {
+          "count" = 1,
+          "minCount" = 1,
+          "maxCount" = 2,
+          "instanceType" = "t3a.small",
+          "taint" = "operations"
+        }
+      }
+  type        = map
+}
