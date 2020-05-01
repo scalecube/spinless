@@ -58,7 +58,7 @@ def helm_deploy(job_ref, app_logger):
 
         # read cluster config
         cluster_name = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
-        k8s_cluster_conf, err = kctx_api.get_kubernetes_context(cluster_name)
+        err, k8s_cluster_conf = kctx_api.get_kubernetes_context(cluster_name)
         if err != 0:
             job_ref.emit("WARNING",
                          "Failed to get k8 conf for {}. Reason: {}. Will use default kube context for current vm".format(

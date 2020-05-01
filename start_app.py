@@ -8,7 +8,7 @@ from libs.job_api import *
 from services.cloud_service import *
 from services.helm_deploy import helm_deploy
 from services.kctx_service import *
-from services.kuber_service import kube_cluster_create, post_cluster_operations
+from services.kuber_service import kube_cluster_create, kube_cluster_delete
 from services.registry_service import *
 
 load_dotenv()
@@ -33,6 +33,8 @@ app = FlaskAPI(__name__)
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
+
+RESERVED_CLUSTERS = {"exberry-cloud", "exberry-demo"}
 
 
 @app.route('/helm/deploy', methods=['POST'])
@@ -101,27 +103,10 @@ def artifact_registries_delete(type, name):
 #
 # Kubernetes context CRUD
 #
-@app.route('/kubernetes/contexts/<name>', methods=['POST'])
-def kubernetes_context_create(name):
-    data = request.get_json()
-    if not data:
-        return abort(Response("No payload"))
-    data["name"] = name
-    app.logger.info("Request to create  kubernetes contexts  is {}".format(name))
-    result = create_kubernetes_context(app.logger, data)
-    return result
-
-
 @app.route('/kubernetes/contexts/<name>')
 def kubernetes_context_get(name):
     app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
     return get_kubernetes_context(app.logger, name)
-
-
-@app.route('/kubernetes/contexts/<name>', methods=['DELETE'])
-def kubernetes_context_delete(name):
-    app.logger.info("Request to delete  kubernetes contexts  is \"{}\"".format(name))
-    return delete_kubernetes_context(app.logger, name)
 
 
 #
@@ -158,9 +143,9 @@ def delete_cloud_provider_api(provider_type, name):
 
 
 #
-# Create cluster api
+# Cluster api
 #
-@app.route("/kubernetes/create", methods=['POST'])
+@app.route("/kubernetes/cluster", methods=['POST'])
 def kubernetes_cluster_create():
     data = request.get_json()
     if not data:
@@ -170,18 +155,16 @@ def kubernetes_cluster_create():
     return jsonify({'id': job.job_id})
 
 
-@app.route("/cloud/post-create", methods=['POST'])
-def post_create_cluster():
-    """
-    Endpoint to test the post-cluster creation actions.
-    Should be triggered in dev ode only
-    """
-    dev_mode = os.getenv("dev_mode", False)
-    if not dev_mode:
-        return abort(Response("you are not in dev mode, do svidania."))
+@app.route("/kubernetes/cluster", methods=['DELETE'])
+def kubernetes_cluster_destroy():
     data = request.get_json()
-    app.logger.info("Post cluster operations {}".format(data))
-    job = create_job(post_cluster_operations, app.logger, data).start()
+    if not data or "cluster_name" not in data:
+        return abort(Response("Give cluster_name in payload"))
+    cluster_name = data["cluster_name"]
+    if cluster_name in RESERVED_CLUSTERS:
+        return abort(Response("Please don't remove this cluster: {}".format(cluster_name)))
+    app.logger.info("Request to destroy cluster {}".format(cluster_name))
+    job = create_job(kube_cluster_delete, app.logger, data).start()
     return jsonify({'id': job.job_id})
 
 
