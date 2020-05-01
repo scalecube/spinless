@@ -102,8 +102,7 @@ class KctxApi:
             return str(ex), 1
         return gen_template, 0
 
-    def provision_vault(self, cluster_name, aws_access_key,
-                        aws_secret_key, aws_region, kubeconf_path, root_path):
+    def provision_vault(self, cluster_name, root_path, kube_env):
         try:
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
@@ -114,21 +113,15 @@ class KctxApi:
                 vault_sa.write(gen_template)
             create_roles_cmd = ['kubectl', "create", "-f", sa_path]
             # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud will be used
-            self.logger.info("using kubeconf in path: {}".format(kubeconf_path))
-            env = {"KUBECONFIG": kubeconf_path,
-                   "AWS_DEFAULT_REGION": aws_region,
-                   "AWS_ACCESS_KEY_ID": aws_access_key,
-                   "AWS_SECRET_ACCESS_KEY": aws_secret_key
-                   }
 
-            res, outp = shell_await(create_roles_cmd, env=env, with_output=True)
+            res, outp = shell_await(create_roles_cmd, env=kube_env, with_output=True)
             for s in outp:
                 self.logger.info(s)
             if res != 0:
                 self.logger.warn("Failed to create service role in newly created cluster")
             else:
                 self.logger.info("SA for Vault created in newly created cluster.")
-            code, msg = self.__configure_kubernetes_mountpoint(env, cluster_name)
+            code, msg = self.__configure_kubernetes_mountpoint(kube_env, cluster_name)
             return 0, "Vault integration complete with status: {}:{} ".format(code, msg)
         except Exception as ex:
             self.logger.error("Error provisioning vault: {}".format(str(ex)))
@@ -166,3 +159,57 @@ class KctxApi:
 
         # Create vault mount point
         return self.vault.enable_k8_auth(cluster_name, reviewer_jwt, kube_ca, kube_server)
+
+    def setup_storage(self, kube_env, tmp_root_path):
+        """
+        Creates aws storage in eks cluster
+
+        :param kube_env: env to use for kubernetes communication
+        :param tmp_root_path: tmp path to store tmp files
+        :return: err code (0 if success), message
+        """
+        res, outp = KctxApi.__install_to_kube(
+            "aws-storage",
+            {"app": "exchange"},
+            kube_env, tmp_root_path)
+        for out in outp:
+            self.logger.info(out)
+        return 0, "Volume creation complete. Result: {}".format(res)
+
+    def setup_traefik(self, kube_env):
+        """
+        Setup traefik plugin in created cluster
+
+        :param kube_env: env to use for kubernetes communication
+        :param tmp_root_path: tmp path to store tmp files
+        :return: err code (0 if success), message
+        """
+        cmd = shlex.split("helm repo add traefik https://containous.github.io/traefik-helm-chart")
+        shell_await(cmd, env=kube_env, with_output=True)
+
+        cmd = shlex.split("helm repo update")
+        shell_await(cmd, env=kube_env, with_output=True)
+
+        cmd = shlex.split(
+            "helm install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003")
+        return shell_await(cmd, env=kube_env, with_output=True)
+
+    @classmethod
+    def __install_to_kube(cls, template_name, params, kube_env, root_path):
+        """
+        :param cls: class
+        :param template_name: name without ".j2"
+        :param params: data to pass to template
+        :param kube_env:
+        :param root_path:
+        :param logger:
+        :return:  errcode, msg
+        """
+        f_path = "{}/{}.yaml".format(root_path, template_name)
+        with open(f_path, "w") as f:
+            j2_env = Environment(loader=FileSystemLoader("templates"),
+                                 trim_blocks=True)
+            gen_template = j2_env.get_template('{}.j2'.format(template_name)).render(**params)
+            f.write(gen_template)
+        cmd = shlex.split("kubectl create -f {}".format(f_path))
+        return shell_await(cmd, env=kube_env, with_output=True)

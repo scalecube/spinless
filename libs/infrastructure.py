@@ -85,17 +85,9 @@ class TF:
             for s in outp:
                 self.logger.info(s)
             return res, "Failed to create nodes_cm"
-        kube_ca = base64.standard_b64decode(outp.__next__()).decode("utf-8")
-
-
-        process = Popen(['kubectl', 'apply', "-f",
-                         "{}/nodes_cm.yaml".format(self.tmp_root_path)]),
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        return process.wait()
+        return res, outp
 
     def install_kube(self):
-
         # Create terraform workspace
         _cmd_wksps = 'terraform workspace new {} {}'.format(self.cluster_name, self.tf_working_dir)
         yield "START: Creating Workspace: {}".format(_cmd_wksps), None
@@ -145,7 +137,7 @@ class TF:
                     }
         # Apply node auth confmap
         yield "RUNNING: Applying node auth configmap...", None
-        auth_conf_map_result = self.__apply_node_auth_configmap(kube_env)
+        auth_conf_map_result, msg = self.__apply_node_auth_configmap(kube_env)
         if auth_conf_map_result != 0:
             yield "FAILED: Failed to apply node config map...", auth_conf_map_result
         else:
@@ -157,19 +149,20 @@ class TF:
                                        self.cluster_name, self.dns_suffix)
 
         # Provision Vault
-        roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
-                                                       self.aws_secret_key, self.aws_region, self.kube_config_file_path,
-                                                       self.tmp_root_path)
-        if roles_res != 0:
-            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
+        vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.tmp_root_path, kube_env)
+        if vault_prov_res != 0:
+            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), vault_prov_res
+        yield "Vault provisioning complete", None
 
         # Set up storage
-        storage_res, msg = self.kctx_api.setup_storage(self.aws_access_key,
-                                                       self.aws_secret_key, self.aws_region, self.kube_config_file_path,
-                                                       self.tmp_root_path)
-        if storage_resp != 0:
-            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
+        storage_res, msg = self.kctx_api.setup_storage(kube_env, self.tmp_root_path)
+        if storage_res != 0:
+            yield "FAILED: Failed to setup storage volume. Aborting: {}".format(msg), storage_res
+        yield "Storage volume set up successfully.", None
 
         # Set up traefik
+        traefik_res, msg = self.kctx_api.setup_traefik(kube_env, self.tmp_root_path)
+        if traefik_res != 0:
+            yield "FAILED: Failed to setup traefik. Aborting: {}".format(msg), traefik_res
+        yield "Traefik initialized successfully.", None
 
-        yield "Vault provisioning complete", 0
