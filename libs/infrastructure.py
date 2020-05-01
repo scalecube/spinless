@@ -77,22 +77,17 @@ class TF:
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
             nodes_cm.write(gen_template)
 
-    def __apply_node_auth_configmap(self):
+    def __apply_node_auth_configmap(self, kube_env):
         self.__generate_configmap()
-        process = Popen(['kubectl', 'apply', "-f",
-                         "{}/nodes_cm.yaml".format(self.tmp_root_path)],
-                        env=dict(os.environ,
-                                 **{"KUBECONFIG": self.kube_config_file_path,
-                                    "AWS_DEFAULT_REGION": self.aws_region,
-                                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
-                                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
-                                    }),
-                        stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-        return process.wait()
+        kube_cmd = "kubectl apply -f {}/nodes_cm.yaml".format(self.tmp_root_path)
+        res, outp = shell_await(kube_cmd, env=kube_env, with_output=True)
+        if res != 0:
+            for s in outp:
+                self.logger.info(s)
+            return res, "Failed to create nodes_cm"
+        return res, outp
 
     def install_kube(self):
-
         # Create terraform workspace
         _cmd_wksps = 'terraform workspace new {} {}'.format(self.cluster_name, self.tf_working_dir)
         yield "START: Creating Workspace: {}".format(_cmd_wksps), None
@@ -135,22 +130,47 @@ class TF:
         else:
             yield "ERROR: Failed to create kubernetes config", err
 
+        kube_env = {"KUBECONFIG": self.kube_config_file_path,
+                    "AWS_DEFAULT_REGION": self.aws_region,
+                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
+                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
+                    }
         # Apply node auth confmap
         yield "RUNNING: Applying node auth configmap...", None
-        auth_conf_map_result = self.__apply_node_auth_configmap()
+        auth_conf_map_result, msg = self.__apply_node_auth_configmap(kube_env)
         if auth_conf_map_result != 0:
             yield "FAILED: Failed to apply node config map...", auth_conf_map_result
         else:
             yield "SUCCESS: Cluster creation and conf setup complete", None
+
+        # Provision Vault
+        vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.tmp_root_path, kube_env)
+        if vault_prov_res != 0:
+            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), vault_prov_res
+        yield "Vault provisioning complete", None
+
+        # Set up storage
+        storage_res, msg = self.kctx_api.setup_storage(kube_env, self.tmp_root_path)
+        if storage_res != 0:
+            yield "FAILED: Failed to setup storage volume. Aborting: {}".format(msg), storage_res
+        yield "Storage volume set up successfully.", None
+
+        # Set up traefik
+        traefik_res, msg = self.kctx_api.setup_traefik(kube_env)
+        if traefik_res != 0:
+            yield "Failed to setup traefik. Resuming anyway", None
+        else:
+            yield "Traefik initialized successfully.", None
+
+        # Set up metrics
+        res, msg = self.kctx_api.setup_metrics(kube_env)
+        if res != 0:
+            yield "FAILED: Failed to setup metrics. Aborting: {}".format(msg), res
+        yield "Metrics initialized successfully.", None
 
         # If deployment was successful, save kubernetes context to vault
         kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
         self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
                                        self.cluster_name, self.dns_suffix)
 
-        roles_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.aws_access_key,
-                                                       self.aws_secret_key, self.aws_region, self.kube_config_file_path,
-                                                       self.tmp_root_path)
-        if roles_res != 0:
-            yield "FAILED: Failed setup vault account in new cluster. Aborting: {}".format(msg), roles_res
-        yield "Vault provisioning complete", 0
+        yield "Saved cluster config.", None
