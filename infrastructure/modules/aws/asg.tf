@@ -62,6 +62,8 @@ resource "aws_autoscaling_group" "nodePool" {
   name                 = "asg-eks-${each.value["taint"]}"
   vpc_zone_identifier  = [aws_subnet.kube01.id]
 
+  depends_on = [aws_launch_configuration.nodes_configuration]
+
   tag {
     key                 = "Name"
     value               = "asg-eks-${each.value["instanceType"]}"
