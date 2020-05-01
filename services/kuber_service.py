@@ -1,7 +1,3 @@
-import base64
-
-from jinja2 import Environment, FileSystemLoader
-
 from libs.cloud_provider_api import CloudApi
 from libs.infrastructure import TF
 from libs.kube_api import KctxApi
@@ -39,11 +35,10 @@ def kube_cluster_create(job_ref, app_logger):
                        cloud_profile.get("aws_region"),
                        cloud_profile.get("aws_access_key"),
                        cloud_profile.get("aws_secret_key"),
-                       cluster_name, cloud_profile.get("az1"),
+                       cluster_name, kctx_api, cloud_profile.get("az1"),
                        cloud_profile.get("az2"),
                        cloud_profile.get("kube_nodes_amount"),
                        cloud_profile.get("kube_nodes_instance_type"),
-                       kctx_api,
                        dns_suffix)
 
         for (msg, res) in terraform.install_kube():
@@ -60,25 +55,52 @@ def kube_cluster_create(job_ref, app_logger):
                 break
 
     except Exception as ex:
-        job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
+        job_ref.emit("ERROR", "failed to create cluster. reason {}".format(ex))
         job_ref.complete_err()
 
 
-def post_cluster_operations(job_ref, app_logger):
+def kube_cluster_delete(job_ref, app_logger):
     try:
         data = job_ref.data
+        # check mandatory params
+        if "cluster_name" not in data:
+            job_ref.emit("ERROR", "Not all mandatory params: {}".format("cluster_name"))
+            job_ref.complete_err()
+            return
+
+        cluster_name = data.get("cluster_name")
+        app_logger.info("Starting cluster removal for {}...".format(cluster_name))
+
+        # use vault later
         vault = Vault(logger=app_logger)
+        kctx_api = KctxApi(vault, app_logger)
+        err, clsuter_ctx = kctx_api.get_kubernetes_context(cluster_name)
+        if err != 0:
+            job_ref.emit("ERROR", "Cluster does not exist: {}".format(cluster_name))
+            job_ref.complete_err()
+            return
 
-        with open("/tmp/conf-tmp", "w") as kube_conf:
-            j2_env = Environment(loader=FileSystemLoader("templates"),
-                                 trim_blocks=True)
-            gen_template = j2_env.get_template('tmp.j2').render()
-            kube_conf.write(gen_template)
+        terraform = TF(app_logger,
+                       clsuter_ctx["aws_region"],
+                       clsuter_ctx["aws_access_key"],
+                       clsuter_ctx["aws_secret_key"],
+                       cluster_name,
+                       kctx_api,
+                       kube_conf=clsuter_ctx["kube_config"])
 
-        kube_conf_base64 = base64.standard_b64encode(gen_template.encode("utf-8")).decode("utf-8")
-        vault.write("secretv2/tmp", **{"conf": kube_conf_base64})
-        result_b64 = vault.read("secretv2/tmp")["data"]["conf"]
+        for (msg, res) in terraform.delete_kube():
+            if res is None:
+                job_ref.emit("RUNNING", msg)
+            else:
+                if res == 0:
+                    job_ref.emit("SUCCESS", "Finished. cluster removal complete: {}".format(msg))
+                    job_ref.complete_succ()
+                else:
+                    job_ref.emit("ERROR", "Finished. cluster removal failed: {}".format(msg))
+                    job_ref.complete_err()
+                # Don't go further in job. it's over. if that failed, it will not continue the flow.
+                break
 
-        app_logger.info("RESULT b64:{}".format(result_b64))
-    except Exception as e:
-        app_logger.error(str(e))
+    except Exception as ex:
+        job_ref.emit("ERROR", "failed to delete cluster {}".format(ex))
+        job_ref.complete_err()

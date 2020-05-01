@@ -16,8 +16,8 @@ TF_VARS_FILE = 'tfvars.tf'
 
 class TF:
     def __init__(self, logger, aws_region, aws_access_key,
-                 aws_secret_key, cluster_name, az1, az2,
-                 kube_nodes_amount, kube_nodes_instance_type, kctx_api, dns_suffix):
+                 aws_secret_key, cluster_name, kctx_api, az1="", az2="",
+                 kube_nodes_amount=0, kube_nodes_instance_type="", dns_suffix="", kube_conf=""):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -36,6 +36,7 @@ class TF:
         self.kube_nodes_instance_type = kube_nodes_instance_type
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
+        self.kube_conf = kube_conf
 
     def __create_vars_file(self):
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
@@ -44,10 +45,11 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
-            tfvars.write('{} = "{}"\n'.format("az1", self.az1))
-            tfvars.write('{} = "{}"\n'.format("az2", self.az2))
-            tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
-            tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
+            if all(self.__dict__.get(k) for k in ("az1", "az2", "az2", "kube_nodes_amount", "kube_nodes_instance_type")):
+                tfvars.write('{} = "{}"\n'.format("az1", self.az1))
+                tfvars.write('{} = "{}"\n'.format("az2", self.az2))
+                tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
+                tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
 
     def __set_aws_cli_config(self):
         result = 0
@@ -105,7 +107,7 @@ class TF:
         # Terraform apply - actual creation of cluster
         _cmd_apply = "terraform apply -var-file={}/{} -auto-approve {}".format(self.tmp_root_path, TF_VARS_FILE,
                                                                                self.tf_working_dir)
-        yield "RUNNING: Actually creating cloud. This may take time... {}".format(_cmd_apply), None
+        yield "RUNNING: Actually creating cluster. This may take time... {}".format(_cmd_apply), None
         err_code_apply, outp = shell_await(shlex.split(_cmd_apply), with_output=True, cwd=self.tf_state_dir,
                                            timeout=900)
         for s in outp:
@@ -174,3 +176,22 @@ class TF:
                                        self.cluster_name, self.dns_suffix)
 
         yield "Saved cluster config.", None
+
+    def delete_kube(self):
+        self.__create_vars_file()
+        cmd = "terraform destroy -var-file={}/{} -auto-approve {}".format(self.tmp_root_path, TF_VARS_FILE,
+                                                                          self.tf_working_dir)
+        yield "Actually destroying cluster. This may take time... {}".format(cmd), None
+        res, outp = shell_await(shlex.split(cmd), with_output=True, cwd=self.tf_state_dir,
+                                timeout=900)
+        for s in outp:
+            self.logger.info(s)
+            yield s, None
+        self.logger.info("Terraform finished cluster removal. Errcode: {}".format(res))
+        if res != 0:
+            yield "Failed to destroy cluster {}".format(self.cluster_name), res
+        yield "Cluster {} destroyed".format(self.cluster_name), None
+        res, msg = self.kctx_api.delete_kubernetes_context(self.cluster_name)
+        if res != 0:
+            yield "Failed to clear cluster info".format(self.cluster_name), res
+        yield "Cluster {} destroyed and cluster related information cleaned".format(self.cluster_name), None

@@ -44,35 +44,29 @@ class KctxApi:
                   "kube_config": kube_cfg_base64, "name": cluster_name, "dns_suffix": dns_suffix}
         return self.save_kubernetes_context(secret)
 
-    def get_kubernetes_context(self, ctx_id):
+    def get_kubernetes_context(self, cluster_name):
         self.logger.info("Getting kube context")
-        if not ctx_id:
+        if not cluster_name:
             self.logger.warn("Kube ctx \"name\" is empty, using \"default\"")
-            ctx_id = DEFAULT_K8S_CTX_ID
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_id)
+            cluster_name = DEFAULT_K8S_CTX_ID
+        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
         try:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
-                return "No such kctx: {}".format(ctx_id), 1
-            return kctx_secret["data"], 0
+                return 1, "No such kctx: {}".format(cluster_name)
+            return 0, kctx_secret["data"]
         except Exception as e:
             self.logger.info("Failed to read secret from path {}, {}".format(kctx_path, e))
-            return "Failed to read secret", 1
+            return 1, "Failed to read secret"
 
-    def delete_kubernetes_context(self, ctx_id):
-        if not ctx_id:
-            self.logger.warn("No secret key provided")
-            return {"error": "No secret key provided"}
-        if ctx_id == "default":
-            self.logger.error("Not allowed to remove default kctx")
-            return {"error": "Not allowed to remove default kctx"}
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_id)
+    def delete_kubernetes_context(self, cluster_name):
+        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
         try:
             self.vault.delete(kctx_path)
-            return STATUS_OK_
+            return 0, "Deleted kcts successfully"
         except Exception as e:
-            self.logger.info("Failed to delete secret from path {}, {}".format(kctx_path, e))
-            return {"error": "Failed to delete secret"}
+            self.logger.error("Failed to delete secret from path {}, {}".format(kctx_path, e))
+            return 1, "Failed to delete secret from storage"
 
     @staticmethod
     def generate_aws_kube_config(cluster_name, aws_region,
