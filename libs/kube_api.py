@@ -232,5 +232,5 @@ class KctxApi:
                                  trim_blocks=True)
             gen_template = j2_env.get_template('{}.j2'.format(template_name)).render(**params)
             f.write(gen_template)
-        cmd = shlex.split("kubectl create -f {}".format(f_path))
+        cmd = shlex.split("kubectl apply -f {}".format(f_path))
         return shell_await(cmd, env=kube_env, with_output=True)
