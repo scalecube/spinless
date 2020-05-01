@@ -143,11 +143,6 @@ class TF:
         else:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
-        # If deployment was successful, save kubernetes context to vault
-        kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
-        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
-                                       self.cluster_name, self.dns_suffix)
-
         # Provision Vault
         vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.tmp_root_path, kube_env)
         if vault_prov_res != 0:
@@ -161,8 +156,21 @@ class TF:
         yield "Storage volume set up successfully.", None
 
         # Set up traefik
-        traefik_res, msg = self.kctx_api.setup_traefik(kube_env, self.tmp_root_path)
+        traefik_res, msg = self.kctx_api.setup_traefik(kube_env)
         if traefik_res != 0:
-            yield "FAILED: Failed to setup traefik. Aborting: {}".format(msg), traefik_res
-        yield "Traefik initialized successfully.", None
+            yield "Failed to setup traefik. Resuming anyway", None
+        else:
+            yield "Traefik initialized successfully.", None
 
+        # Set up metrics
+        res, msg = self.kctx_api.setup_metrics(kube_env)
+        if res != 0:
+            yield "FAILED: Failed to setup metrics. Aborting: {}".format(msg), res
+        yield "Metrics initialized successfully.", None
+
+        # If deployment was successful, save kubernetes context to vault
+        kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
+        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
+                                       self.cluster_name, self.dns_suffix)
+
+        yield "Saved cluster config.", None

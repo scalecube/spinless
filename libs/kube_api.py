@@ -12,6 +12,7 @@ VALUT_AUTH = "vault-auth"
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
 K8S_CTX_PATH = "kctx"
+HELM = os.getenv('HELM_CMD', "/usr/local/bin/helm")
 
 
 class KctxApi:
@@ -184,14 +185,34 @@ class KctxApi:
         :param tmp_root_path: tmp path to store tmp files
         :return: err code (0 if success), message
         """
-        cmd = shlex.split("helm repo add traefik https://containous.github.io/traefik-helm-chart")
-        shell_await(cmd, env=kube_env, with_output=True)
+        cmd = shlex.split("{} repo add traefik https://containous.github.io/traefik-helm-chart".format(HELM))
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
 
-        cmd = shlex.split("helm repo update")
-        shell_await(cmd, env=kube_env, with_output=True)
+        cmd = shlex.split("{} repo update".format(HELM))
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
 
         cmd = shlex.split(
-            "helm install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003")
+            "{} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003".format(
+                HELM))
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
+        return res, logs
+
+    def setup_metrics(self, kube_env):
+        """
+        Setup traefik plugin in created cluster
+
+        :param kube_env: env to use for kubernetes communication
+        :param tmp_root_path: tmp path to store tmp files
+        :return: err code (0 if success), message
+        """
+        cmd = shlex.split(
+            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml")
         return shell_await(cmd, env=kube_env, with_output=True)
 
     @classmethod
