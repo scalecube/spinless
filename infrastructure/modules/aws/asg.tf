@@ -59,7 +59,7 @@ resource "aws_autoscaling_group" "nodePool" {
   launch_configuration = "aws_lc_${each.key}"
   max_size             = each.value["maxCount"]
   min_size             = each.value["minCount"]
-  name                 = "asg-eks-${each.value["taint"]}"
+  name                 = "asg-eks-${each.value["taint"]}-${var.cluster-name}"
   vpc_zone_identifier  = [aws_subnet.kube01.id]
 
   depends_on = [aws_launch_configuration.nodes_configuration]
