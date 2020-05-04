@@ -42,7 +42,7 @@ def helm_deploy_start():
     data = request.get_json()
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
-    app.logger.info("Request to CI/CD is {}".format(data))
+    app.logger.info(f'Request to CI/CD is {data}')
     job = create_job(helm_deploy, app.logger, data).start()
 
     return jsonify({'id': job.job_id})
@@ -50,7 +50,7 @@ def helm_deploy_start():
 
 @app.route('/helm/deploy/<owner>/<repo>/<job_id>')
 def get_log_api(owner, repo, job_id):
-    app.logger.info("Request to get_log  is {}".format(job_id))
+    app.logger.info(f'Request to get_log  is {job_id}')
     if not job_id:
         return abort(Response("No job id provided"))
     return Response(tail_f(owner, repo, job_id))
@@ -58,17 +58,17 @@ def get_log_api(owner, repo, job_id):
 
 @app.route('/helm/deploy/cancel/<job_id>')
 def helm_deploy_cancel(job_id):
-    app.logger.info("Request to cancel {}".format(job_id))
+    app.logger.info(f'Request to cancel {job_id}')
     if not job_id:
         return jsonify({"message": "Provide 'job_id' field."})
     if cancel_job(job_id):
-        return jsonify({"message": "Canceled job {}".format(job_id), "id": job_id})
-    return jsonify({"message": "Job {} was not running".format(job_id)})
+        return jsonify({"message": f'Canceled job {job_id}', "id": job_id})
+    return jsonify({"message": f'Job {job_id} was not running'})
 
 
 @app.route('/helm/deploy/status/<job_id>')
 def helm_deploy_status(job_id):
-    app.logger.info("Request to status is {}".format(job_id))
+    app.logger.info(f'Request to status is {job_id}')
     if not job_id:
         return abort(400, Response("No job id provided"))
     return get_job_status(job_id)
@@ -81,7 +81,7 @@ def artifact_registries_create(type, name):
         return abort(Response("No payload"))
     data["type"] = type
     data["name"] = name
-    app.logger.info("Request to create  repository  is {}/{}".format(type, name))
+    app.logger.info(f'Request to create  repository  is {type}/{name}')
     result = create_registry(app.logger, data)
     return result
 
