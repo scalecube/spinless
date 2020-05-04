@@ -40,7 +40,7 @@ resource "aws_alb" "alb" {
   security_groups = [aws_security_group.traefik]
   internal        = false
 
-  tags {
+  tags = {
     Name    = "alb-traefik-${var.cluster-name}"
   }
 }
@@ -75,7 +75,7 @@ resource "aws_alb_target_group" "traefik_target_group" {
   port     = 30003
   protocol = "HTTP"
   vpc_id   = aws_vpc.kube_vpc.id
-  tags {
+  tags = {
     name = "target-${var.cluster-name}"
   }
 
