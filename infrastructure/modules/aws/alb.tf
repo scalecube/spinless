@@ -57,7 +57,7 @@ resource "aws_alb_listener" "alb_listener" {
 }
 
 resource "aws_alb_listener_rule" "listener_rule" {
-  depends_on   = ["aws_alb_target_group.alb_target_group"]
+  depends_on   = [aws_alb_target_group.traefik_target_group]
   listener_arn = "aws_alb_listener.alb_listener.arn"
   priority     = 100
   action {
