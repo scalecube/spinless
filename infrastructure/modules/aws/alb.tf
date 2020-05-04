@@ -62,7 +62,7 @@ resource "aws_alb_listener_rule" "listener_rule" {
   priority     = 100
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.traefik_target_group
+    target_group_arn = aws_alb_target_group.traefik_target_group.arn
   }
   condition {
     field  = "path-pattern"
