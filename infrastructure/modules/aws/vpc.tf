@@ -32,6 +32,18 @@ resource "aws_subnet" "public" {
   }
 }
 
+resource "aws_subnet" "public2" {
+
+  availability_zone = var.az2
+  cidr_block        = "10.10.48.0/20"
+  vpc_id            = aws_vpc.kube_vpc.id
+
+  tags = {
+    "Name"                                      = "public-subnet"
+    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
+  }
+}
+
 resource "aws_route_table" "public_subnet_route_table" {
   vpc_id = aws_vpc.kube_vpc.id
   route {
