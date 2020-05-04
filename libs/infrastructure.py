@@ -46,11 +46,13 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
-            if all(self.__dict__.get(k) for k in ("az1", "az2", "az2", "kube_nodes_amount", "kube_nodes_instance_type")):
+            if all(self.__dict__.get(k) for k in (
+                    "az1", "az2", "az2", "kube_nodes_amount", "kube_nodes_instance_type", "nodePools")):
                 tfvars.write('{} = "{}"\n'.format("az1", self.az1))
                 tfvars.write('{} = "{}"\n'.format("az2", self.az2))
                 tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
                 tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
+                tfvars.write('{} = "{}"\n'.format("nodePools", self.nodePools))
 
     def __set_aws_cli_config(self):
         result = 0
