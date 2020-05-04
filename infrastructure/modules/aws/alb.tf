@@ -33,6 +33,7 @@ resource "aws_security_group_rule" "alb-ingress-access-http" {
   security_group_id        = aws_security_group.traefik.id
   to_port                  = 80
   type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
 }
 
 resource "aws_alb" "alb" {
