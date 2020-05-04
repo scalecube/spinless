@@ -67,10 +67,12 @@ class Job:
             self.logger = JobLogger(self.owner, self.repo, self.job_id)
         self.logger.emit(_status, message)
 
-    def complete_err(self):
+    def complete_err(self, msg):
+        self.emit("ERROR", msg)
         self.__upd_state(JobState.FAILED)
 
-    def complete_succ(self):
+    def complete_succ(self, msg):
+        self.emit("SUCCESS", msg)
         self.__upd_state(JobState.SUCCESS)
 
     def start(self):

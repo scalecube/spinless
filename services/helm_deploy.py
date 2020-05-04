@@ -43,8 +43,7 @@ def helm_deploy(job_ref, app_logger):
         job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
         posted_values, err = __create_posted_values(data)
         if err != 0:
-            job_ref.emit("ERROR", posted_values)
-            job_ref.complete_err()
+            job_ref.complete_err(posted_values)
             return
 
         vault = Vault(logger=app_logger,
@@ -68,9 +67,8 @@ def helm_deploy(job_ref, app_logger):
         # read registries config
         registries = __prepare_regs(data, registry_api)
         if "error" in registries:
-            job_ref.emit("ERROR", "Failed to get registries data for {}. Reason: {}".format(data.get("registry"),
-                                                                                            registries.get("error")))
-            job_ref.complete_err()
+            job_ref.complete_err(
+                f'Failed to get registries data for {data.get("registry")}. Reason: {registries.get("error")}')
             return
 
         ### Create role
@@ -97,14 +95,11 @@ def helm_deploy(job_ref, app_logger):
                 job_ref.emit("RUNNING", msg)
             else:
                 if code == 0:
-                    job_ref.emit("SUCCESS", "Helm deployed successfully")
-                    job_ref.complete_succ()
+                    job_ref.complete_succ("Helm deployed successfully")
                 else:
-                    job_ref.emit("ERROR", "Helm deploy failed: {}".format(msg))
-                    job_ref.complete_err()
+                    job_ref.complete_err(f'Helm deploy failed: {msg}')
                 # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break
 
     except Exception as ex:
-        job_ref.emit("ERROR", "failed to deploy reason {}".format(ex))
-        job_ref.complete_err()
+        job_ref.complete_err(f'failed to deploy reason {ex}')
