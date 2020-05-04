@@ -17,7 +17,7 @@ TF_VARS_FILE = 'tfvars.tf'
 class TF:
     def __init__(self, logger, aws_region, aws_access_key,
                  aws_secret_key, cluster_name, kctx_api, az1="", az2="",
-                 kube_nodes_amount=0, kube_nodes_instance_type="", dns_suffix="", kube_conf=""):
+                 kube_nodes_amount=0, kube_nodes_instance_type="", nodePools="", dns_suffix="", kube_conf=""):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -34,6 +34,7 @@ class TF:
         self.az2 = az2
         self.kube_nodes_amount = kube_nodes_amount
         self.kube_nodes_instance_type = kube_nodes_instance_type
+        self.nodePools = nodePools
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
         self.kube_conf = kube_conf

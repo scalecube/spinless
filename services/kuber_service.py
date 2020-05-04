@@ -39,6 +39,7 @@ def kube_cluster_create(job_ref, app_logger):
                        cloud_profile.get("az2"),
                        cloud_profile.get("kube_nodes_amount"),
                        cloud_profile.get("kube_nodes_instance_type"),
+                       cloud_profile.get("nodePools"),
                        dns_suffix)
 
         for (msg, res) in terraform.install_kube():
