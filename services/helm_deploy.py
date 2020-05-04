@@ -19,6 +19,20 @@ def __create_posted_values(data):
     }
     return posted_values, 0
 
+def _common_params(data):
+    if not all(k in data for k in ("owner", "branch", "namespace")):
+        return "Not all mandatory fields provided: \"owner\", \"branch\", \"namespace\"", 1
+    result = {
+        'owner': data.get("owner", "no_owner"),
+        'branch': data.get("branch", "no_branch"),
+        'version': data.get("version", data.get("branch")),
+        'environment_tags': data.get("environment_tags", data.get("branch")),
+        'namespace': data.get("namespace", "no_namespace"),
+        'sha': data.get("sha", "no_sha"),
+        'issue_number': data.get("issue_number", "no_issue_number")
+    }
+    return result, 0
+
 
 def __parse_reg_from_data(data, reg_type):
     """Return { "docker/helm", "name" : registry_name"};
@@ -43,8 +57,7 @@ def helm_deploy(job_ref, app_logger):
         job_ref.emit("RUNNING", "start helm deploy to kubernetes namespace: {}".format(data.get("namespace")))
         posted_values, err = __create_posted_values(data)
         if err != 0:
-            job_ref.complete_err(posted_values)
-            return
+            return job_ref.complete_err(posted_values)
 
         vault = Vault(logger=app_logger,
                       owner=data.get("owner"),
@@ -67,14 +80,15 @@ def helm_deploy(job_ref, app_logger):
         # read registries config
         registries = __prepare_regs(data, registry_api)
         if "error" in registries:
-            job_ref.complete_err(
+            return job_ref.complete_err(
                 f'Failed to get registries data for {data.get("registry")}. Reason: {registries.get("error")}')
-            return
 
         ### Create role
         service_role, err_code = vault.create_role(cluster_name)
         helm_name = data.get("helm", {}).get("name", data.get("repo"))
         helm_version = data.get("helm", {}).get("version", "0.0.1")
+
+
 
         helm = Helm(
             logger=app_logger,
@@ -98,8 +112,6 @@ def helm_deploy(job_ref, app_logger):
                     job_ref.complete_succ("Helm deployed successfully")
                 else:
                     job_ref.complete_err(f'Helm deploy failed: {msg}')
-                # Don't go further in job. it's over. if that failed, it will not continue the flow.
                 break
-
     except Exception as ex:
         job_ref.complete_err(f'failed to deploy reason {ex}')
