@@ -6,6 +6,7 @@ import boto3
 from jinja2 import Environment, FileSystemLoader
 
 from libs.shell import shell_await
+from libs.vault_api import Vault
 
 VALUT_AUTH = "vault-auth"
 
@@ -16,8 +17,8 @@ HELM = os.getenv('HELM_CMD', "/usr/local/bin/helm")
 
 
 class KctxApi:
-    def __init__(self, vault, logger):
-        self.vault = vault
+    def __init__(self, logger):
+        self.vault = Vault(logger)
         self.logger = logger
 
     def save_kubernetes_context(self, ctx_data):
@@ -49,15 +50,14 @@ class KctxApi:
         if not cluster_name:
             self.logger.warn("Kube ctx \"name\" is empty, using \"default\"")
             cluster_name = DEFAULT_K8S_CTX_ID
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
+        kctx_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}/{cluster_name}'
         try:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
-                return 1, "No such kctx: {}".format(cluster_name)
-            return 0, kctx_secret["data"]
+                return f'No such kctx: {cluster_name}', 1
+            return kctx_secret["data"], 0
         except Exception as e:
-            self.logger.info("Failed to read secret from path {}, {}".format(kctx_path, e))
-            return 1, "Failed to read secret"
+            return f'Failed to read secret {kctx_path}: {e}', 1
 
     def delete_kubernetes_context(self, cluster_name):
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)

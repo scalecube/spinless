@@ -20,7 +20,7 @@ def kube_cluster_create(job_ref, app_logger):
             return job_ref.complete_err(f'Not all mandatory params: {["cloud_profile", "cluster_name", "dns_suffix"]}')
 
         cloud_provider_api = CloudApi(vault, app_logger)
-        kctx_api = KctxApi(vault, app_logger)
+        kctx_api = KctxApi(app_logger)
         cloud_profile_req = data["cloud_profile"]
         cloud_profile = cloud_provider_api.get_cloud_provider(cloud_profile_req)
         cluster_name = data["cluster_name"]
@@ -65,19 +65,18 @@ def kube_cluster_delete(job_ref, app_logger):
         app_logger.info("Starting cluster removal for {}...".format(cluster_name))
 
         # use vault later
-        vault = Vault(logger=app_logger)
-        kctx_api = KctxApi(vault, app_logger)
-        err, clsuter_ctx = kctx_api.get_kubernetes_context(cluster_name)
+        kctx_api = KctxApi(app_logger)
+        cluster_ctx, err = kctx_api.get_kubernetes_context(cluster_name)
         if err != 0:
             return job_ref.complete_err(f'Cluster does not exist: {cluster_name}')
 
         terraform = TF(app_logger,
-                       clsuter_ctx["aws_region"],
-                       clsuter_ctx["aws_access_key"],
-                       clsuter_ctx["aws_secret_key"],
+                       cluster_ctx["aws_region"],
+                       cluster_ctx["aws_access_key"],
+                       cluster_ctx["aws_secret_key"],
                        cluster_name,
                        kctx_api,
-                       kube_conf=clsuter_ctx["kube_config"])
+                       kube_conf=cluster_ctx["kube_config"])
 
         for (msg, res) in terraform.delete_kube():
             if res is None:

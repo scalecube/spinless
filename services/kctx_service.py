@@ -1,8 +1,9 @@
 from libs.kube_api import KctxApi
-from libs.vault_api import Vault
+
 
 def get_kubernetes_context(logger, data):
-    vault = Vault(logger)
-    kctx_api = KctxApi(vault, logger)
-    err, kctx = kctx_api.get_kubernetes_context(data)
-    return kctx
+    kctx, err = KctxApi(logger).get_kubernetes_context(data)
+    if err == 0:
+        return kctx
+    else:
+        return {"error": kctx}

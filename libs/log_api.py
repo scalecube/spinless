@@ -76,7 +76,7 @@ class JobLogger:
         self.logger = create_logger(owner, repo, id)
 
     def info(self, message):
-        self.logger.info('{}{}'.format(message, '\n'))
+        self.logger.info(f'{message}\n')
 
     def emit(self, event_status, message):
         status(self.logger, self.id, event_status, message)

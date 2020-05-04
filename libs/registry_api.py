@@ -1,10 +1,12 @@
+from libs.vault_api import Vault
+
 STATUS_OK_ = {"status": "OK"}
 APP_REG_PATH = "registries"
 
 
 class RegistryApi:
-    def __init__(self, vault, logger):
-        self.vault = vault
+    def __init__(self, logger):
+        self.vault = Vault(logger)
         self.logger = logger
 
     def save_reg(self, reg_data):
@@ -29,19 +31,18 @@ class RegistryApi:
         reg_type = reg_data["type"]
         if reg_type not in ("docker", "helm"):
             self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(reg_type))
-            return {"error": "Missing type (docker/helm)"}
+            return 1, "Missing type (docker/helm)"
         if not reg_data["name"]:
             self.logger.error("Repo \"name\" is mandatory")
-            return {"error": "Repo \"name\" is mandatory"}
+            return 1, "Repo \"name\" is mandatory"
         reg_path = "{}/{}/{}/{}".format(self.vault.vault_secrets_path, APP_REG_PATH, reg_type, reg_data["name"])
         try:
             reg_secret = self.vault.read(reg_path)
             if not reg_secret or not reg_secret["data"]:
-                return {"error": "No such registry: {}".format(reg_data)}
-            return reg_secret["data"]
+                return 1, f'No such registry: {reg_data}'
+            return 0, reg_secret["data"]
         except Exception as e:
-            self.logger.info("Failed to read secret from path {}, {}".format(reg_path, e))
-            return {"error": "Failed to read secret"}
+            return 1, f'Failed to read secret from path {reg_path}, {e}'
 
     def delete_reg(self, reg_data):
         reg_type = reg_data["type"]

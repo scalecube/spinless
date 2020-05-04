@@ -9,8 +9,8 @@ import yaml
 from libs.shell import shell_await
 
 
-class Helm:
-    def __init__(self, logger, owner, repo, branch, helm_name, helm_version, posted_values, registries=None,
+class HelmDeployment:
+    def __init__(self, logger, owner, repo, branch, helm_version, posted_values, registries=None,
                  k8s_cluster_conf=None, namespace="default", service_role=None, cluster_name=None):
         self.logger = logger
         self.owner = owner
@@ -27,8 +27,6 @@ class Helm:
         self.k8s_cluster_conf = k8s_cluster_conf
         self.service_role = service_role
         self.cluster_name = cluster_name
-        # this will not be used for now
-        self.helm_name = helm_name
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info(f'Untar helm_tar_gz is: {helm_tag_gz}')
@@ -37,7 +35,9 @@ class Helm:
 
     def prepare_package(self):
         os.mkdir(self.target_path)
-        reg = self.registries["helm"]
+        reg = self.registries.get("helm")
+        if reg is None:
+            return "No helm registry provided", 1
         helm_reg_url = f'https://{reg["username"]}:{reg["password"]}@{reg["path"]}'
         chart_path = f'{self.owner}/{self.repo}/{self.repo}-{self.helm_version}.tgz'
         url = f'{helm_reg_url}{chart_path}'

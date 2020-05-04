@@ -11,11 +11,10 @@ APP_ENV_PATH = "app_env"
 
 class Vault:
     def __init__(self, logger,
-                 root_path=SECRET_ROOT_DEFAULT,
                  owner=None,
                  repo=None,
                  branch=None):
-        self.root_path = root_path
+        self.root_path = SECRET_ROOT_DEFAULT
         self.owner = owner
         self.repo = repo
         self.branch = branch
