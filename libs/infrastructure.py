@@ -52,7 +52,7 @@ class TF:
                 tfvars.write('{} = "{}"\n'.format("az2", self.az2))
                 tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
                 tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
-                tfvars.write('{} = "{}"\n'.format("nodePools", self.nodePools))
+                tfvars.write('{} = {}\n'.format("nodePools", self.nodePools))
 
     def __set_aws_cli_config(self):
         result = 0
