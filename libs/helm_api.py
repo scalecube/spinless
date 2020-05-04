@@ -19,8 +19,8 @@ class Helm:
         self.posted_values = posted_values
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
-        self.target_path = "/tmp/{}".format(self.timestamp)
-        self.kube_conf_path = "/tmp/{}/{}".format(self.timestamp, "kubeconfig")
+        self.target_path = f'/tmp/{self.timestamp}'
+        self.kube_conf_path = f'/tmp/{self.timestamp}/kubeconfig'
         self.helm_dir = "{}/{}".format(self.target_path, self.repo)
         self.namespace = namespace
         self.registries = registries
@@ -31,25 +31,21 @@ class Helm:
         self.helm_name = helm_name
 
     def untar_helm_gz(self, helm_tag_gz):
-        self.logger.info("Untar helm_tar_gz is: {}".format(helm_tag_gz))
+        self.logger.info(f'Untar helm_tar_gz is: {helm_tag_gz}')
         targz = tarfile.open(helm_tag_gz, "r:gz")
         targz.extractall(r"{}".format(self.target_path))
-        return
 
     def prepare_package(self):
         os.mkdir(self.target_path)
         reg = self.registries["helm"]
-        helm_reg_url = 'https://{}:{}@{}'.format(
-            reg['username'], reg['password'], reg['path'])
-        chart_path = "{}/{}/{}-{}.tgz".format(self.owner, self.repo, self.repo, self.helm_version)
-        url = "{}{}".format(helm_reg_url, chart_path)
+        helm_reg_url = f'https://{reg["username"]}:{reg["password"]}@{reg["path"]}'
+        chart_path = f'{self.owner}/{self.repo}/{self.repo}-{self.helm_version}.tgz'
+        url = f'{helm_reg_url}{chart_path}'
         r = requests.get(url)
         if r.status_code != 200:
             return "Failed to find artifact in path {} or {} not available".format(chart_path, reg['path']), 1
         else:
             return r.content, 0
-
-
 
     def enrich_values_yaml(self):
         with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:

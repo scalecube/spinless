@@ -17,8 +17,7 @@ def kube_cluster_create(job_ref, app_logger):
 
         # check mandatory params
         if not all(k in data for k in ("cloud_profile", "cluster_name", "dns_suffix")):
-            job_ref.complete_err(f'Not all mandatory params: {["cloud_profile", "cluster_name", "dns_suffix"]}')
-            return
+            return job_ref.complete_err(f'Not all mandatory params: {["cloud_profile", "cluster_name", "dns_suffix"]}')
 
         cloud_provider_api = CloudApi(vault, app_logger)
         kctx_api = KctxApi(vault, app_logger)
@@ -60,8 +59,7 @@ def kube_cluster_delete(job_ref, app_logger):
         data = job_ref.data
         # check mandatory params
         if "cluster_name" not in data:
-            job_ref.complete_err('Not all mandatory params: \"cluster_name\"')
-            return
+            return job_ref.complete_err('Not all mandatory params: \"cluster_name\"')
 
         cluster_name = data.get("cluster_name")
         app_logger.info("Starting cluster removal for {}...".format(cluster_name))
@@ -71,8 +69,7 @@ def kube_cluster_delete(job_ref, app_logger):
         kctx_api = KctxApi(vault, app_logger)
         err, clsuter_ctx = kctx_api.get_kubernetes_context(cluster_name)
         if err != 0:
-            job_ref.complete_err(f'Cluster does not exist: {cluster_name}')
-            return
+            return job_ref.complete_err(f'Cluster does not exist: {cluster_name}')
 
         terraform = TF(app_logger,
                        clsuter_ctx["aws_region"],

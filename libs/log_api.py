@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -59,9 +58,13 @@ def status(logger, job_id, _status, message):
         "timestamp": int(time.time() * 1000),
         "message": message,
     }
-    logger.info(json.dumps(data))
+    if "EOF" == _status:
+        logger.info(f'Job: {job_id}; COMPLETE')
+    elif "ERROR" == _status:
+        logger.error(f'Job: {job_id}; {message}')
+    else:
+        logger.info(f'Job: {job_id}; {message}')
     logger.handlers[0].flush()
-    pass
 
 
 class JobLogger:
