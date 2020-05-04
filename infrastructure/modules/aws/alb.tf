@@ -94,5 +94,5 @@ resource "aws_alb_target_group" "traefik_target_group" {
 
 resource "aws_autoscaling_attachment" "traefik_asg_attachment" {
   alb_target_group_arn   = aws_alb_target_group.traefik_target_group.arn
-  autoscaling_group_name = "asg-eks-operations-${var.cluster-name}"
+  autoscaling_group_name =  aws_autoscaling_group.nodePool["pool3"]
 }
