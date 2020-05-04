@@ -36,8 +36,8 @@ resource "aws_security_group_rule" "alb-ingress-access-http" {
 
 resource "aws_alb" "alb" {
   name            = "traefik-${var.cluster-name}"
-  subnets         = [aws_subnet.public, aws_subnet.public2]
-  security_groups = [aws_security_group.traefik]
+  subnets         = [aws_subnet.public.id, aws_subnet.public2.id]
+  security_groups = [aws_security_group.traefik.id]
   internal        = false
 
   tags = {
