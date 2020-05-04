@@ -1,6 +1,6 @@
 resource "aws_security_group" "traefik" {
   name        = "traefik-sg"
-  description = "Application load balancer -> traefik"
+  description = "Application load balancer-traefik"
   vpc_id      = aws_vpc.kube_vpc.id
 
   egress {
@@ -23,6 +23,7 @@ resource "aws_security_group_rule" "alb-ingress-access-https" {
   security_group_id        = aws_security_group.traefik.id
   to_port                  = 443
   type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "alb-ingress-access-http" {
