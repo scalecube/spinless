@@ -179,19 +179,23 @@ class KctxApi:
         :param tmp_root_path: tmp path to store tmp files
         :return: err code (0 if success), message
         """
-        cmd = shlex.split("{} repo add traefik https://containous.github.io/traefik-helm-chart".format(HELM))
+        cmd = shlex.split(f'{HELM} repo add traefik https://containous.github.io/traefik-helm-chart')
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
         for l in logs:
             self.logger.info(l)
 
-        cmd = shlex.split("{} repo update".format(HELM))
+        cmd = shlex.split(f'{HELM} repo update')
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
+
+        cmd = shlex.split("kubectl create namespace traefik")
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
         for l in logs:
             self.logger.info(l)
 
         cmd = shlex.split(
-            "{} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003".format(
-                HELM))
+            f'{HELM} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003 --namespace traefik')
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
         for l in logs:
             self.logger.info(l)
@@ -206,7 +210,7 @@ class KctxApi:
         :return: err code (0 if success), message
         """
         cmd = shlex.split(
-            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml")
+            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace default")
         return shell_await(cmd, env=kube_env, with_output=True)
 
     @classmethod
