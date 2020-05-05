@@ -80,6 +80,7 @@ class TF:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
+            nodes_cm.write(gen_template)
         return
 
     def __apply_node_auth_configmap(self, kube_env):
