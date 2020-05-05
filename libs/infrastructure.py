@@ -80,15 +80,12 @@ class TF:
             j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
-            nodes_cm.write(gen_template)
-            nodes_cm.flush()
-            os.fsync(nodes_cm.fileno())
         return
 
     def __apply_node_auth_configmap(self, kube_env):
         self.__generate_configmap()
         kube_cmd = "kubectl apply -f {}/nodes_cm.yaml".format(self.tmp_root_path)
-        res, outp = shell_await(kube_cmd, env=kube_env, with_output=True)
+        res, outp = shell_await(shlex.split(kube_cmd), env=kube_env, with_output=True)
         if res != 0:
             for s in outp:
                 self.logger.info(s)
