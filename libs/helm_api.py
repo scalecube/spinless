@@ -64,14 +64,14 @@ class HelmDeployment:
         self.logger.info("Default values are: {}".format(default_values))
         # update values with ones posted in request
         default_values.update(self.posted_values)
-        default_values['service_account'] = "{}-{}".format(self.owner, self.repo)
+        default_values["service_account"] = f'{self.owner}-{self.repo}'
         # Set vault address inte values.yaml if vault.addr key exists
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
-                                   "jwtprovider": "kubernetes-{}".format(self.cluster_name)}
-
+                                   "jwtprovider": f'kubernetes-{self.cluster_name}'}
+        default_values["images"]["service"]["tag"] = self.namespace
         self.logger.info("Env before writing: {}".format(default_values))
-        path_to_values_yaml = "{}/spinless-values.yaml".format(self.helm_dir)
+        path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
         return path_to_values_yaml, default_values
