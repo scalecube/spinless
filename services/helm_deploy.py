@@ -36,6 +36,7 @@ def __helms_params(data, common_regs, reg_api):
             merged_reg = {**common_regs, **regs_per_helm}
             helm_item["registry"] = merged_reg
             helm_item["branch"] = h.get("branch")
+            helm_item["owner"] = h.get("owner", data.get("owner"))
             dependencies.append(helm_item)
     return dependencies, 0
 
@@ -65,6 +66,8 @@ def helm_deploy(job_ref, app_logger):
         # Get registries since they are used in both common and per-helm conf
         registry_api = RegistryApi(app_logger)
         common_registries, code = __prepare_regs(data.get("registry", {}), registry_api)
+        if code != 0:
+            return job_ref.complete_err(common_registries)
 
         # Params for deps
         helm_charts_deps, code = __helms_params(data, common_registries, registry_api)
@@ -113,13 +116,13 @@ def helm_deploy(job_ref, app_logger):
 def __install_single_helm(job_ref, app_logger, common_props, helm, k8s_cluster_conf, full_log=True):
     try:
         vault = Vault(logger=app_logger,
-                      owner=common_props["owner"],
+                      owner=helm["owner"],
                       repo=helm["repo"],
                       branch=helm["branch"])
         service_role, err_code = vault.create_role(k8s_cluster_conf["cluster_name"])
         deployment = HelmDeployment(logger=app_logger, k8s_cluster_conf=k8s_cluster_conf,
                                     namespace=common_props["namespace"], posted_values=common_props,
-                                    owner=common_props["owner"], repo=helm.get("repo"), branch=helm.get("branch"),
+                                    owner=helm["owner"], repo=helm.get("repo"), branch=helm.get("branch"),
                                     registries=helm.get("registry"), service_role=service_role, helm_version="0.0.1")
         for (msg, code) in deployment.install_package():
             if code is None:
