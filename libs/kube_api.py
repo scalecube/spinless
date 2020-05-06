@@ -55,7 +55,9 @@ class KctxApi:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
                 return f'No such kctx: {cluster_name}', 1
-            return kctx_secret["data"], 0
+            result = kctx_secret["data"]
+            result["cluster_name"] = cluster_name
+            return result, 0
         except Exception as e:
             return f'Failed to read secret {kctx_path}: {e}', 1
 

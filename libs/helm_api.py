@@ -10,8 +10,8 @@ from libs.shell import shell_await
 
 
 class HelmDeployment:
-    def __init__(self, logger, owner, repo, branch, helm_version, posted_values, registries=None,
-                 k8s_cluster_conf=None, namespace="default", service_role=None, cluster_name=None):
+    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, repo, branch, registries,
+                 service_role, helm_version):
         self.logger = logger
         self.owner = owner
         self.repo = repo
@@ -26,7 +26,7 @@ class HelmDeployment:
         self.registries = registries
         self.k8s_cluster_conf = k8s_cluster_conf
         self.service_role = service_role
-        self.cluster_name = cluster_name
+        self.cluster_name = k8s_cluster_conf["cluster_name"]
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info(f'Untar helm_tar_gz is: {helm_tag_gz}')
@@ -69,7 +69,7 @@ class HelmDeployment:
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
                                    "jwtprovider": f'kubernetes-{self.cluster_name}'}
-        default_values["images"]["service"]["tag"] = self.namespace
+        default_values["images"]["service"]["tag"] = self.branch
         self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
@@ -119,7 +119,7 @@ class HelmDeployment:
         helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
                             "--install", "--namespace",
-                            self.namespace, "{}-{}-{}".format(self.owner, self.repo, self.namespace),
+                            self.namespace, f'{self.owner}-{self.repo}-{self.branch}',
                             "-f", path_to_values_yaml,
                             self.helm_dir]
         if dockerjson:
@@ -129,7 +129,7 @@ class HelmDeployment:
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         for s in stdout_iter:
             yield s, None
-        yield "Helm command complete", helm_install_res
+        yield "Helm command complete", 0
 
     def __dockerjson(self, valuesyaml, registries):
         if registries.get("docker"):
