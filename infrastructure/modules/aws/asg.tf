@@ -42,7 +42,7 @@ resource "aws_launch_configuration" "nodes_configuration" {
   user_data_base64            = base64encode(<<USERDATA
 #!/bin/bash
 set -o xtrace
-/etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.eks.endpoint}' --kubelet-extra-args '--register-with-taints="type=${each.value["taint"]}"'  --b64-cluster-ca '${aws_eks_cluster.eks.certificate_authority.0.data}' '${var.cluster-name}'
+/etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.eks.endpoint}' --kubelet-extra-args '--register-with-taints="type=${each.value["taint"]}:NoSchedule"'  --b64-cluster-ca '${aws_eks_cluster.eks.certificate_authority.0.data}' '${var.cluster-name}'
 USERDATA
 )
 
