@@ -216,6 +216,13 @@ class KctxApi:
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
         for l in logs:
             self.logger.info(l)
+
+        patch_metrics = """kubectl patch deployment coredns -n kube-system --type=json -p='[{"op":"add", "path":"/spec/template/spec/tolerations/-", "value":{"key":"type", "value":"operations", "operator":"Equal", "effect":"NoSchedule"}}]'"""
+        cmd = shlex.split(patch_metrics)
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
+
         return res, logs
 
     @classmethod
