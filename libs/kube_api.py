@@ -213,7 +213,10 @@ class KctxApi:
         """
         cmd = shlex.split(
             "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace default")
-        return shell_await(cmd, env=kube_env, with_output=True)
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
+        return res, logs
 
     @classmethod
     def __install_to_kube(cls, template_name, params, kube_env, root_path):
