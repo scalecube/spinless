@@ -67,7 +67,7 @@ resource "aws_alb_listener_rule" "listener_rule" {
     target_group_arn = aws_alb_target_group.traefik_target_group.arn
   }
   condition {
-    path-pattern {
+    path_pattern {
       values = ["/*"]
     }
   }
