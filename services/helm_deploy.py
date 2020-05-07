@@ -102,7 +102,8 @@ def helm_deploy(job_ref, app_logger):
         if deploy_parent:
             parent_helm = {"repo": data["repo"],
                            "registry": common_registries,
-                           "branch": data["branch"]}
+                           "branch": data["branch"],
+                           "owner": data.get("owner")}
             msg, code = __install_single_helm(job_ref, app_logger, common_props, parent_helm, k8s_cluster_conf, True)
             if code != 0:
                 return job_ref.complete_err(f'Failed to install helm {parent_helm["repo"]}. Reason: {msg}')
