@@ -43,18 +43,6 @@ def helm_deploy_start():
     if not data:
         return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info(f'Request to CI/CD is {data}')
-    data["deploy_parent"] = True
-    job = create_job(helm_deploy, app.logger, data).start()
-    return jsonify({'id': job.job_id})
-
-
-@app.route('/helm/deploy-group', methods=['POST'])
-def helm_deploy_list():
-    data = request.get_json()
-    if not data:
-        return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
-    app.logger.info(f'Request to CI/CD is {data}')
-    data["deploy_parent"] = False
     job = create_job(helm_deploy, app.logger, data).start()
     return jsonify({'id': job.job_id})
 

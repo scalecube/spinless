@@ -61,7 +61,7 @@ def helm_deploy(job_ref, app_logger):
     try:
         data = job_ref.data
         job_ref.emit("RUNNING", f'Start helm deploy to kubernetes namespace: {data.get("namespace")}')
-        deploy_parent = data.get("deploy_parent", True)
+        deploy_parent = data.get("group", True)
 
         # Get registries since they are used in both common and per-helm conf
         registry_api = RegistryApi(app_logger)
