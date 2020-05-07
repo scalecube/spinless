@@ -212,7 +212,7 @@ class KctxApi:
         :return: err code (0 if success), message
         """
         cmd = shlex.split(
-            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace default")
+            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace=kube-system")
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
         for l in logs:
             self.logger.info(l)
