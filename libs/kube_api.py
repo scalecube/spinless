@@ -205,7 +205,7 @@ class KctxApi:
 
     def setup_metrics(self, kube_env):
         """
-        Setup traefik plugin in created cluster
+        Install Metrics API in created cluster
 
         :param kube_env: env to use for kubernetes communication
         :param tmp_root_path: tmp path to store tmp files
