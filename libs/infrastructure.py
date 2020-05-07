@@ -171,7 +171,7 @@ class TF:
         # Set up metrics
         res, msg = self.kctx_api.setup_metrics(kube_env)
         if res != 0:
-            yield "FAILED: Failed to setup metrics. Aborting: {}".format(msg), res
+            yield "FAILED: Failed to setup metrics. Aborting: {}".format(msg), None  # TODO: res
         yield "Metrics initialized successfully.", None
 
         # If deployment was successful, save kubernetes context to vault
