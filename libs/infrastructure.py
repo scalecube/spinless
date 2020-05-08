@@ -95,13 +95,13 @@ class TF:
 
     def install_kube(self):
         # Create terraform workspace
-        _cmd_wksps = 'terraform workspace new {} {}'.format(self.cluster_name, self.tf_working_dir)
-        yield "START: Creating Workspace: {}".format(_cmd_wksps), None
+        _cmd_wksps = f'terraform workspace new {self.cluster_name} {self.tf_working_dir}'
+        yield "Creating Workspace: {}".format(_cmd_wksps), None
         wksp_res, outp = shell_await(shlex.split(_cmd_wksps), with_output=True, cwd=self.tf_state_dir)
         for s in outp:
             self.logger.info(s)
-            yield "Creating workspace: {}".format(s), None
-        yield "RUNNING: Terraform workspace created: {}", None
+            yield s, None
+        yield f'Terraform workspace created: {self.cluster_name}', None
 
         # Create terraform vars
         yield "RUNNING: Creating Terraform vars", None
