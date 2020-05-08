@@ -5,40 +5,34 @@ from libs.vault_api import Vault
 
 
 def __common_params(data):
-    if not all(k in data for k in ("owner", "branch", "namespace")):
-        return "Not all mandatory fields provided: \"owner\", \"branch\", \"namespace\"", 1
+    if not all(k in data for k in ("namespace", "sha")):
+        return "Not all mandatory fields provided: \"namespace\", \"sha\"", 1
     result = {
-        'owner': data.get("owner", "no_owner"),
-        'branch': data.get("branch", "no_branch"),
-        'version': data.get("version", data.get("branch")),
-        'environment_tags': data.get("environment_tags", data.get("branch")),
-        'namespace': data.get("namespace", "no_namespace"),
-        'sha': data.get("sha", "no_sha"),
-        'issue_number': data.get("issue_number", "no_issue_number")
+        'namespace': data["namespace"],
+        'sha': data["sha"],
+        'issue_number': data.get("issue_number", "no_issue_number"),
+        # 'pr': str(data.get("is_pull_request", False))
     }
     return result, 0
 
 
-def __helms_params(data, common_regs, reg_api):
-    dependencies = []
-    if "dependencies" in data:
-        # parse group of helms
-        for h in data["dependencies"]:
-            helm_item = {}
-            repo = h.get("repo")
-            if not repo:
-                return "repo name not provided for one of helms but \'helm_charts\' is present in request", 1
-            helm_item["repo"] = repo
-            # merge existing regs with ones overridden in helm
-            regs_per_helm, err = __prepare_regs(h.get("registry", {}), reg_api)
-            if err != 0:
-                return regs_per_helm, err
-            merged_reg = {**common_regs, **regs_per_helm}
-            helm_item["registry"] = merged_reg
-            helm_item["branch"] = h.get("branch")
-            helm_item["owner"] = h.get("owner", data.get("owner"))
-            dependencies.append(helm_item)
-    return dependencies, 0
+def __helm_params(helm, reg_api, kctx_api, job_ref):
+    if not all(k in helm for k in ("repo", "owner", "branch", "registry", "cluster")):
+        return "owner/repo/branch/registry/cluster are mandatory ", 1
+    registries_fetched, err = __prepare_regs(helm["registry"], reg_api)
+    if err != 0:
+        return registries_fetched, err
+    helm["registry"] = registries_fetched
+
+    k8s_cluster_conf, code = kctx_api.get_kubernetes_context(helm["cluster"])
+    if code != 0:
+        job_ref.emit("WARNING",
+                     f'Failed to get k8 conf for {helm["cluster"]}.'
+                     f' Reason: {k8s_cluster_conf}.'
+                     f' Will use default k8 context for current vm')
+        k8s_cluster_conf = {"cluster_name": helm["cluster"]}
+    helm["k8s_cluster_conf"] = k8s_cluster_conf
+    return helm, 0
 
 
 def __prepare_regs(registries, registry_api):
@@ -61,70 +55,61 @@ def helm_deploy(job_ref, app_logger):
     try:
         data = job_ref.data
         job_ref.emit("RUNNING", f'Start helm deploy to kubernetes namespace: {data.get("namespace")}')
-        deploy_parent = data.get("group", True)
-
-        # Get registries since they are used in both common and per-helm conf
-        registry_api = RegistryApi(app_logger)
-        common_registries, code = __prepare_regs(data.get("registry", {}), registry_api)
-        if code != 0:
-            return job_ref.complete_err(common_registries)
-
-        # Params for deps
-        helm_charts_deps, code = __helms_params(data, common_registries, registry_api)
-        if code != 0:
-            return job_ref.complete_err(helm_charts_deps)
-        if len(helm_charts_deps) == 0 and not deploy_parent:
-            return job_ref.complete_err("Nothing to install.")
 
         # Common params
         common_props, code = __common_params(data)
         if code != 0:
             return job_ref.complete_err(common_props)
-        if code != 0:
-            return job_ref.complete_err(f'Failed to get registries data: {common_registries}')
-        kctx_api = KctxApi(app_logger)
-        # read cluster config
-        cluster_name = data.get("kubernetes", {'cluster_name': 'default'}).get("cluster_name")
-        k8s_cluster_conf, code = kctx_api.get_kubernetes_context(cluster_name)
-        if code != 0:
-            job_ref.emit("WARNING",
-                         "Failed to get k8 conf for {}. Reason: {}. Will use default kube context for current vm".format(
-                             cluster_name, k8s_cluster_conf))
-            k8s_cluster_conf = {"cluster_name": cluster_name}
 
-        job_ref.emit("RUNNING", f'Installing {len(helm_charts_deps)} dependencies')
-        for helm in helm_charts_deps:
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, helm, k8s_cluster_conf, False)
+        # Params for helms
+        registry_api = RegistryApi(app_logger)
+        kctx_api = KctxApi(app_logger)
+        target_helm, code = __helm_params(data.get("service", {}), registry_api, kctx_api, job_ref)
+        if code != 0:
+            return job_ref.complete_err(target_helm)
+        dependencies = []
+        for h in data.get("services", []):
+            dependency, code = __helm_params(h, registry_api, kctx_api, job_ref)
+            if code != 0:
+                return job_ref.complete_err(dependency)
+            dependencies.append(dependency)
+        job_ref.emit("RUNNING", f'Installing {len(dependencies)} dependencies:')
+
+        # Install dependencies
+        for idx, helm in enumerate(dependencies, 1):
+            job_ref.emit("RUNNING", f'Installing dep[{idx}]: {helm["repo"]}')
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, helm, False)
             if code == 0:
                 job_ref.emit("RUNNING", f'Dependency installed: {helm["repo"]}')
             else:
                 return job_ref.complete_err(f'Failed to install dependency {helm["repo"]}. Reason: {msg}')
-        if deploy_parent:
-            parent_helm = {"repo": data["repo"],
-                           "registry": common_registries,
-                           "branch": data["branch"],
-                           "owner": data.get("owner")}
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, parent_helm, k8s_cluster_conf, True)
-            if code != 0:
-                return job_ref.complete_err(f'Failed to install helm {parent_helm["repo"]}. Reason: {msg}')
+
+        # Finally, install target helm
+        msg, code = __install_single_helm(job_ref, app_logger, common_props, target_helm, True)
+        if code != 0:
+            return job_ref.complete_err(f'Failed to install helm {target_helm["repo"]}. Reason: {msg}')
         return job_ref.complete_succ(
-            f'{data["repo"]} with dependencies was deployed to cluster={cluster_name} namespace={data["namespace"]}')
-
+            f'{target_helm["repo"]} with dependencies was deployed, namespace={data["namespace"]}')
     except Exception as ex:
-        job_ref.complete_err(f'failed to deploy,  reason: {ex}')
+        job_ref.complete_err(f'Unexpected failure while installing helm,  reason: {ex}')
 
 
-def __install_single_helm(job_ref, app_logger, common_props, helm, k8s_cluster_conf, full_log=True):
+def __install_single_helm(job_ref, app_logger, common_props, helm, full_log=True):
+    posted_values = {**common_props,
+                     **{k: helm[k] for k in helm if k in ("owner", "repo", "branch")},
+                     **{"version": helm["branch"], "environment_tags": helm["branch"]}}
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
                       repo=helm["repo"],
                       branch=helm["branch"])
-        service_role, err_code = vault.create_role(k8s_cluster_conf["cluster_name"])
-        deployment = HelmDeployment(logger=app_logger, k8s_cluster_conf=k8s_cluster_conf,
-                                    namespace=common_props["namespace"], posted_values=common_props,
-                                    owner=helm["owner"], repo=helm.get("repo"), branch=helm.get("branch"),
-                                    registries=helm.get("registry"), service_role=service_role, helm_version="0.0.1")
+        service_role, err_code = vault.create_role(helm["cluster"])
+        if err_code != 0:
+            return f'Failed to create role: {service_role}', 1
+        deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"],
+                                    common_props["namespace"], posted_values,
+                                    helm["owner"], helm["repo"], helm["branch"],
+                                    helm["registry"], service_role, "0.0.1")
         for (msg, code) in deployment.install_package():
             if code is None:
                 if full_log:

@@ -65,7 +65,7 @@ class HelmDeployment:
         # update values with ones posted in request
         default_values.update(self.posted_values)
         default_values["service_account"] = f'{self.owner}-{self.repo}'
-        # Set vault address inte values.yaml if vault.addr key exists
+        # Set vault address into values.yaml if vault.addr key exists
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
                                    "jwtprovider": f'kubernetes-{self.cluster_name}'}
@@ -129,7 +129,7 @@ class HelmDeployment:
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         for s in stdout_iter:
             yield s, None
-        yield "Helm command complete", 0
+        yield f'Helm command complete with error code={helm_install_res}', helm_install_res
 
     def __dockerjson(self, valuesyaml, registries):
         if registries.get("docker"):
