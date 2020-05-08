@@ -10,8 +10,7 @@ def __common_params(data):
     result = {
         'namespace': data["namespace"],
         'sha': data["sha"],
-        'issue_number': data.get("issue_number", "no_issue_number"),
-        # 'pr': str(data.get("is_pull_request", False))
+        'pr': f'PR{data.get("pr", "")}'
     }
     return result, 0
 
@@ -78,7 +77,7 @@ def helm_deploy(job_ref, app_logger):
         # Install dependencies
         for idx, helm in enumerate(dependencies, 1):
             job_ref.emit("RUNNING", f'Installing dep[{idx}]: {helm["repo"]}')
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, helm, False)
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, helm, True)
             if code == 0:
                 job_ref.emit("RUNNING", f'Dependency installed: {helm["repo"]}')
             else:
