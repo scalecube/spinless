@@ -17,9 +17,9 @@ def create_dir(path):
         print("Successfully created the directory %s" % path)
 
 
-def create_logger(owner, repo, job_id):
+def create_logger(job_id):
     prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
-    path = "{}/state/logs/{}/{}".format(prj_dir, owner, repo)
+    path = "{}/state/logs".format(prj_dir)
     create_dir(path)
     logger = logging.getLogger(job_id)
     logger.setLevel(logging.DEBUG)
@@ -27,9 +27,9 @@ def create_logger(owner, repo, job_id):
     return logger
 
 
-def tail_f(owner, repo, job_id):
+def tail_f(job_id):
     prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
-    log_file = '{}/state/logs/{}/{}/{}.log'.format(prj_dir, owner, repo, job_id)
+    log_file = '{}/state/logs/{}.log'.format(prj_dir, job_id)
     while not os.path.exists(log_file):
         time.sleep(1)
 
@@ -65,11 +65,9 @@ def status(logger, job_id, _status, message):
 
 class JobLogger:
 
-    def __init__(self, owner, repo, id):
-        self.owner = owner
-        self.repo = repo
+    def __init__(self, id):
         self.id = id
-        self.logger = create_logger(owner, repo, id)
+        self.logger = create_logger(id)
 
     def info(self, message):
         self.logger.info(f'{message}\n')

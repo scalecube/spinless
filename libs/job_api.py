@@ -55,16 +55,14 @@ class Status:
 class Job:
     def __init__(self, func, args, data):
         self.job_id = str(uuid.uuid1())
-        self.owner = data.get("owner", "admin")
-        self.repo = data.get("repo", "operations")
         self.data = data
-        self.logger = JobLogger(self.owner, self.repo, self.job_id)
+        self.logger = JobLogger( self.job_id)
         self.proc = Process(target=func, args=(self, args))
         self.status = Status(self.job_id)
 
     def emit(self, _status, message):
         if not self.logger.handlers():
-            self.logger = JobLogger(self.owner, self.repo, self.job_id)
+            self.logger = JobLogger(self.job_id)
         self.logger.emit(_status, message)
 
     def complete_err(self, msg):

@@ -47,12 +47,12 @@ def helm_deploy_start():
     return jsonify({'id': job.job_id})
 
 
-@app.route('/helm/deploy/<owner>/<repo>/<job_id>')
-def get_log_api(owner, repo, job_id):
+@app.route('/helm/deploy/<job_id>')
+def get_log_api(job_id):
     app.logger.info(f'Request to get_log  is {job_id}')
     if not job_id:
         return abort(Response("No job id provided"))
-    return Response(tail_f(owner, repo, job_id))
+    return Response(tail_f(job_id))
 
 
 @app.route('/helm/deploy/cancel/<job_id>')
