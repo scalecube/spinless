@@ -15,23 +15,23 @@ def __common_params(data):
     return result, 0
 
 
-def __helm_params(helm, reg_api, kctx_api, job_ref):
-    if not all(k in helm for k in ("repo", "owner", "branch", "registry", "cluster")):
+def __helm_params(service, reg_api, kctx_api, job_ref):
+    if not all(k in service for k in ("owner", "repo", "branch", "registry", "cluster")):
         return "owner/repo/branch/registry/cluster are mandatory ", 1
-    registries_fetched, err = __prepare_regs(helm["registry"], reg_api)
+    registries_fetched, err = __prepare_regs(service["registry"], reg_api)
     if err != 0:
         return registries_fetched, err
-    helm["registry"] = registries_fetched
+    service["registry"] = registries_fetched
 
-    k8s_cluster_conf, code = kctx_api.get_kubernetes_context(helm["cluster"])
+    k8s_cluster_conf, code = kctx_api.get_kubernetes_context(service["cluster"])
     if code != 0:
         job_ref.emit("WARNING",
-                     f'Failed to get k8 conf for {helm["cluster"]}.'
+                     f'Failed to get k8 conf for {service["cluster"]}.'
                      f' Reason: {k8s_cluster_conf}.'
                      f' Will use default k8 context for current vm')
-        k8s_cluster_conf = {"cluster_name": helm["cluster"]}
-    helm["k8s_cluster_conf"] = k8s_cluster_conf
-    return helm, 0
+        k8s_cluster_conf = {"cluster_name": service["cluster"]}
+    service["k8s_cluster_conf"] = k8s_cluster_conf
+    return service, 0
 
 
 def __prepare_regs(registries, registry_api):
@@ -53,7 +53,7 @@ def __prepare_regs(registries, registry_api):
 def helm_deploy(job_ref, app_logger):
     try:
         data = job_ref.data
-        job_ref.emit("RUNNING", f'Start helm deploy to kubernetes namespace: {data.get("namespace")}')
+        job_ref.emit("RUNNING", f'Start service deploy to kubernetes namespace: {data.get("namespace")}')
 
         # Common params
         common_props, code = __common_params(data)
@@ -63,34 +63,37 @@ def helm_deploy(job_ref, app_logger):
         # Params for helms
         registry_api = RegistryApi(app_logger)
         kctx_api = KctxApi(app_logger)
-        target_helm, code = __helm_params(data.get("service", {}), registry_api, kctx_api, job_ref)
-        if code != 0:
-            return job_ref.complete_err(target_helm)
-        dependencies = []
-        for h in data.get("services", []):
-            dependency, code = __helm_params(h, registry_api, kctx_api, job_ref)
+
+        services = []
+        for service in data.get("services", []):
+            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref)
             if code != 0:
                 return job_ref.complete_err(dependency)
-            dependencies.append(dependency)
-        job_ref.emit("RUNNING", f'Installing {len(dependencies)} dependencies:')
+            services.append(dependency)
 
-        # Install dependencies
-        for idx, helm in enumerate(dependencies, 1):
-            job_ref.emit("RUNNING", f'Installing dep[{idx}]: {helm["repo"]}')
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, helm, True)
+        # Install services
+        job_ref.emit("RUNNING", f'Installing {len(services)} services:')
+        for idx, service in enumerate(services, 1):
+            job_ref.emit("RUNNING", f'Installing dep[{idx}]: {service["repo"]}')
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, service, True)
             if code == 0:
-                job_ref.emit("RUNNING", f'Dependency installed: {helm["repo"]}')
+                job_ref.emit("RUNNING", f'Dependency installed: {service["repo"]}')
             else:
-                return job_ref.complete_err(f'Failed to install dependency {helm["repo"]}. Reason: {msg}')
+                return job_ref.complete_err(f'Failed to install dependency {service["repo"]}. Reason: {msg}')
 
-        # Finally, install target helm
-        msg, code = __install_single_helm(job_ref, app_logger, common_props, target_helm, True)
+        # Finally, install target service
+        service = data["service"]
+        target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
         if code != 0:
-            return job_ref.complete_err(f'Failed to install helm {target_helm["repo"]}. Reason: {msg}')
+            return job_ref.complete_err(target_service)
+
+        msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service, True)
+        if code != 0:
+            return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
         return job_ref.complete_succ(
-            f'{target_helm["repo"]} with dependencies was deployed, namespace={data["namespace"]}')
+            f'{target_service["repo"]} with services was deployed, namespace={data["namespace"]}')
     except Exception as ex:
-        job_ref.complete_err(f'Unexpected failure while installing helm,  reason: {ex}')
+        job_ref.complete_err(f'Unexpected failure while installing service,  reason: {ex}')
 
 
 def __install_single_helm(job_ref, app_logger, common_props, helm, full_log=True):
