@@ -9,6 +9,7 @@ import yaml
 
 from libs.shell import shell_await
 
+
 class HelmDeployment:
 
     def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, repo, branch, registries,
@@ -59,7 +60,7 @@ class HelmDeployment:
             return r.content, 0
 
     def enrich_values_yaml(self):
-        with open("{}/values.yaml".format(self.helm_dir)) as default_values_yaml:
+        with open("{}/{}/values.yaml".format(self.helm_dir, self.repo)) as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
 
         # inti traefik vaules id necessary:
@@ -117,7 +118,8 @@ class HelmDeployment:
             env = {}
 
         # create k8 namespace if necessary
-        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
+        kubectl = self.get_kubectl_cmd()
+
         create_namespace_cmd = [kubectl, "create", "namespace", "{}".format(self.namespace)]
         shell_await(create_namespace_cmd, env)
         self.logger.info("Kubernetes namespace {} created".format(self.namespace))
@@ -127,7 +129,7 @@ class HelmDeployment:
         dockerjson = self.__dockerjson(values_content, self.registries)
 
         # actually call helm install
-        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
+        helm_cmd = self.get_helm_cmd()
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
                             "--install", "--namespace",
                             self.namespace, f'{self.owner}-{self.repo}-{self.branch}',
@@ -141,6 +143,18 @@ class HelmDeployment:
         for s in stdout_iter:
             yield s, None
         yield f'Helm command complete with error code={helm_install_res}', helm_install_res
+
+    def get_kubectl_cmd(self):
+        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
+        if os.name == 'nt':
+            kubectl = "kubectl"
+        return kubectl
+
+    def get_helm_cmd(self):
+        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
+        if os.name == 'nt':
+            helm_cmd = "helm"
+        return helm_cmd
 
     def __dockerjson(self, valuesyaml, registries):
         if registries.get("docker"):
