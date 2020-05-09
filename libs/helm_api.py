@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 import tarfile
 import time
 
@@ -8,10 +9,12 @@ import yaml
 
 from libs.shell import shell_await
 
-
 class HelmDeployment:
+
     def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, repo, branch, registries,
                  service_role, helm_version):
+
+        self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
         self.logger = logger
         self.owner = owner
         self.repo = repo
@@ -19,14 +22,23 @@ class HelmDeployment:
         self.posted_values = posted_values
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
-        self.target_path = f'/tmp/{self.timestamp}'
-        self.kube_conf_path = f'/tmp/{self.timestamp}/kubeconfig'
-        self.helm_dir = "{}/{}".format(self.target_path, self.repo)
+        self.target_path = f'{self.prj_dir}/state/pkg/{self.timestamp}'
+        self.kube_conf_path = f'{self.prj_dir}/state/pkg/{self.timestamp}/kubeconfig'
+        self.helm_dir = f'{self.target_path}'
         self.namespace = namespace
         self.registries = registries
         self.k8s_cluster_conf = k8s_cluster_conf
         self.service_role = service_role
         self.cluster_name = k8s_cluster_conf["cluster_name"]
+        self.create_dir(self.target_path)
+
+    def create_dir(self, path):
+        try:
+            os.makedirs(path)
+        except OSError:
+            pass
+        else:
+            print("Successfully created the directory %s" % path)
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info(f'Untar helm_tar_gz is: {helm_tag_gz}')
@@ -34,7 +46,6 @@ class HelmDeployment:
         targz.extractall(r"{}".format(self.target_path))
 
     def prepare_package(self):
-        os.mkdir(self.target_path)
         reg = self.registries.get("helm")
         if reg is None:
             return "No helm registry provided", 1
