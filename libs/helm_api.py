@@ -132,13 +132,13 @@ class HelmDeployment:
         helm_cmd = self.get_helm_cmd()
         helm_install_cmd = [helm_cmd, "upgrade", "--debug",
                             "--install", "--namespace",
-                            self.namespace, f'{self.owner}-{self.repo}-{self.branch}',
+                            self.namespace, f'{self.repo}',
                             "-f", path_to_values_yaml,
-                            self.helm_dir]
+                            f'{self.helm_dir}/{self.repo}']
         if dockerjson:
             helm_install_cmd.append('--set')
             helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
-        yield "Installing package: {}".format(helm_install_cmd), None
+        yield "Installing package: {}".format(" ".join(helm_install_cmd)), None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         for s in stdout_iter:
             yield s, None
