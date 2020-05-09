@@ -74,12 +74,12 @@ def helm_deploy(job_ref, app_logger):
         # Install services
         job_ref.emit("RUNNING", f'Installing {len(services)} services:')
         for idx, service in enumerate(services, 1):
-            job_ref.emit("RUNNING", f'Installing dep[{idx}]: {service["repo"]}')
+            job_ref.emit("RUNNING", f'Installing service[{idx}]: {service["repo"]}')
             msg, code = __install_single_helm(job_ref, app_logger, common_props, service, False)
             if code == 0:
-                job_ref.emit("RUNNING", f'Dependency installed: {service["repo"]}')
+                job_ref.emit("RUNNING", f'Service installed: {service["repo"]}')
             else:
-                return job_ref.complete_err(f'Failed to install dependency {service["repo"]}. Reason: {msg}')
+                return job_ref.complete_err(f'Failed to install service {service["repo"]}. Reason: {msg}')
 
         # Finally, install target service
         service = data.get("service")
