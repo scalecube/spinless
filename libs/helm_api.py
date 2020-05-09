@@ -140,8 +140,9 @@ class HelmDeployment:
             helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
         yield "Installing package: {}".format(" ".join(helm_install_cmd)), None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
-        for s in stdout_iter:
-            yield s, None
+        if helm_install_res != 0:
+            for s in stdout_iter:
+                yield s, None
         yield f'Helm command complete with error code={helm_install_res}', helm_install_res
 
     def get_kubectl_cmd(self):

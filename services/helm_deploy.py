@@ -10,7 +10,7 @@ def __common_params(data):
     result = {
         'namespace': data["namespace"],
         'sha': data["sha"],
-        'pr': f'PR{data.get("pr", "")}'
+        'pr': data.get("pr", "")
     }
     return result, 0
 
@@ -75,25 +75,26 @@ def helm_deploy(job_ref, app_logger):
         job_ref.emit("RUNNING", f'Installing {len(services)} services:')
         for idx, service in enumerate(services, 1):
             job_ref.emit("RUNNING", f'Installing dep[{idx}]: {service["repo"]}')
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, service, True)
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, service, False)
             if code == 0:
                 job_ref.emit("RUNNING", f'Dependency installed: {service["repo"]}')
             else:
                 return job_ref.complete_err(f'Failed to install dependency {service["repo"]}. Reason: {msg}')
 
         # Finally, install target service
-        service = data["service"]
-        target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
-        if code != 0:
-            return job_ref.complete_err(target_service)
+        service = data.get("service")
+        if service:
+            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
+            if code != 0:
+                return job_ref.complete_err(target_service)
 
-        msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service, True)
-        if code != 0:
-            return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service, True)
+            if code != 0:
+                return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
         return job_ref.complete_succ(
-            f'{target_service["repo"]} with services was deployed, namespace={data["namespace"]}')
+            f'Services deployed, namespace={data["namespace"]}')
     except Exception as ex:
-        job_ref.complete_err(f'Unexpected failure while installing service,  reason: {ex}')
+        job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
 
 
 def __install_single_helm(job_ref, app_logger, common_props, helm, full_log=True):
