@@ -76,14 +76,20 @@ def helm_deploy(job_ref, app_logger):
             services.append(dependency)
 
         # Install services
+        installed_services = []
+        failed_services = []
         job_ref.emit("RUNNING", f'Installing {len(services)} dependencies')
         for idx, service in enumerate(services, 1):
             job_ref.emit("RUNNING", f'Installing service[{idx}]: {service["repo"]}')
             msg, code = __install_single_helm(job_ref, app_logger, common_props, service)
             if code == 0:
                 job_ref.emit("RUNNING", f'Service installed: {service["repo"]}')
+                installed_services.append(service["repo"])
             else:
-                return job_ref.complete_err(f'Failed to install service {service["repo"]}. Reason: {msg}')
+                # TODO: for now report failed services but continue the job
+                job_ref.emit("RUNNING", f'Service installation failed: {service["repo"]}, but proceed with job')
+                failed_services.append(service["repo"])
+                # return job_ref.complete_err(f'Failed to install service {service["repo"]}. Reason: {msg}')
 
         # Finally, install target service
         service = data.get("service")
@@ -95,9 +101,19 @@ def helm_deploy(job_ref, app_logger):
 
             msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service)
             if code != 0:
-                return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
-        return job_ref.complete_succ(
-            f'Services deployed, namespace={data["namespace"]}')
+                failed_services.append(service["repo"])
+                job_ref.emit("RUNNING", f'Service installation failed: {service["repo"]}')
+                # return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
+            else:
+                installed_services.append(service["repo"])
+        job_ref.emit("RUNNING", f'Installed: {installed_services}')
+        job_ref.emit("RUNNING", f'Failed to install: {failed_services}')
+        if len(failed_services) > 0:
+            return job_ref.complete_err(
+                f'{len(installed_services)}/{len(installed_services) + len(failed_services)} services deployed, namespace={data["namespace"]}')
+        else:
+            return job_ref.complete_succ(
+                f'{len(installed_services)}/{len(installed_services) + len(failed_services)} services deployed, namespace={data["namespace"]}')
     except Exception as ex:
         job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
 
