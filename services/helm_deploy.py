@@ -10,12 +10,12 @@ def __common_params(data):
     result = {
         'namespace': data["namespace"],
         'sha': data["sha"],
-        'pr': data.get("pr", "")
+        'pr': f'PR{str(data.get("pr", "none"))}'
     }
     return result, 0
 
 
-def __helm_params(service, reg_api, kctx_api, job_ref):
+def __helm_params(service, reg_api, kctx_api, job_ref, pr):
     if not all(k in service for k in ("owner", "repo", "branch", "registry", "cluster")):
         return "owner/repo/branch/registry/cluster are mandatory ", 1
     registries_fetched, err = __prepare_regs(service["registry"], reg_api)
@@ -31,6 +31,10 @@ def __helm_params(service, reg_api, kctx_api, job_ref):
                      f' Will use default k8 context for current vm')
         k8s_cluster_conf = {"cluster_name": service["cluster"]}
     service["k8s_cluster_conf"] = k8s_cluster_conf
+    if pr is None:
+        service["version"] = service["branch"]
+    else:
+        service["version"] = f'{service["branch"]}-{pr}'
     return service, 0
 
 
@@ -66,16 +70,16 @@ def helm_deploy(job_ref, app_logger):
 
         services = []
         for service in data.get("services", []):
-            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref)
+            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref, data.get("pr"))
             if code != 0:
                 return job_ref.complete_err(dependency)
             services.append(dependency)
 
         # Install services
-        job_ref.emit("RUNNING", f'Installing {len(services)} services:')
+        job_ref.emit("RUNNING", f'Installing {len(services)} dependencies')
         for idx, service in enumerate(services, 1):
             job_ref.emit("RUNNING", f'Installing service[{idx}]: {service["repo"]}')
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, service, False)
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, service)
             if code == 0:
                 job_ref.emit("RUNNING", f'Service installed: {service["repo"]}')
             else:
@@ -84,11 +88,12 @@ def helm_deploy(job_ref, app_logger):
         # Finally, install target service
         service = data.get("service")
         if service:
-            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
+            job_ref.emit("RUNNING", f'Installing service {service["repo"]}')
+            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref, data.get("pr"))
             if code != 0:
                 return job_ref.complete_err(target_service)
 
-            msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service, True)
+            msg, code = __install_single_helm(job_ref, app_logger, common_props, target_service)
             if code != 0:
                 return job_ref.complete_err(f'Failed to install service {target_service["repo"]}. Reason: {msg}')
         return job_ref.complete_succ(
@@ -97,15 +102,15 @@ def helm_deploy(job_ref, app_logger):
         job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
 
 
-def __install_single_helm(job_ref, app_logger, common_props, helm, full_log=True):
+def __install_single_helm(job_ref, app_logger, common_props, helm):
     posted_values = {**common_props,
                      **{k: helm[k] for k in helm if k in ("owner", "repo", "branch")},
-                     **{"version": helm["branch"], "environment_tags": helm["branch"]}}
+                     **{"version": helm["version"], "environment_tags": helm["branch"]}}
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
                       repo=helm["repo"],
-                      branch=helm["branch"])
+                      version=helm["version"])
         service_role, err_code = vault.create_role(helm["cluster"])
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
@@ -115,8 +120,7 @@ def __install_single_helm(job_ref, app_logger, common_props, helm, full_log=True
                                     helm["registry"], service_role, "0.0.1")
         for (msg, code) in deployment.install_package():
             if code is None:
-                if full_log:
-                    job_ref.emit("RUNNING", msg)
+                job_ref.emit("RUNNING", msg)
             else:
                 return msg, code
     except Exception as ex:

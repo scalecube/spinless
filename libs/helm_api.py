@@ -76,7 +76,7 @@ class HelmDeployment:
         self.logger.info("Default values are: {}".format(default_values))
         # update values with ones posted in request
         default_values.update(self.posted_values)
-        default_values["service_account"] = f'{self.owner}-{self.repo}'
+        default_values["service_account"] = f'{self.owner}-{self.repo}-{default_values["version"]}'
         # Set vault address into values.yaml if vault.addr key exists
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
@@ -94,7 +94,7 @@ class HelmDeployment:
         if err != 0:
             yield "Preparing package failed: {}".format(prepare_pkg_result), err
         else:
-            helm_tag_gz_path = '{}/{}.tgz'.format(self.target_path, self.repo)
+            helm_tag_gz_path = f'{self.target_path}/{self.repo}.tgz'
             with open(helm_tag_gz_path, "wb") as helm_archive:
                 helm_archive.write(prepare_pkg_result)
             self.untar_helm_gz(helm_tag_gz_path)
@@ -130,15 +130,17 @@ class HelmDeployment:
 
         # actually call helm install
         helm_cmd = self.get_helm_cmd()
-        helm_install_cmd = [helm_cmd, "upgrade", "--debug",
-                            "--install", "--namespace",
-                            self.namespace, f'{self.repo}',
+        helm_install_cmd = [helm_cmd, "upgrade",
+                            f'{self.repo}',
+                            f'{self.helm_dir}/{self.repo}',
+
+                            "--debug", "--install", "--namespace", self.namespace,
                             "-f", path_to_values_yaml,
-                            f'{self.helm_dir}/{self.repo}']
+                            ]
         if dockerjson:
             helm_install_cmd.append('--set')
             helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
-        yield "Installing package: {}".format(" ".join(helm_install_cmd)), None
+        yield "Installing package: {}".format(helm_install_cmd), None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         if helm_install_res != 0:
             for s in stdout_iter:

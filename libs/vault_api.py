@@ -13,12 +13,12 @@ class Vault:
     def __init__(self, logger,
                  owner=None,
                  repo=None,
-                 branch=None):
+                 version=None):
         self.root_path = SECRET_ROOT_DEFAULT
         self.owner = owner
         self.repo = repo
-        self.branch = branch
-        self.app_path = "{}-{}-{}".format(owner, repo, branch)
+        self.branch = version
+        self.app_path = f'{owner}-{repo}-{version}'
         self.dev_mode = dev_mode
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
