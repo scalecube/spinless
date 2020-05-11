@@ -203,7 +203,14 @@ class KctxApi:
         command = "kubectl create namespace traefik"
         self.execute_command(command, kube_env)
 
-        command = f'{HELM} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003 --namespace traefik'
+        command = f'{HELM} upgrade --install traefik traefik/traefik ' \
+                  f'--set service.type=NodePort ' \
+                  f'--set ports.web.nodePort=30003 ' \
+                  f'--set tolerations[0].key=type ' \
+                  f'--set tolerations[0].value=kubsystem ' \
+                  f'--set tolerations[0].operator=Equal ' \
+                  f'--set tolerations[0].effect=NoSchedule ' \
+                  f'--namespace traefik'
         return self.execute_command(command, kube_env)
 
     def setup_metrics(self, kube_env):
