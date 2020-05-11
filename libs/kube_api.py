@@ -174,6 +174,13 @@ class KctxApi:
             self.logger.info(out)
         return 0, "Volume creation complete. Result: {}".format(res)
 
+    def execute_command(self, command, kube_env):
+        cmd = shlex.split(command)
+        res, logs = shell_await(cmd, env=kube_env, with_output=True)
+        for l in logs:
+            self.logger.info(l)
+        return res, logs
+
     def setup_traefik(self, kube_env):
         """
         Setup traefik plugin in created cluster
@@ -182,27 +189,17 @@ class KctxApi:
         :param tmp_root_path: tmp path to store tmp files
         :return: err code (0 if success), message
         """
-        cmd = shlex.split(f'{HELM} repo add traefik https://containous.github.io/traefik-helm-chart')
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
+        command = f'{HELM} repo add traefik https://containous.github.io/traefik-helm-chart'
+        self.execute_command(command, kube_env)
 
-        cmd = shlex.split(f'{HELM} repo update')
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
+        command = f'{HELM} repo update'
+        self.execute_command(command, kube_env)
 
-        cmd = shlex.split("kubectl create namespace traefik")
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
+        command = "kubectl create namespace traefik"
+        self.execute_command(command, kube_env)
 
-        cmd = shlex.split(
-            f'{HELM} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003 --namespace traefik')
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
-        return res, logs
+        command = f'{HELM} upgrade --install traefik traefik/traefik --set service.type=NodePort --set ports.web.nodePort=30003 --namespace traefik'
+        return self.execute_command(command, kube_env)
 
     def setup_metrics(self, kube_env):
         """
@@ -212,19 +209,11 @@ class KctxApi:
         :param tmp_root_path: tmp path to store tmp files
         :return: err code (0 if success), message
         """
-        cmd = shlex.split(
-            "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace=kube-system")
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
+        command = "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace=kube-system"
+        self.execute_command(command, kube_env)
 
-        patch_metrics = """kubectl patch deployment coredns -n kube-system --type=json -p='[{"op":"add", "path":"/spec/template/spec/tolerations/-", "value":{"key":"type", "value":"kubsystem", "operator":"Equal", "effect":"NoSchedule"}}]'"""
-        cmd = shlex.split(patch_metrics)
-        res, logs = shell_await(cmd, env=kube_env, with_output=True)
-        for l in logs:
-            self.logger.info(l)
-
-        return res, logs
+        command = """kubectl patch deployment coredns -n kube-system --type=json -p='[{"op":"add", "path":"/spec/template/spec/tolerations/-", "value":{"key":"type", "value":"kubsystem", "operator":"Equal", "effect":"NoSchedule"}}]'"""
+        return self.execute_command(command, kube_env)
 
     @classmethod
     def __install_to_kube(cls, template_name, params, kube_env, root_path):
