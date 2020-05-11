@@ -99,10 +99,7 @@ def artifact_registries_delete(type, name):
     return delete_registry(app.logger, data)
 
 
-#
-# Kubernetes context CRUD
-#
-@app.route('/kubernetes/contexts/<name>')
+@app.route('/clusters/<name>')
 def kubernetes_context_get(name):
     app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
     return get_kubernetes_context(app.logger, name)
@@ -144,7 +141,7 @@ def delete_cloud_provider_api(provider_type, name):
 #
 # Cluster api
 #
-@app.route("/kubernetes/cluster", methods=['POST'])
+@app.route("/clusters", methods=['POST'])
 def kubernetes_cluster_create():
     data = request.get_json()
     if not data:
@@ -154,26 +151,22 @@ def kubernetes_cluster_create():
     return jsonify({'id': job.job_id})
 
 
-@app.route("/kubernetes/cluster", methods=['DELETE'])
-def kubernetes_cluster_destroy():
-    data = request.get_json()
-    if not data or "cluster_name" not in data:
-        return abort(Response("Give cluster_name in payload"))
-    cluster_name = data["cluster_name"]
+@app.route("/clusters/<cluster_name>", methods=['DELETE'])
+def kubernetes_cluster_destroy(cluster_name):
     if cluster_name in RESERVED_CLUSTERS:
         return abort(Response("Please don't remove this cluster: {}".format(cluster_name)))
-    app.logger.info("Request to destroy cluster {}".format(cluster_name))
-    job = create_job(kube_cluster_delete, app.logger, data).start()
+    app.logger.info(f"Request to destroy cluster {cluster_name}")
+    job = create_job(kube_cluster_delete, app.logger, {"cluster_name": cluster_name}).start()
     return jsonify({'id': job.job_id})
 
 
-@app.route("/kubernetes/namespace/<cluster_name>", methods=['GET'])
+@app.route("/clusters/<cluster_name>/namespaces", methods=['GET'])
 def kubernetes_list_ns(cluster_name):
     app.logger.info(f"Request get namespaces for cluster {cluster_name}")
     return jsonify(get_ns(cluster_name, app.logger))
 
 
-@app.route("/kubernetes/<cluster_name>/namespace/<namespace>", methods=['DELETE'])
+@app.route("/clusters/<cluster_name>/namespaces/<namespace>", methods=['DELETE'])
 def kubernetes_delete_ns(cluster_name, namespace):
     app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
     return jsonify(delete_ns(cluster_name, namespace, app.logger))
