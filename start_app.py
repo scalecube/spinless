@@ -35,6 +35,7 @@ app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 RESERVED_CLUSTERS = {"exberry-cloud", "exberry-demo"}
+RESERVED_NAMESPACES = {"master", "develop"}
 
 
 @app.route('/helm/deploy', methods=['POST'])
@@ -145,10 +146,10 @@ def kubernetes_cluster_create():
     return jsonify({'id': job.job_id})
 
 
-@app.route('/clusters/<name>')
-def kubernetes_context_get(name):
-    app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
-    return get_kubernetes_context(app.logger, name)
+@app.route("/clusters", methods=['GET'])
+def list_clusters_api():
+    app.logger.info("Request to list clusters")
+    return list_clusters(app.logger)
 
 
 @app.route("/clusters/<cluster_name>", methods=['DELETE'])
@@ -169,6 +170,8 @@ def kubernetes_list_ns(cluster_name):
 @app.route("/clusters/<cluster_name>/namespaces/<namespace>", methods=['DELETE'])
 def kubernetes_delete_ns(cluster_name, namespace):
     app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
+    if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
+        return abort(Response(f"Namespace {namespace} is reserved and can't be deleted"))
     return jsonify(delete_ns(cluster_name, namespace, app.logger))
 
 
