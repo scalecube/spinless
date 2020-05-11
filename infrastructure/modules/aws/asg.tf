@@ -77,13 +77,13 @@ resource "aws_autoscaling_group" "nodePool" {
   }
 
   tag {
-    key                 = "k8s.io/cluster-autoscaler/enabled"
+    key                 =  each.value["autoscaling"] == true ? "k8s.io/cluster-autoscaler/enabled" : "k8s.io/cluster-autoscaler/disabled"
     value               = "true"
     propagate_at_launch = true
   }
 
   tag {
-    key                 = "k8s.io/cluster-autoscaler/${var.cluster-name}"
+    key                 = each.value["autoscaling"] == true ? "k8s.io/cluster-autoscaler/${var.cluster-name}" : "k8s.io/cluster-autoscaler/off"
     value               = "true"
     propagate_at_launch = true
   }
