@@ -91,3 +91,17 @@ def kube_cluster_delete(job_ref, app_logger):
 
     except Exception as ex:
         job_ref.complete_err(f'failed to delete cluster {ex}')
+
+
+def get_ns(cluster_name, app_logger):
+    nss, code = KctxApi(app_logger).get_ns(cluster_name)
+    if code != 0:
+        return {"error": nss}
+    return {"result": nss}
+
+
+def delete_ns(cluster_name, ns, app_logger):
+    nss, code = KctxApi(app_logger).delete_ns(cluster_name, ns)
+    if code != 0:
+        return {"error": nss}
+    return {"result": nss}

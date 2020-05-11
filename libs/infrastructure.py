@@ -21,11 +21,11 @@ class TF:
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
-        self.tf_working_dir = "{}/{}".format(curr_dir, os.getenv('TF_WORKING_DIR'))
-        self.tf_state_dir = "{}/{}".format(curr_dir, os.getenv('TF_STATE'))
-        self.tmp_root_path = "/tmp/{}".format(timestamp)
+        self.tf_working_dir = f"{curr_dir}/{os.getenv('TF_WORKING_DIR')}"
+        self.tf_state_dir = f"{curr_dir}/{os.getenv('TF_STATE')}"
+        self.tmp_root_path = f"/tmp/{timestamp}"
         os.mkdir(self.tmp_root_path)
-        self.kube_config_file_path = "{}/{}".format(self.tmp_root_path, KUBECONF_FILE)
+        self.kube_config_file_path = f"{self.tmp_root_path}/{KUBECONF_FILE}"
         self.aws_region = aws_region
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key

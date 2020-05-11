@@ -1,6 +1,7 @@
 import base64
 import os
 import shlex
+import time
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
@@ -244,3 +245,57 @@ class KctxApi:
             f.write(gen_template)
         cmd = shlex.split("kubectl apply -f {}".format(f_path))
         return shell_await(cmd, env=kube_env, with_output=True)
+
+    def __write_and_get_kube_env(self, cluster_name):
+        try:
+            kctx, err = self.get_kubernetes_context(cluster_name)
+            if err != 0:
+                return f"Can't get cluster {cluster_name}", 1
+            root_path = f"/tmp/{round(time.time() * 1000)}"
+            os.makedirs(root_path, exist_ok=True)
+            kube_config_file_path = f"{root_path}/kubeconf"
+
+            kube_conf_base64 = kctx["kube_config"]
+            with open(kube_config_file_path, "w") as kubeconf_file:
+                kubeconf_str = base64.standard_b64decode(kube_conf_base64.encode("utf-8")).decode("utf-8")
+                kubeconf_file.writelines(kubeconf_str)
+
+            kube_env = {"KUBECONFIG": kube_config_file_path,
+                        "AWS_DEFAULT_REGION": kctx["aws_region"],
+                        "AWS_ACCESS_KEY_ID": kctx["aws_access_key"],
+                        "AWS_SECRET_ACCESS_KEY": kctx["aws_secret_key"]}
+            return kube_env, 0
+        except Exception as e:
+            return f"Failed to get kube env: {e}", 1
+
+    def get_ns(self, cluster_name):
+        '''
+        Get current namespaces in cluster
+        :param cluster_name:
+        :return: list of namespaces iterable and error code (0 if success) or Error message and err code (if error)
+        '''
+        kube_env, err = self.__write_and_get_kube_env(cluster_name)
+        if err != 0:
+            return kube_env, 1
+        cmd = shlex.split("kubectl get ns --output=name")
+        result, output = shell_await(cmd, env=kube_env, with_output=True)
+        if result != 0:
+            for l in output:
+                self.logger.error(l)
+            return "Failed to 'kubectl get ns' ", 1
+        return list(output), 0
+
+    def delete_ns(self, cluster_name, ns):
+        '''
+        :param cluster_name:
+        :param ns: name of namespace to be deleted
+        :return: name of deleted namespace + 0 if success. Otherwise - error msg and error code
+        '''
+        kube_env, err = self.__write_and_get_kube_env(cluster_name)
+        if err != 0:
+            return kube_env, 1
+        cmd = shlex.split(f"kubectl delete ns {ns}")
+        result, output = shell_await(cmd, env=kube_env, with_output=False)
+        if result != 0:
+            return f"Failed to 'kubectl delete ns {ns}' ", 1
+        return ns, 0

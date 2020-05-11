@@ -8,7 +8,7 @@ from libs.job_api import *
 from services.cloud_service import *
 from services.helm_deploy import helm_deploy
 from services.kctx_service import *
-from services.kuber_service import kube_cluster_create, kube_cluster_delete
+from services.kuber_service import *
 from services.registry_service import *
 
 load_dotenv()
@@ -165,6 +165,18 @@ def kubernetes_cluster_destroy():
     app.logger.info("Request to destroy cluster {}".format(cluster_name))
     job = create_job(kube_cluster_delete, app.logger, data).start()
     return jsonify({'id': job.job_id})
+
+
+@app.route("/kubernetes/namespace/<cluster_name>", methods=['GET'])
+def kubernetes_list_ns(cluster_name):
+    app.logger.info(f"Request get namespaces for cluster {cluster_name}")
+    return jsonify(get_ns(cluster_name, app.logger))
+
+
+@app.route("/kubernetes/<cluster_name>/namespace/<namespace>", methods=['DELETE'])
+def kubernetes_delete_ns(cluster_name, namespace):
+    app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
+    return jsonify(delete_ns(cluster_name, namespace, app.logger))
 
 
 if __name__ == '__main__':
