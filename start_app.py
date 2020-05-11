@@ -73,7 +73,7 @@ def helm_deploy_status(job_id):
     return get_job_status(job_id)
 
 
-@app.route('/artifact/registries/<type>/<name>', methods=['POST'])
+@app.route('/registries/<type>/<name>', methods=['POST'])
 def artifact_registries_create(type, name):
     data = request.get_json()
     if not data:
@@ -85,24 +85,18 @@ def artifact_registries_create(type, name):
     return result
 
 
-@app.route('/artifact/registries/<type>/<name>')
+@app.route('/registries/<type>/<name>')
 def artifact_registries_get(type, name):
-    data = dict({"type": type, "name": name})
-    app.logger.info("Request to get  repository  is {}".format(data))
+    data = {"type": type, "name": name}
+    app.logger.info(f"Request to get  repository  is {data}")
     return get_registry(app.logger, data)
 
 
-@app.route('/artifact/registries/<type>/<name>', methods=['DELETE'])
+@app.route('/registries/<type>/<name>', methods=['DELETE'])
 def artifact_registries_delete(type, name):
     data = dict({"type": type, "name": name})
     app.logger.info("Request to delete  repository  is {}".format(data))
     return delete_registry(app.logger, data)
-
-
-@app.route('/clusters/<name>')
-def kubernetes_context_get(name):
-    app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
-    return get_kubernetes_context(app.logger, name)
 
 
 #
@@ -149,6 +143,12 @@ def kubernetes_cluster_create():
     app.logger.info("Request create cluster is {}".format(data))
     job = create_job(kube_cluster_create, app.logger, data).start()
     return jsonify({'id': job.job_id})
+
+
+@app.route('/clusters/<name>')
+def kubernetes_context_get(name):
+    app.logger.info("Request to get  kubernetes contexts  is \"{}\"".format(name))
+    return get_kubernetes_context(app.logger, name)
 
 
 @app.route("/clusters/<cluster_name>", methods=['DELETE'])
