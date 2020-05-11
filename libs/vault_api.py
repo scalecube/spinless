@@ -63,6 +63,17 @@ class Vault:
         self.__auth_client()
         return self.client.read(path)
 
+    def list(self, path):
+        self.__auth_client()
+        try:
+            result = self.client.list(path)
+            if "data" in result:
+                return result.get("data").get("keys", [])
+            return []
+        except Exception as ex:
+            self.logger.warning(f"getting secret failed: {ex}")
+            return []
+
     def write(self, path, **data):
         self.__auth_client()
         self.client.write(path, wrap_ttl=None, **data)

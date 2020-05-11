@@ -62,6 +62,11 @@ class KctxApi:
         except Exception as e:
             return f'Failed to read secret {kctx_path}: {e}', 1
 
+    def get_clusters_list(self):
+        self.logger.info("Listing all clusters")
+        clusters_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}'
+        return self.vault.list(clusters_path)
+
     def delete_kubernetes_context(self, cluster_name):
         kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
         try:
@@ -272,7 +277,7 @@ class KctxApi:
             for l in output:
                 self.logger.error(l)
             return "Failed to 'kubectl get ns' ", 1
-        return list(output), 0
+        return list(map(lambda ns: str.replace(ns, "namespace", cluster_name), output)), 0
 
     def delete_ns(self, cluster_name, ns):
         '''
