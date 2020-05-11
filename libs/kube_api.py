@@ -212,6 +212,9 @@ class KctxApi:
         command = "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml --namespace=kube-system"
         self.execute_command(command, kube_env)
 
+        command = """kubectl patch deployment metrics-server -n kube-system --type=json -p='[{"op":"add", "path":"/spec/template/spec/tolerations", "value":[{"key":"type", "value":"kubsystem", "operator":"Equal", "effect":"NoSchedule"}]}]'"""
+        self.execute_command(command, kube_env)
+
         command = """kubectl patch deployment coredns -n kube-system --type=json -p='[{"op":"add", "path":"/spec/template/spec/tolerations/-", "value":{"key":"type", "value":"kubsystem", "operator":"Equal", "effect":"NoSchedule"}}]'"""
         return self.execute_command(command, kube_env)
 
