@@ -50,6 +50,7 @@ variable "nodePools" {
           "minCount" = 1,
           "maxCount" = 2,
           "instanceType" = "t3a.medium",
+          "autoscaling": true,
           "taint" = "gateway"
         },
         "pool2" = {
@@ -57,6 +58,7 @@ variable "nodePools" {
           "minCount" = 2,
           "maxCount" = 4,
           "instanceType" = "t3a.micro",
+          "autoscaling": true,
           "taint" = "market-service"
         },
         "pool3" = {
@@ -64,6 +66,7 @@ variable "nodePools" {
           "minCount" = 1,
           "maxCount" = 2,
           "instanceType" = "t3a.small",
+          "autoscaling": true,
           "taint" = "operations"
         }
       }
