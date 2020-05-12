@@ -34,6 +34,6 @@ def create_cloud_secret(logger, secret_name, access_key_id, access_secret_key):
     common_data = vault.read(f"{vault.vault_secrets_path}/common")
     cloud_secrets_path = common_data["data"]["cloud_secrets_path"]
     vault.write(f"{cloud_secrets_path}/{secret_name}",
-                {"access_key_id": access_key_id, "access_key_id": access_key_id})
+                {"access_key_id": access_key_id, "access_secret_key": access_secret_key})
     return {f"Secret {secret_name}": "added"}
 
