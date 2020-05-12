@@ -158,7 +158,7 @@ def create_aws_secret():
     access_key_id = data.get("access_key_id") or abort(400, Response("Give access_key_id"))
     access_secret_key = data.get("access_secret_key") or abort(400, Response("Give access_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")
-    return create_cloud_secret(secret_name, access_key_id, access_secret_key)
+    return create_cloud_secret(app.logger, secret_name, access_key_id, access_secret_key)
 
 
 if __name__ == '__main__':
