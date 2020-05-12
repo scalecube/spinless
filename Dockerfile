@@ -1,7 +1,6 @@
 FROM python:3.8
 
 WORKDIR /opt
-RUN apt update && apt install -y jq vim mc
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
@@ -21,6 +20,7 @@ ENV TF_STATE state/tfstate
 
 COPY . /opt
 RUN pip install -r requirements.txt
+RUN apt update && apt install -y jq vim mc
 
 EXPOSE 5000
 CMD ["/bin/sh", "-c", "./start_app.sh"]
