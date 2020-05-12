@@ -1,7 +1,6 @@
 FROM python:3.8
 
 WORKDIR /opt
-COPY . /opt
 RUN pip install -r requirements.txt
 RUN apt update && apt install -y jq vim mc
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
@@ -17,10 +16,12 @@ RUN curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 RUN chmod +x aws-iam-authenticator
 RUN  mv aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
 
-
 ENV APP_WORKING_DIR /opt
 ENV TF_WORKING_DIR infrastructure
 ENV TF_STATE state/tfstate
+
+COPY . /opt
+RUN pip install -r requirements.txt
 
 EXPOSE 5000
 CMD ["/bin/sh", "-c", "./start_app.sh"]
