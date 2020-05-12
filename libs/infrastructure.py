@@ -161,18 +161,25 @@ class TF:
             yield "FAILED: Failed to setup storage volume. Aborting: {}".format(msg), storage_res
         yield "Storage volume set up successfully.", None
 
+        #  Setup cluster autoscaler
+        ca, msg = self.kctx_api.setup_ca(kube_env, self.cluster_name, self.aws_region)
+        if ca != 0:
+            yield "Failed to setup cluster autoscaler. Resuming anyway", None
+        else:
+            yield "Cluster autoscaler installed successfully.", None
+
         # Set up traefik
         traefik_res, msg = self.kctx_api.setup_traefik(kube_env)
         if traefik_res != 0:
             yield "Failed to setup traefik. Resuming anyway", None
         else:
-            yield "Traefik initialized successfully.", None
+            yield "Traefik installed successfully.", None
 
         # Set up metrics
         res, msg = self.kctx_api.setup_metrics(kube_env)
         if res != 0:
             yield "FAILED: Failed to setup metrics. Aborting: {}".format(msg), None  # TODO: res
-        yield "Metrics initialized successfully.", None
+        yield "Metrics installed successfully.", None
 
         # If deployment was successful, save kubernetes context to vault
         kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
