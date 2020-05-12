@@ -31,10 +31,8 @@ def __helm_params(service, reg_api, kctx_api, job_ref, pr):
                      f' Will use default k8 context for current vm')
         k8s_cluster_conf = {"cluster_name": service["cluster"]}
     service["k8s_cluster_conf"] = k8s_cluster_conf
-    if pr is None:
-        service["version"] = service["branch"]
-    else:
-        service["version"] = f'{service["branch"]}-{pr}'
+    service["version"] = service["branch"]
+    service["image_tag"] = service.get("image_tag", service["branch"])
     return service, 0
 
 
@@ -125,15 +123,14 @@ def __install_single_helm(job_ref, app_logger, common_props, helm):
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
-                      repo=helm["repo"],
-                      version=helm["version"])
-        service_role, err_code = vault.create_role(helm["cluster"])
+                      repo=helm["repo"])
+        service_role, err_code = vault.create_role(helm["cluster"], helm["version"])
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
-        deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"],
-                                    common_props["namespace"], posted_values,
-                                    helm["owner"], helm["repo"], helm["branch"],
-                                    helm["registry"], service_role, "0.0.1")
+        deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"], common_props["namespace"], posted_values,
+                                    helm["owner"], helm["image_tag"], helm["repo"], helm["branch"], helm["registry"],
+                                    service_role,
+                                    "0.0.1")
         for (msg, code) in deployment.install_package():
             if code is None:
                 job_ref.emit("RUNNING", msg)

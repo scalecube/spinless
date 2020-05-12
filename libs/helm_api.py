@@ -12,7 +12,7 @@ from libs.shell import shell_await
 
 class HelmDeployment:
 
-    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, repo, branch, registries,
+    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, image_tag, repo, branch, registries,
                  service_role, helm_version):
 
         self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
@@ -32,6 +32,7 @@ class HelmDeployment:
         self.service_role = service_role
         self.cluster_name = k8s_cluster_conf["cluster_name"]
         self.create_dir(self.target_path)
+        self.image_tag = image_tag
 
     def create_dir(self, path):
         try:
@@ -81,7 +82,7 @@ class HelmDeployment:
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
                                    "jwtprovider": f'kubernetes-{self.cluster_name}'}
-        default_values["images"]["service"]["tag"] = self.branch
+        default_values["images"]["service"]["tag"] = self.image_tag
         self.logger.info("Env before writing: {}".format(default_values))
         path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
         with open(path_to_values_yaml, "w") as spinless_values_yaml:

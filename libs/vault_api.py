@@ -8,17 +8,13 @@ dev_mode = os.getenv("dev_mode", False)
 
 APP_ENV_PATH = "app_env"
 
-
 class Vault:
     def __init__(self, logger,
                  owner=None,
-                 repo=None,
-                 version=None):
+                 repo=None):
         self.root_path = SECRET_ROOT_DEFAULT
         self.owner = owner
         self.repo = repo
-        self.branch = version
-        self.app_path = f'{owner}-{repo}-{version}'
         self.dev_mode = dev_mode
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
@@ -43,15 +39,16 @@ class Vault:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
 
-    def create_role(self, cluster_name):
+    def create_role(self, cluster_name, version):
         self.logger.info("Creating service role")
         policy_name = self.__create_policy()
         try:
             self.__auth_client()
-            role_name = "{}-role".format(self.app_path)
+            service_account_name = f'{self.owner}-{self.repo}-{version}'
+            role_name = f"{service_account_name}-role"
             self.client.create_role(role_name,
                                     mount_point="kubernetes-{}".format(cluster_name),
-                                    bound_service_account_names="{}".format(self.app_path),
+                                    bound_service_account_names="{}".format(service_account_name),
                                     bound_service_account_namespaces="*",
                                     policies=[policy_name], ttl="1h")
             return role_name, 0
