@@ -196,7 +196,7 @@ class KctxApi:
                   f'--set tolerations[0].key=type ' \
                   f'--set tolerations[0].value=kubsystem ' \
                   f'--set tolerations[0].operator=Equal ' \
-                  f'--set tolerations[0].effect=NoSchedule ' \
+                  f'--set tolerations[0].effect=NoSchedule '
         return self.execute_command(command, kube_env)
 
     def setup_traefik(self, kube_env):
