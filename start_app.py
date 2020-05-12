@@ -42,7 +42,7 @@ RESERVED_NAMESPACES = {"master", "develop"}
 def helm_deploy_start():
     data = request.get_json()
     if not data:
-        return abort(Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
+        return abort(400, Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info(f'Request to CI/CD is {data}')
     job = create_job(helm_deploy, app.logger, data).start()
     return jsonify({'id': job.job_id})
@@ -52,7 +52,7 @@ def helm_deploy_start():
 def get_log_api(job_id):
     app.logger.info(f'Request to get_log  is {job_id}')
     if not job_id:
-        return abort(Response("No job id provided"))
+        return abort(400, Response("No job id provided"))
     return Response(tail_f(job_id))
 
 
@@ -78,19 +78,12 @@ def helm_deploy_status(job_id):
 def artifact_registries_create(type, name):
     data = request.get_json()
     if not data:
-        return abort(Response("No payload"))
+        return abort(400, Response("No payload"))
     data["type"] = type
     data["name"] = name
     app.logger.info(f'Request to create  repository  is {type}/{name}')
     result = create_registry(app.logger, data)
     return result
-
-
-@app.route('/registries/<type>/<name>')
-def artifact_registries_get(type, name):
-    data = {"type": type, "name": name}
-    app.logger.info(f"Request to get  repository  is {data}")
-    return get_registry(app.logger, data)
 
 
 @app.route('/registries/<type>/<name>', methods=['DELETE'])
@@ -107,30 +100,12 @@ def artifact_registries_delete(type, name):
 def create_cloud_provider_api(provider_type, name):
     data = request.get_json()
     if not data:
-        return abort(Response("No payload"))
+        return abort(400, Response("No payload"))
     data["name"] = name
     data["type"] = provider_type
     app.logger.info("Request to create  cloud provider  is {}/{}".format(provider_type, name))
     result = create_cloud_provider(app.logger, data)
     return result
-
-
-@app.route('/cloud/providers/<provider_type>/<name>')
-def get_cloud_provider_api(provider_type, name):
-    app.logger.info("Request to get  cloud provider  is \"{}/{}\"".format(provider_type, name))
-    return get_cloud_provider(app.logger, {"type": provider_type, "name": name})
-
-
-@app.route('/cloud/providers/<provider_type>')
-def get_cloud_provider_default_api(provider_type):
-    app.logger.info("Request to get  cloud provider  is \"{}\"".format(provider_type))
-    return get_cloud_provider(app.logger, {"type": provider_type})
-
-
-@app.route('/cloud/providers/<provider_type>/<name>', methods=['DELETE'])
-def delete_cloud_provider_api(provider_type, name):
-    app.logger.info("Request to delete  cloud provider  is \"{}/{}\"".format(provider_type, name))
-    return delete_cloud_provider(app.logger, provider_type, name)
 
 
 #
@@ -140,7 +115,7 @@ def delete_cloud_provider_api(provider_type, name):
 def kubernetes_cluster_create():
     data = request.get_json()
     if not data:
-        return abort(Response("Give some payload"))
+        return abort(400, Response("Give some payload"))
     app.logger.info("Request create cluster is {}".format(data))
     job = create_job(kube_cluster_create, app.logger, data).start()
     return jsonify({'id': job.job_id})
@@ -155,7 +130,7 @@ def list_clusters_api():
 @app.route("/clusters/<cluster_name>", methods=['DELETE'])
 def kubernetes_cluster_destroy(cluster_name):
     if cluster_name in RESERVED_CLUSTERS:
-        return abort(Response("Please don't remove this cluster: {}".format(cluster_name)))
+        return abort(400, Response("Please don't remove this cluster: {}".format(cluster_name)))
     app.logger.info(f"Request to destroy cluster {cluster_name}")
     job = create_job(kube_cluster_delete, app.logger, {"cluster_name": cluster_name}).start()
     return jsonify({'id': job.job_id})
@@ -171,7 +146,7 @@ def kubernetes_list_ns(cluster_name):
 def kubernetes_delete_ns(cluster_name, namespace):
     app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
     if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
-        return abort(Response(f"Namespace {namespace} is reserved and can't be deleted"))
+        return abort(400, Response(f"Namespace {namespace} is reserved and can't be deleted"))
     return jsonify(delete_ns(cluster_name, namespace, app.logger))
 
 
