@@ -153,6 +153,7 @@ def kubernetes_delete_ns(cluster_name, namespace):
 @app.route("/secrets/cloud", methods=['POST'])
 def create_aws_secret():
     data = request.get_json()
+    app.logger.info(f"data = {data}")
     secret_name = data.get("secret_name", abort(400, Response("Give secret_name")))
     access_key_id = data.get("access_key_id", abort(400, Response("Give access_key_id")))
     access_secret_key = data.get("access_secret_key", abort(400, Response("Give access_secret_key")))
