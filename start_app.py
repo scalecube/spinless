@@ -89,7 +89,7 @@ def artifact_registries_create(type, name):
 @app.route('/registries/<type>/<name>', methods=['DELETE'])
 def artifact_registries_delete(type, name):
     data = dict({"type": type, "name": name})
-    app.logger.info("Request to delete  repository  is {}".format(data))
+    app.logger.info("Request to delete repository  is {}".format(data))
     return delete_registry(app.logger, data)
 
 
@@ -148,6 +148,17 @@ def kubernetes_delete_ns(cluster_name, namespace):
     if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
         return abort(400, Response(f"Namespace {namespace} is reserved and can't be deleted"))
     return jsonify(delete_ns(cluster_name, namespace, app.logger))
+
+
+@app.route("/secrets/cloud", methods=['POST'])
+def create_aws_secret():
+    data = request.get_json()
+    secret_name = data.get("secret_name", abort(400, Response("Give secret_name")))
+    access_key_id = data.get("secret_name", abort(400, Response("Give access_key_id")))
+    access_secret_key = data.get("secret_name", abort(400, Response("Give access_secret_key")))
+    app.logger.info(f"Request for creating secret with '{secret_name}' name")
+
+
 
 
 if __name__ == '__main__':
