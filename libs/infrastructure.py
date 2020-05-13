@@ -15,9 +15,8 @@ TF_VARS_FILE = 'tfvars.tf'
 
 
 class TF:
-    def __init__(self, logger, aws_region, aws_access_key,
-                 aws_secret_key, cluster_name, kctx_api, az1="", az2="",
-                 kube_nodes_amount=0, kube_nodes_instance_type="", nodePools="", dns_suffix="", kube_conf=""):
+    def __init__(self, logger, aws_region, aws_access_key, aws_secret_key,
+                 cluster_name, kctx_api, properties, dns_suffix):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -30,14 +29,9 @@ class TF:
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
         self.cluster_name = cluster_name
-        self.az1 = az1
-        self.az2 = az2
-        self.kube_nodes_amount = kube_nodes_amount
-        self.kube_nodes_instance_type = kube_nodes_instance_type
-        self.nodePools = nodePools
+        self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
-        self.kube_conf = kube_conf
 
     def __create_vars_file(self):
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
@@ -46,28 +40,8 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
-            if all(self.__dict__.get(k) for k in (
-                    "az1", "az2", "az2", "kube_nodes_amount", "kube_nodes_instance_type", "nodePools")):
-                tfvars.write('{} = "{}"\n'.format("az1", self.az1))
-                tfvars.write('{} = "{}"\n'.format("az2", self.az2))
-                tfvars.write('{} = "{}"\n'.format("kube_nodes_amount", self.kube_nodes_amount))
-                tfvars.write('{} = "{}"\n'.format("kube_nodes_instance_type", self.kube_nodes_instance_type))
-                tfvars.write('{} = {}\n'.format("nodePools", self.nodePools))
-
-    def __set_aws_cli_config(self):
-        result = 0
-        process = Popen(["aws", "configure", "set", "aws_access_key_id",
-                         "{}".format(self.aws_access_key)], stdout=PIPE, stderr=PIPE)
-        result += process.wait()
-        process = Popen(["aws", "configure",
-                         "set", "aws_secret_access_key",
-                         "{}".format(self.aws_secret_key)], stdout=PIPE, stderr=PIPE)
-        result += process.wait()
-
-        process = Popen(["aws", "configure",
-                         "set", "default.region",
-                         "{}".format(self.aws_region)], stdout=PIPE, stderr=PIPE)
-        return result + process.wait()
+            tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
+            tfvars.write('{} = {}\n'.format("nodePools", self.properties["eks"]["nodePools"]))
 
     def __generate_configmap(self):
         client = boto3.client('iam',

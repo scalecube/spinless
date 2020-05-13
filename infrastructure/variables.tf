@@ -18,28 +18,9 @@ variable "cluster-name" {
   type    = string
 }
 
-variable "az1" {
-  description = "First AZ for EKS"
-  default     = "us-east-1a"
-  type        = string
-}
-
-variable "az2" {
-  description = "Second AZ for EKS"
-  default     = "us-east-1b"
-  type        = string
-}
-
-variable "kube_nodes_amount" {
-  description = "Kubernetes nodes count"
-  default     = 2
-  type        = number
-}
-
-variable "kube_nodes_instance_type" {
-  description = "Kubernetes nodes instance type"
-  default     = "t3a.medium"
-  type        = string
+variable "eks-version" {
+  default = "1.16"
+  type    = string
 }
 
 variable "nodePools" {

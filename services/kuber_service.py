@@ -10,34 +10,31 @@ def kube_cluster_create(job_ref, app_logger):
     try:
         data = job_ref.data
         app_logger.info("Starting cluster creation...")
-        job_ref.emit("RUNNING: Start cluster creation job: {}".format(data.get("namespace")), None)
 
-        # use vault later
-        vault = Vault(logger=app_logger)
+        kube_cluster_params = ("cluster_name", "region", "cloud", "secret_name", "dns_suffix", "properties")
 
         # check mandatory params
-        if not all(k in data for k in ("cloud_profile", "cluster_name", "dns_suffix")):
-            return job_ref.complete_err(f'Not all mandatory params: {["cloud_profile", "cluster_name", "dns_suffix"]}')
+        if not all(k in data for k in kube_cluster_params):
+            return job_ref.complete_err(f'Not all mandatory params: {kube_cluster_params}')
 
-        cloud_provider_api = CloudApi(vault, app_logger)
-        kctx_api = KctxApi(app_logger)
-        cloud_profile_req = data["cloud_profile"]
-        cloud_profile = cloud_provider_api.get_cloud_provider(cloud_profile_req)
-        cluster_name = data["cluster_name"]
-        dns_suffix = data["dns_suffix"]
-        job_ref.emit("RUNNING: using cloud profile:{} to create cluster: {}".format(cloud_profile_req, cluster_name),
-                     None)
+        job_ref.emit("RUNNING: Start cluster creation job: {}".format(data.get("namespace")), None)
 
-        terraform = TF(app_logger,
-                       cloud_profile.get("aws_region"),
-                       cloud_profile.get("aws_access_key"),
-                       cloud_profile.get("aws_secret_key"),
-                       cluster_name, kctx_api, cloud_profile.get("az1"),
-                       cloud_profile.get("az2"),
-                       cloud_profile.get("kube_nodes_amount"),
-                       cloud_profile.get("kube_nodes_instance_type"),
-                       cloud_profile.get("nodePools"),
-                       dns_suffix)
+        #  Get secrets for secret_name
+        vault = Vault(logger=app_logger)
+
+        cloud_secrets_path = vault.read(f"{vault.vault_secrets_path}/common")["data"]["cloud_secrets_path"]
+        secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
+
+        job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
+
+        terraform = TF(logger=app_logger,
+                       aws_region=data.get("region"),
+                       aws_access_key=secrets.get("aws_access_key"),
+                       aws_secret_key=secrets.get("aws_secret_key"),
+                       cluster_name=data.get("cluster_name"),
+                       kctx_api=KctxApi(app_logger),
+                       properties=data.get("properties"),
+                       dns_suffix=data.get("nodePools"))
 
         for (msg, res) in terraform.install_kube():
             if res is None:
