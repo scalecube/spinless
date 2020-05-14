@@ -24,7 +24,6 @@ variable "eks-version" {
 }
 
 variable "nodePools" {
-  description = "ASG"
   default     = {
         "pool1" = {
           "count" = 1,
