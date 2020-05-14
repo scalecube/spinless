@@ -49,7 +49,6 @@ variable "nodePools" {
       "autoscaling": true,
       "taint" = "operations"
     }
-    type = map
   }
   type = map
 }
