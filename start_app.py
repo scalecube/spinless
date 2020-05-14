@@ -155,7 +155,7 @@ def create_aws_secret():
     data = request.get_json()
     secret_name = data.get("secret_name") or abort(400, Response("Give secret_name"))
     aws_access_key = data.get("aws_access_key") or abort(400, Response("Give aws_access_key"))
-    aws_secret_key = data.get("access_secret_key") or abort(400, Response("Give aws_secret_key"))
+    aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")
     return create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
 
