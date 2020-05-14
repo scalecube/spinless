@@ -2,7 +2,7 @@ import base64
 import os
 import shlex
 import time
-from subprocess import Popen, PIPE
+import json
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
@@ -12,6 +12,14 @@ from libs.shell import shell_await
 
 KUBECONF_FILE = "kubeconfig"
 TF_VARS_FILE = 'tfvars.tf'
+
+
+class DoubleQuoteDict(dict):
+    def __str__(self):
+        return json.dumps(self)
+
+    def __repr__(self):
+        return json.dumps(self)
 
 
 class TF:
@@ -34,6 +42,7 @@ class TF:
         self.dns_suffix = dns_suffix
 
     def __create_vars_file(self):
+        nodepools = DoubleQuoteDict(self.properties["eks"]["nodePools"])
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
             self.logger.info("tfvars file is: {}/tfvars.tf".format(self.tmp_root_path))
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
@@ -41,7 +50,7 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
             tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
-            tfvars.write('{} = {}\n'.format("nodePools", self.properties["eks"]["nodePools"]))
+            tfvars.write('{} = {}\n'.format("nodePools", nodepools))
 
     def __generate_configmap(self):
         client = boto3.client('iam',
