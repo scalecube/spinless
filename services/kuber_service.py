@@ -34,7 +34,7 @@ def kube_cluster_create(job_ref, app_logger):
                        cluster_name=data.get("cluster_name"),
                        kctx_api=KctxApi(app_logger),
                        properties=data.get("properties"),
-                       dns_suffix=data.get("nodePools"))
+                       dns_suffix=data.get("dns_suffix"))
 
         for (msg, res) in terraform.install_kube():
             if res is None:
