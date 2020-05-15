@@ -200,6 +200,8 @@ class KctxApi:
                   f'--set tolerations[0].value=kubsystem ' \
                   f'--set tolerations[0].operator=Equal ' \
                   f'--set tolerations[0].effect=NoSchedule ' \
+                  f'--set rbac.create=true ' \
+                  f'--set rbac.serviceAccount.name=cluster-autoscaler ' \
                   f'--namespace cluster-autoscaler'
         return self.execute_command(command, kube_env)
 
