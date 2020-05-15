@@ -166,8 +166,12 @@ class TF:
 
         # If deployment was successful, save kubernetes context to vault
         kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
-        self.kctx_api.save_aws_context(self.aws_access_key, self.aws_secret_key, self.aws_region, kube_conf_base64,
-                                       self.cluster_name, self.dns_suffix)
+        self.kctx_api.save_aws_context(aws_access_key=self.aws_access_key,
+                                       aws_secret_key=self.aws_secret_key,
+                                       aws_region=self.aws_region,
+                                       kube_cfg_base64=kube_conf_base64,
+                                       cluster_name=self.cluster_name,
+                                       dns_suffix=self.dns_suffix)
 
         yield "Saved cluster config.", None
 
