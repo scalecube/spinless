@@ -7,7 +7,7 @@ import time
 import requests
 import yaml
 
-from libs.shell import shell_await
+from app.common.shell import shell_await
 
 
 class HelmDeployment:

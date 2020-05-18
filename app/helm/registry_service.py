@@ -1,4 +1,4 @@
-from libs.registry_api import RegistryApi
+from app.helm.registry_api import RegistryApi
 
 
 def create_registry(logger, data):
@@ -9,7 +9,7 @@ def create_registry(logger, data):
 def get_registry(logger, kctx_id):
     reg_api = RegistryApi(logger)
     code, result = reg_api.get_reg(kctx_id)
-    if code ==0:
+    if code == 0:
         result.pop("password")
     return result
 

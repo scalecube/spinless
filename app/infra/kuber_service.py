@@ -1,7 +1,6 @@
-from libs.cloud_provider_api import CloudApi
-from libs.infrastructure import TF
-from libs.kube_api import KctxApi
-from libs.vault_api import Vault
+from app.common.kube_api import KctxApi
+from app.common.vault_api import Vault
+from app.infra.infrastructure import TF
 
 DEFAULT_CLOUD = {"type": "eks", "name": "default"}
 
@@ -67,13 +66,20 @@ def kube_cluster_delete(job_ref, app_logger):
         if err != 0:
             return job_ref.complete_err(f'Cluster does not exist: {cluster_name}')
 
-        terraform = TF(app_logger,
-                       cluster_ctx["aws_region"],
-                       cluster_ctx["aws_access_key"],
-                       cluster_ctx["aws_secret_key"],
-                       cluster_name,
-                       kctx_api,
-                       kube_conf=cluster_ctx["kube_config"])
+        #  Get secrets for secret_name
+        vault = Vault(logger=app_logger)
+        cloud_secrets_path = vault.read(f"{vault.vault_secrets_path}/common")["data"]["cloud_secrets_path"]
+        secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
+
+        job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
+        terraform = TF(logger=app_logger,
+                       aws_region=data.get("region"),
+                       aws_access_key=secrets.get("aws_access_key"),
+                       aws_secret_key=secrets.get("aws_secret_key"),
+                       cluster_name=data.get("cluster_name"),
+                       kctx_api=KctxApi(app_logger),
+                       properties=data.get("properties"),
+                       dns_suffix=data.get("dns_suffix"))
 
         for (msg, res) in terraform.delete_kube():
             if res is None:

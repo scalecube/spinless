@@ -82,7 +82,7 @@ class Vault:
     def enable_k8_auth(self, cluster_name, reviewer_jwt, kube_ca, kube_serv):
         try:
             self.__auth_client()
-            ### Configure auth here
+            # Configure auth here
             mount_point = 'kubernetes-{}'.format(cluster_name)
             self.client.sys.enable_auth_method(
                 method_type='kubernetes',
