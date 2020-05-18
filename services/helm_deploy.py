@@ -31,7 +31,6 @@ def __helm_params(service, reg_api, kctx_api, job_ref, pr):
                      f' Will use default k8 context for current vm')
         k8s_cluster_conf = {"cluster_name": service["cluster"]}
     service["k8s_cluster_conf"] = k8s_cluster_conf
-    service["version"] = service["branch"]
     service["image_tag"] = service.get("image_tag", service["branch"])
     return service, 0
 
@@ -84,7 +83,6 @@ def helm_deploy(job_ref, app_logger):
                 job_ref.emit("RUNNING", f'Service installed: {service["repo"]}')
                 installed_services.append(service["repo"])
             else:
-                # TODO: for now report failed services but continue the job
                 job_ref.emit("RUNNING", f'Service installation failed: {service["repo"]}, but proceed with job')
                 failed_services.append(service["repo"])
                 # return job_ref.complete_err(f'Failed to install service {service["repo"]}. Reason: {msg}')
@@ -118,13 +116,12 @@ def helm_deploy(job_ref, app_logger):
 
 def __install_single_helm(job_ref, app_logger, common_props, helm):
     posted_values = {**common_props,
-                     **{k: helm[k] for k in helm if k in ("owner", "repo", "branch")},
-                     **{"version": helm["version"], "environment_tags": helm["branch"]}}
+                     **{k: helm[k] for k in helm if k in ("owner", "repo", "branch")}}
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
                       repo=helm["repo"])
-        service_role, err_code = vault.create_role(helm["cluster"], helm["version"])
+        service_role, err_code = vault.create_role(helm["cluster"])
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
         deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"], common_props["namespace"], posted_values,
