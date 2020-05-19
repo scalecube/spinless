@@ -77,7 +77,7 @@ class HelmDeployment:
         self.logger.info("Default values are: {}".format(default_values))
         # update values with ones posted in request
         default_values.update(self.posted_values)
-        default_values["service_account"] = f'{self.owner}-{self.repo}-{default_values["version"]}'
+        default_values["service_account"] = f'{self.owner}-{self.repo}'
         # Set vault address into values.yaml if vault.addr key exists
         default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
                                    "role": self.service_role,
