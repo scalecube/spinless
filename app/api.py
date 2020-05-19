@@ -45,5 +45,6 @@ def create_aws_secret():
 
 app.register_blueprint(helm)
 app.register_blueprint(infra)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
