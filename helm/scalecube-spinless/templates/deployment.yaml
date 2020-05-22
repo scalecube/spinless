@@ -61,7 +61,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: terraform-config
-              value: TF_VAR_TF_TOKEN
+              key: TF_VAR_TF_TOKEN
         ports:
         - name: port-{{ .Values.service.internalPort | toString }}
           containerPort: {{ .Values.service.internalPort }}
