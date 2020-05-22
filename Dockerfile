@@ -24,7 +24,7 @@ RUN  mv aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
 ENV APP_WORKING_DIR /opt/app
 ENV TF_WORKING_DIR infrastructure
 ENV TF_STATE state/tfstate
-ENV TF_CLI_CONFIG_FILE /opt/infrastructure/.terraformrc
+ENV TF_CLI_CONFIG_FILE /opt/app/infrastructure/.terraformrc
 
 COPY . /opt
 RUN pip install -r requirements.txt
