@@ -4,10 +4,10 @@
 from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
-from app.common.job_api import create_job
-from app.infra.cloud_service import create_cloud_provider
-from app.infra.kctx_service import list_clusters
-from app.infra.kuber_service import kube_cluster_create, kube_cluster_delete, delete_ns, get_ns
+from common.job_api import create_job
+from infra.cloud_service import create_cloud_provider
+from infra.kctx_service import list_clusters
+from infra.kuber_service import kube_cluster_create, kube_cluster_delete, delete_ns, get_ns
 
 RESERVED_CLUSTERS = {"exberry-cloud", "exberry-demo"}
 RESERVED_NAMESPACES = {"master", "develop"}

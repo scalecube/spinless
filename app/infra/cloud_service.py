@@ -1,5 +1,5 @@
-from app.common.vault_api import Vault
-from app.infra.cloud_provider_api import CloudApi
+from common.vault_api import Vault
+from infra.cloud_provider_api import CloudApi
 
 __SUPPORTED_TYPES = "eks"
 

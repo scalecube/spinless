@@ -7,8 +7,8 @@ import time
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
-from app.common.kube_api import KctxApi
-from app.common.shell import shell_await
+from common.kube_api import KctxApi
+from common.shell import shell_await
 
 KUBECONF_FILE = "kubeconfig"
 TF_VARS_FILE = 'tfvars.tf'

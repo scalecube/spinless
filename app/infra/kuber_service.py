@@ -1,6 +1,6 @@
-from app.common.kube_api import KctxApi
-from app.common.vault_api import Vault
-from app.infra.infrastructure import TF
+from common.kube_api import KctxApi
+from common.vault_api import Vault
+from infra.infrastructure import TF
 
 DEFAULT_CLOUD = {"type": "eks", "name": "default"}
 

@@ -1,4 +1,4 @@
-from app.common.kube_api import KctxApi
+from common.kube_api import KctxApi
 
 
 def list_clusters(logger):
