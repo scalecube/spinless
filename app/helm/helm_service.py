@@ -1,7 +1,7 @@
-from app.common.kube_api import KctxApi
-from app.common.vault_api import Vault
-from app.helm.helm_api import HelmDeployment
-from app.helm.registry_api import RegistryApi
+from common.kube_api import KctxApi
+from common.vault_api import Vault
+from helm.helm_api import HelmDeployment
+from helm.registry_api import RegistryApi
 
 
 def __common_params(data):
