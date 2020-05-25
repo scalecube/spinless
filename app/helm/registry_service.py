@@ -1,4 +1,4 @@
-from app.helm.registry_api import RegistryApi
+from helm.registry_api import RegistryApi
 
 
 def create_registry(logger, data):

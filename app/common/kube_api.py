@@ -6,8 +6,8 @@ import time
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
-from app.common.shell import shell_await
-from app.common.vault_api import Vault
+from common.shell import shell_await
+from common.vault_api import Vault
 
 VALUT_AUTH = "vault-auth"
 

@@ -1,4 +1,4 @@
-from app.common.vault_api import Vault
+from common.vault_api import Vault
 
 STATUS_OK_ = {"status": "OK"}
 APP_REG_PATH = "registries"
