@@ -56,6 +56,18 @@ class Vault:
             self.logger.info("Vault create_role exception is: {}".format(e))
             return str(e), 1
 
+    def create_identity_role(self, role, template):
+        key = f'{self.owner}-{self.repo}-role'
+        try:
+            self.__auth_client()
+            self.client.secrets.identity.
+
+        except Exception as ex:
+            self.logger.info("Vault create_identity_role exception is: {}".format(ex))
+            return str(ex), 1
+        pass
+
+
     def read(self, path):
         self.__auth_client()
         return self.client.read(path)

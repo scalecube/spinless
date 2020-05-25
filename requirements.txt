@@ -2,7 +2,7 @@ Flask==1.1
 Flask-API
 requests==2.22.0
 Jinja2==2.11.1
-hvac==0.9.6
+hvac==0.10.2
 PyYAML==5.2
 tailer==0.4.1
 psutil==5.7.0
