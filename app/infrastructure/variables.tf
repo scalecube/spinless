@@ -53,6 +53,4 @@ variable "nodePools" {
   type = map
 }
 
-variable TF_TOKEN {
-  type = string
-}
+variable "token" {}
