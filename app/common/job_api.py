@@ -6,7 +6,7 @@ from multiprocessing import Process, Value
 
 import psutil
 
-from app.common.log_api import JobLogger
+from log_api import JobLogger
 
 jobs_dict = dict()
 
