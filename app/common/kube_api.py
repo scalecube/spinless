@@ -6,8 +6,8 @@ import time
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
-from libs.shell import shell_await
-from libs.vault_api import Vault
+from app.common.shell import shell_await
+from app.common.vault_api import Vault
 
 VALUT_AUTH = "vault-auth"
 
@@ -94,7 +94,7 @@ class KctxApi:
 
             # build the cluster config and write to file
             with open(conf_path, "w") as kube_conf:
-                j2_env = Environment(loader=FileSystemLoader("templates"),
+                j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
                                      trim_blocks=True)
                 gen_template = j2_env.get_template('cluster_config.j2').render(
                     cert_authority=str(cluster_cert),
@@ -110,7 +110,7 @@ class KctxApi:
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
             with open(sa_path, "w") as vault_sa:
-                j2_env = Environment(loader=FileSystemLoader("templates"),
+                j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
                                      trim_blocks=True)
                 gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VALUT_AUTH)
                 vault_sa.write(gen_template)
@@ -262,7 +262,7 @@ class KctxApi:
         """
         f_path = "{}/{}.yaml".format(root_path, template_name)
         with open(f_path, "w") as f:
-            j2_env = Environment(loader=FileSystemLoader("templates"),
+            j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('{}.j2'.format(template_name)).render(**params)
             f.write(gen_template)

@@ -39,7 +39,7 @@ jobs:
 
     - name: Check Helm package
       run: |
-        cd ./helm
+        cd ./charts
         helm lint ./scalecube-spinless
         helm package ./scalecube-spinless
 

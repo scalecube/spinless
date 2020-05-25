@@ -1,5 +1,5 @@
-from libs.cloud_provider_api import CloudApi
-from libs.vault_api import Vault
+from app.common.vault_api import Vault
+from app.infra.cloud_provider_api import CloudApi
 
 __SUPPORTED_TYPES = "eks"
 
@@ -37,4 +37,3 @@ def create_cloud_secret(logger, secret_name, aws_access_key, aws_secret_key):
                 aws_access_key=aws_access_key,
                 aws_secret_key=aws_secret_key)
     return {f"Secret {secret_name}": "added"}
-

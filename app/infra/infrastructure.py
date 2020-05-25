@@ -1,14 +1,14 @@
 import base64
+import json
 import os
 import shlex
 import time
-import json
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
 
-from libs.kube_api import KctxApi
-from libs.shell import shell_await
+from app.common.kube_api import KctxApi
+from app.common.shell import shell_await
 
 KUBECONF_FILE = "kubeconfig"
 TF_VARS_FILE = 'tfvars.tf'
@@ -60,7 +60,7 @@ class TF:
                               )
         role_arn = client.get_role(RoleName='eks-node-role-{}'.format(self.cluster_name))['Role']['Arn']
         with open("{}/nodes_cm.yaml".format(self.tmp_root_path), "w") as nodes_cm:
-            j2_env = Environment(loader=FileSystemLoader("/opt/templates/"),
+            j2_env = Environment(loader=FileSystemLoader("/opt/app/infra/templates/"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
             nodes_cm.write(gen_template)
@@ -177,8 +177,7 @@ class TF:
 
     def delete_kube(self):
         self.__create_vars_file()
-        cmd = "terraform destroy -var-file={}/{} -auto-approve {}".format(self.tmp_root_path, TF_VARS_FILE,
-                                                                          self.tf_working_dir)
+        cmd = f"terraform destroy -var-file={self.tmp_root_path}/{TF_VARS_FILE} -auto-approve {self.tf_working_dir}"
         yield "Actually destroying cluster. This may take time... {}".format(cmd), None
         res, outp = shell_await(shlex.split(cmd), with_output=True, cwd=self.tf_state_dir,
                                 timeout=900)

@@ -1,10 +1,12 @@
+import json
+import time
 import uuid
 from enum import Enum
 from multiprocessing import Process, Value
 
 import psutil
 
-from libs.log_api import *
+from app.common.log_api import JobLogger
 
 jobs_dict = dict()
 
@@ -56,7 +58,7 @@ class Job:
     def __init__(self, func, args, data):
         self.job_id = str(uuid.uuid1())
         self.data = data
-        self.logger = JobLogger( self.job_id)
+        self.logger = JobLogger(self.job_id)
         self.proc = Process(target=func, args=(self, args))
         self.status = Status(self.job_id)
 
