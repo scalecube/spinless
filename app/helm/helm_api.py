@@ -12,14 +12,13 @@ from app.common.shell import shell_await
 
 class HelmDeployment:
 
-    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, image_tag, repo, branch, registries,
+    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, image_tag, repo, registries,
                  service_role, helm_version):
 
         self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
         self.logger = logger
         self.owner = owner
         self.repo = repo
-        self.branch = branch
         self.posted_values = posted_values
         self.helm_version = helm_version
         self.timestamp = round(time.time() * 1000)
@@ -132,7 +131,7 @@ class HelmDeployment:
         # actually call helm install
         helm_cmd = self.get_helm_cmd()
         helm_install_cmd = [helm_cmd, "upgrade",
-                            f'{self.owner}-{self.repo}-{self.branch}',
+                            f'{self.owner}-{self.repo}-{self.image_tag}',
                             f'{self.helm_dir}/{self.repo}',
                             "--debug", "--install", "--namespace", self.namespace,
                             "-f", path_to_values_yaml,
