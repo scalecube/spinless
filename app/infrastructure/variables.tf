@@ -52,5 +52,3 @@ variable "nodePools" {
   }
   type = map
 }
-
-variable "token" {}
