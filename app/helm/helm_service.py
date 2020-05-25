@@ -5,19 +5,17 @@ from app.helm.registry_api import RegistryApi
 
 
 def __common_params(data):
-    if not all(k in data for k in ("namespace", "sha")):
-        return "Not all mandatory fields provided: \"namespace\", \"sha\"", 1
+    if "namespace" not in data:
+        return "Not all mandatory fields provided: \"namespace\"", 1
     result = {
         'namespace': data["namespace"],
-        'sha': data["sha"],
-        'pr': f'PR{str(data.get("pr", "none"))}'
     }
     return result, 0
 
 
-def __helm_params(service, reg_api, kctx_api, job_ref, pr):
-    if not all(k in service for k in ("owner", "repo", "branch", "registry", "cluster")):
-        return "owner/repo/branch/registry/cluster are mandatory ", 1
+def __helm_params(service, reg_api, kctx_api, job_ref):
+    if not all(k in service for k in ("owner", "repo", "registry", "cluster")):
+        return "owner/repo/registry/cluster are mandatory ", 1
     registries_fetched, err = __prepare_regs(service["registry"], reg_api)
     if err != 0:
         return registries_fetched, err
@@ -31,7 +29,7 @@ def __helm_params(service, reg_api, kctx_api, job_ref, pr):
                      f' Will use default k8 context for current vm')
         k8s_cluster_conf = {"cluster_name": service["cluster"]}
     service["k8s_cluster_conf"] = k8s_cluster_conf
-    service["image_tag"] = service.get("image_tag", service["branch"])
+    service["image_tag"] = service.get("image_tag")
     return service, 0
 
 
@@ -67,7 +65,7 @@ def helm_deploy(job_ref, app_logger):
 
         services = []
         for service in data.get("services", []):
-            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref, data.get("pr"))
+            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref)
             if code != 0:
                 return job_ref.complete_err(dependency)
             services.append(dependency)
@@ -91,7 +89,7 @@ def helm_deploy(job_ref, app_logger):
         service = data.get("service")
         if service:
             job_ref.emit("RUNNING", f'Installing service {service["repo"]}')
-            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref, data.get("pr"))
+            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
             if code != 0:
                 return job_ref.complete_err(target_service)
 
@@ -116,7 +114,7 @@ def helm_deploy(job_ref, app_logger):
 
 def __install_single_helm(job_ref, app_logger, common_props, helm):
     posted_values = {**common_props,
-                     **{k: helm[k] for k in helm if k in ("owner", "repo", "branch")}}
+                     **{k: helm[k] for k in helm if k in ("owner", "repo", "image_tag")}}
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
@@ -125,8 +123,7 @@ def __install_single_helm(job_ref, app_logger, common_props, helm):
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
         deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"], common_props["namespace"], posted_values,
-                                    helm["owner"], helm["image_tag"], helm["repo"], helm["branch"], helm["registry"],
-                                    service_role,
+                                    helm["owner"], helm["image_tag"], helm["repo"], helm["registry"], service_role,
                                     "0.0.1")
         for (msg, code) in deployment.install_package():
             if code is None:
