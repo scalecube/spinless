@@ -2,9 +2,9 @@ from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
 # Blueprint Configuration
-from app.common.job_api import create_job, cancel_job, get_job_status
-from app.common.log_api import tail_f
-from app.helm.helm_service import helm_deploy
+from common.job_api import create_job, cancel_job, get_job_status
+from common.log_api import tail_f
+from helm.helm_service import helm_deploy
 
 helm = Blueprint(name='helm', import_name=__name__, url_prefix="/helm/deploy")
 
