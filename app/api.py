@@ -6,8 +6,8 @@ from flask import request, Response, abort
 from flask_api import FlaskAPI
 
 from helm import helm
-from app.infra.cloud_service import create_cloud_secret
-from app.infra.infra import infra
+from infra.cloud_service import create_cloud_secret
+from infra.infra import infra
 
 load_dotenv()
 
