@@ -16,7 +16,7 @@ RESERVED_NAMESPACES = {"master", "develop"}
 infra = Blueprint(name='infra', import_name=__name__, url_prefix="/clusters")
 
 
-@infra.route("/", methods=['GET', 'POST'])
+@infra.route("/", methods=['GET', 'POST'], strict_slashes=False)
 def infra_route():
     app.logger.info(f"Request to /clusters is {request['method']}")
     if request.method == 'POST':
