@@ -1,6 +1,8 @@
 terraform {
-  backend "local" {
-    path = "../state/tfstate/terraform.tfstate"
+  backend "remote" {
+    organization = "Exberry"
+    workspaces {
+      prefix = "exberry-"
+    }
   }
 }
-
