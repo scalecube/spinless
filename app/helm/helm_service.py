@@ -83,7 +83,7 @@ def helm_deploy(job_ref, app_logger):
                 job_ref.emit("RUNNING", f'Service installed: {service["repo"]}')
                 installed_services.append(service["repo"])
             else:
-                job_ref.emit("RUNNING", f'Service installation failed: {service["repo"]}, but proceed with job')
+                job_ref.emit("RUNNING", f'Service installation failed: {service["repo"]} ({msg})')
                 failed_services.append(service["repo"])
                 # return job_ref.complete_err(f'Failed to install service {service["repo"]}. Reason: {msg}')
 

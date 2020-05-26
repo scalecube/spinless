@@ -30,7 +30,7 @@ def infra_route():
     return list_clusters(app.logger)
 
 
-@infra.route("/<cluster_name>", methods=['DELETE'])
+@infra.route("/<cluster_name>", methods=['DELETE'], strict_slashes=False)
 def kubernetes_cluster_destroy(cluster_name):
     if cluster_name in RESERVED_CLUSTERS:
         return abort(400, Response("Please don't remove this cluster: {}".format(cluster_name)))
@@ -39,13 +39,13 @@ def kubernetes_cluster_destroy(cluster_name):
     return jsonify({'id': job.job_id})
 
 
-@infra.route("/<cluster_name>/namespaces", methods=['GET'])
+@infra.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
 def kubernetes_list_ns(cluster_name):
     app.logger.info(f"Request get namespaces for cluster {cluster_name}")
     return jsonify(get_ns(cluster_name, app.logger))
 
 
-@infra.route("/<cluster_name>/namespaces/<namespace>", methods=['DELETE'])
+@infra.route("/<cluster_name>/namespaces/<namespace>", methods=['DELETE'], strict_slashes=False)
 def kubernetes_delete_ns(cluster_name, namespace):
     app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
     if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
@@ -56,7 +56,7 @@ def kubernetes_delete_ns(cluster_name, namespace):
 #
 # Cloud providers CRUD
 #
-@infra.route('/providers/<provider_type>/<name>', methods=['POST'])
+@infra.route('/providers/<provider_type>/<name>', methods=['POST'], strict_slashes=False)
 def create_cloud_provider_api(provider_type, name):
     data = request.get_json()
     if not data:
