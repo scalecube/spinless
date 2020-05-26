@@ -1,7 +1,7 @@
 data "aws_availability_zones" "available" {}
 
 resource "aws_vpc" "kube_vpc" {
-  cidr_block = "10.10.0.0/16"
+  cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support = true
 
@@ -23,7 +23,7 @@ resource "aws_route" "public_route" {
 resource "aws_subnet" "public" {
 
   availability_zone = data.aws_availability_zones.available.names[0]
-  cidr_block        = "10.10.1.0/20"
+  cidr_block        = "10.0.1.0/20"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
@@ -35,7 +35,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "public2" {
 
   availability_zone = data.aws_availability_zones.available.names[1]
-  cidr_block        = "10.10.16.0/20"
+  cidr_block        = "10.0.16.0/20"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
@@ -55,7 +55,7 @@ resource "aws_route_table" "public_subnet_route_table" {
 resource "aws_subnet" "kube01" {
 
   availability_zone = data.aws_availability_zones.available.names[0]
-  cidr_block        = "10.10.32.0/20"
+  cidr_block        = "10.0.32.0/20"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
@@ -67,7 +67,7 @@ resource "aws_subnet" "kube01" {
 resource "aws_subnet" "kube02" {
 
   availability_zone = data.aws_availability_zones.available.names[1]
-  cidr_block        = "10.10.48.0/20"
+  cidr_block        = "10.0.48.0/20"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
