@@ -18,6 +18,7 @@ infra = Blueprint(name='infra', import_name=__name__, url_prefix="/clusters")
 
 @infra.route("/", methods=['GET', 'POST'])
 def infra_route():
+    app.logger.info(f"Request to /clusters is {request['method']}")
     if request.method == 'POST':
         data = request.get_json()
         if not data:
