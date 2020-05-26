@@ -28,7 +28,7 @@ class TF:
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
-        self.tf_working_dir = f"{curr_dir}/{os.getenv('TF_WORKING_DIR')}"
+        self.tf_working_dir = f"{os.getenv('APP_WORKING_DIR')}/{os.getenv('TF_WORKING_DIR')}"
         self.tf_state_dir = f"{os.getenv('TF_STATE')}"
         self.tmp_root_path = f"/tmp/{timestamp}"
         os.mkdir(self.tmp_root_path)
