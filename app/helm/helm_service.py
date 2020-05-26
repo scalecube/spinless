@@ -10,7 +10,8 @@ def __common_params(data):
     result = {
         'namespace': data["namespace"],
         'sha': data["sha"],
-        'env': data.get('env',{})
+        'env': data.get('env', {}),
+        'base_branch': data.get('base_branch')
     }
     return result, 0
 
@@ -122,6 +123,7 @@ def __install_single_helm(job_ref, app_logger, common_props, helm):
                       owner=helm["owner"],
                       repo=helm["repo"])
         service_role, err_code = vault.create_role(helm["cluster"])
+        vault.prepare_service_path(common_props.get("base_branch"), common_props.get('namespace'))
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
         deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"], common_props["namespace"], posted_values,
