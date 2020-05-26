@@ -55,25 +55,25 @@ class HelmDeployment:
         url = f'{helm_reg_url}{chart_path}'
         r = requests.get(url)
         if r.status_code != 200:
-            return "Failed to find artifact in path {} or {} not available".format(chart_path, reg['path']), 1
+            return f"Failed to find artifact in path {chart_path} or {reg['path']} not available", 1
         else:
             return r.content, 0
 
     def enrich_values_yaml(self):
-        with open("{}/{}/values.yaml".format(self.helm_dir, self.repo)) as default_values_yaml:
+        with open(f"{self.helm_dir}/{self.repo}/values.yaml") as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
 
         # inti traefik vaules id necessary:
         if default_values.get("traefik"):
             dns_suffix = self.k8s_cluster_conf.get("dns_suffix")
             if not dns_suffix:
-                self.logger.warn("traefik ocnf found in chart but nothing configured for cluster")
+                self.logger.warn("traefik conf found in chart but nothing configured for cluster")
             else:
-                self.logger.info("Trafik config detected in values.yaml. "
-                                 "Setting up the traefik values with dns suffix: {}".format(dns_suffix))
+                self.logger.info("Traefik config detected in values.yaml. "
+                                 f"Setting up the traefik values with dns suffix: {dns_suffix}")
                 default_values["traefik"]["dns_suffix"] = dns_suffix
 
-        self.logger.info("Default values are: {}".format(default_values))
+        self.logger.info(f"Default values are: {default_values}")
         # update values with ones posted in request
         default_values.update(self.posted_values)
         default_values["service_account"] = f'{self.owner}-{self.repo}'
@@ -82,7 +82,7 @@ class HelmDeployment:
                                    "role": self.service_role,
                                    "jwtprovider": f'kubernetes-{self.cluster_name}'}
         default_values["images"]["service"]["tag"] = self.image_tag
-        self.logger.info("Env before writing: {}".format(default_values))
+        self.logger.info(f"Env before writing: {default_values}")
         path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
@@ -92,7 +92,7 @@ class HelmDeployment:
         yield "Preparing package...", None
         prepare_pkg_result, err = self.prepare_package()
         if err != 0:
-            yield "Preparing package failed: {}".format(prepare_pkg_result), err
+            yield f"Preparing package failed: {prepare_pkg_result}", err
         else:
             helm_tag_gz_path = f'{self.target_path}/{self.repo}.tgz'
             with open(helm_tag_gz_path, "wb") as helm_archive:
@@ -120,9 +120,9 @@ class HelmDeployment:
         # create k8 namespace if necessary
         kubectl = self.get_kubectl_cmd()
 
-        create_namespace_cmd = [kubectl, "create", "namespace", "{}".format(self.namespace)]
+        create_namespace_cmd = [kubectl, "create", "namespace", f"{self.namespace}"]
         shell_await(create_namespace_cmd, env)
-        self.logger.info("Kubernetes namespace {} created".format(self.namespace))
+        self.logger.info(f"Kubernetes namespace {self.namespace} created")
 
         path_to_values_yaml, values_content = self.enrich_values_yaml()
 
@@ -138,8 +138,8 @@ class HelmDeployment:
                             ]
         if dockerjson:
             helm_install_cmd.append('--set')
-            helm_install_cmd.append('dockerjsontoken={}'.format(dockerjson))
-        yield "Installing package: {}".format(helm_install_cmd), None
+            helm_install_cmd.append(f'dockerjsontoken={dockerjson}')
+        yield f"Installing package: {helm_install_cmd}", None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         if helm_install_res != 0:
             for s in stdout_iter:

@@ -5,10 +5,12 @@ from helm.registry_api import RegistryApi
 
 
 def __common_params(data):
-    if "namespace" not in data:
-        return "Not all mandatory fields provided: \"namespace\"", 1
+    if not all(k in data for k in ("namespace", "sha")):
+        return "Not all mandatory fields provided: \"namespace\", \"sha\"", 1
     result = {
         'namespace': data["namespace"],
+        'sha': data["sha"],
+        'env': data.get('env',{})
     }
     return result, 0
 
