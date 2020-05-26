@@ -29,7 +29,7 @@ class TF:
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
         self.tf_working_dir = f"{curr_dir}/{os.getenv('TF_WORKING_DIR')}"
-        self.tf_state_dir = f"{curr_dir}/{os.getenv('TF_STATE')}"
+        self.tf_state_dir = f"{os.getenv('TF_STATE')}"
         self.tmp_root_path = f"/tmp/{timestamp}"
         os.mkdir(self.tmp_root_path)
         self.kube_config_file_path = f"{self.tmp_root_path}/{KUBECONF_FILE}"
