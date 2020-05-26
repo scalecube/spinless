@@ -16,18 +16,15 @@ RESERVED_NAMESPACES = {"master", "develop"}
 infra = Blueprint(name='infra', import_name=__name__, url_prefix="/clusters")
 
 
-@infra.route("/", methods=['POST'])
-def kubernetes_cluster_create():
-    data = request.get_json()
-    if not data:
-        return abort(400, Response("Give some payload"))
-    app.logger.info("Request create cluster is {}".format(data))
-    job = create_job(kube_cluster_create, app.logger, data).start()
-    return jsonify({'id': job.job_id})
-
-
-@infra.route("/", methods=['GET'])
-def list_clusters_api():
+@infra.route("/", methods=['GET', 'POST'])
+def infra_route():
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return abort(400, Response("Give some payload"))
+        app.logger.info("Request create cluster is {}".format(data))
+        job = create_job(kube_cluster_create, app.logger, data).start()
+        return jsonify({'id': job.job_id})
     app.logger.info("Request to list clusters")
     return list_clusters(app.logger)
 
