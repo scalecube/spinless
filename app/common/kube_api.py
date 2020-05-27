@@ -94,7 +94,7 @@ class KctxApi:
 
             # build the cluster config and write to file
             with open(conf_path, "w") as kube_conf:
-                j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
+                j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
                                      trim_blocks=True)
                 gen_template = j2_env.get_template('cluster_config.j2').render(
                     cert_authority=str(cluster_cert),
@@ -102,6 +102,7 @@ class KctxApi:
                     cluster_name=cluster_name)
                 kube_conf.write(gen_template)
         except Exception as ex:
+            print(f"Error when generating kubeconfig: {ex}")
             return str(ex), 1
         return gen_template, 0
 
