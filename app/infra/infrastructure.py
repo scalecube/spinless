@@ -60,7 +60,7 @@ class TF:
                               )
         role_arn = client.get_role(RoleName='eks-node-role-{}'.format(self.cluster_name))['Role']['Arn']
         with open("{}/nodes_cm.yaml".format(self.tmp_root_path), "w") as nodes_cm:
-            j2_env = Environment(loader=FileSystemLoader("/opt/app/infra/templates/"),
+            j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
             nodes_cm.write(gen_template)

@@ -111,7 +111,7 @@ class KctxApi:
             os.makedirs(root_path, exist_ok=True)
             sa_path = "{}/vault_sa.yaml".format(root_path)
             with open(sa_path, "w") as vault_sa:
-                j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
+                j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
                                      trim_blocks=True)
                 gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VAULT_AUTH)
                 vault_sa.write(gen_template)
@@ -263,7 +263,7 @@ class KctxApi:
         """
         f_path = "{}/{}.yaml".format(root_path, template_name)
         with open(f_path, "w") as f:
-            j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
+            j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('{}.j2'.format(template_name)).render(**params)
             f.write(gen_template)
