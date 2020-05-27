@@ -9,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 from common.shell import shell_await
 from common.vault_api import Vault
 
-VALUT_AUTH = "vault-auth"
+VAULT_AUTH = "vault-auth"
 
 STATUS_OK_ = {"status": "OK"}
 DEFAULT_K8S_CTX_ID = "default"
@@ -112,7 +112,7 @@ class KctxApi:
             with open(sa_path, "w") as vault_sa:
                 j2_env = Environment(loader=FileSystemLoader("app/infra/templates"),
                                      trim_blocks=True)
-                gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VALUT_AUTH)
+                gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VAULT_AUTH)
                 vault_sa.write(gen_template)
             create_roles_cmd = ['kubectl', "create", "-f", sa_path]
             # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud will be used
