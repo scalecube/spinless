@@ -27,7 +27,7 @@ class Vault:
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
         self.client = hvac.Client()
-        self.oidc_client = VaultOidcExt()
+        self.oidc_client = VaultOidcExt(self.client.url, self.client.token)
 
     def __create_policy(self):
         policy_name = f'{self.owner}-{self.repo}-policy'
@@ -70,7 +70,7 @@ class Vault:
             self.logger.debug(f'oidc key created: {oidc_key}')
 
             for role in roles:
-                # creatre oidc role
+                # create oidc role
                 template = f'{{"permissions":"{role}"}}'
                 self.oidc_client.oidc_create_role(role, oidc_key, template)
                 self.logger.debug(f'oidc role created: "{role}". template: "{template}"')

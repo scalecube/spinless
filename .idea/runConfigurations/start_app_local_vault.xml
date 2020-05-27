@@ -1,21 +1,21 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="api" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="start_app local vault" type="PythonConfigurationType" factoryName="Python">
     <module name="spinless" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="dev_mode" value="True" />
+      <env name="VAULT_ADDR" value="http://localhost:8200" />
       <env name="VAULT_SECRETS_PATH" value="secretv2/scalecube/spinless" />
       <env name="TF_WORKING_DIR" value="infrastructure" />
       <env name="TF_STATE" value="state/tfstate" />
+      <env name="M2M_AUTH_ENABLED" value="True" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />
     <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
-    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/app/api.py" />
     <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="false" />
