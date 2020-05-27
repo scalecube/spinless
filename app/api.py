@@ -33,7 +33,7 @@ app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 
-@app.route("/secrets/cloud", methods=['POST'])
+@app.route("/secrets/cloud", methods=['POST'], strict_slashes=False)
 def create_aws_secret():
     data = request.get_json()
     secret_name = data.get("secret_name") or abort(400, Response("Give secret_name"))
