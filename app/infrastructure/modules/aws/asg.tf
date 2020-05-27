@@ -1,12 +1,6 @@
-data "aws_ami" "eks-worker" {
-   filter {
-     name   = "name"
-     values = ["amazon-eks-node-1*"]
-   }
-
-   most_recent = true
-   owners      = ["602401143452"] # Amazon EKS AMI Account ID
- }
+data "aws_ssm_parameter" "eks_node" {
+  name = "/aws/service/eks/optimized-ami/1.16/amazon-linux-2/recommended/image_id"
+}
 
 data "aws_region" "current" {
 }
@@ -30,7 +24,7 @@ resource "aws_launch_configuration" "nodes_configuration" {
   name                        = "aws_lc_${each.key}"
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.eks-node.name
-  image_id                    = data.aws_ami.eks-worker.id
+  image_id                    = data.aws_ssm_parameter.eks_node.value
   instance_type               = each.value["instanceType"]
   key_name                    = "kube_test"
   security_groups  = [aws_security_group.eks-node.id]
