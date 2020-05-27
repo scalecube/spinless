@@ -88,11 +88,12 @@ class Vault:
         self.__auth_client()
         try:
             existing = self.client.read(service_path)
-            if existing and existing.gat('data'):
+            if existing and existing.get('data'):
                 return 0, service_path
             else:
                 base_secrets = self.client.read(base_path)
-                self.client.write(service_path, **base_secrets.get('data', {}))
+                if base_secrets and base_secrets.get('data'):
+                    self.client.write(service_path, **base_secrets.get('data'))
         except Exception as e:
             self.logger.warning(f"Failed prepare service path: {e}")
             return 1, str(e)
