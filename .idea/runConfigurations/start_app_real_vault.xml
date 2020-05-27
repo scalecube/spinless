@@ -11,6 +11,7 @@
       <env name="VAULT_JWT_PATH" value="/var/run/secrets/kubernetes.io/serviceaccount/token" />
       <env name="TF_WORKING_DIR" value="infrastructure" />
       <env name="TF_STATE" value="state/tfstate" />
+      <env name="M2M_AUTH_ENABLED" value="True" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />

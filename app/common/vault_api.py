@@ -2,12 +2,14 @@ import os
 
 import hvac
 
+from common.vault_ext import VaultOidcExt
+
 SECRET_ROOT = "secretv2"
-ENV_PATH = "environments"
 
 dev_mode = os.getenv("dev_mode", False)
 
 APP_ENV_PATH = "app_env"
+M2M_AUTH_ENABLED = os.getenv("M2M_AUTH_ENABLED", False)
 
 
 class Vault:
@@ -24,24 +26,26 @@ class Vault:
             self.service_role = os.getenv("VAULT_ROLE")
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
+        self.client = hvac.Client()
+        self.oidc_client = VaultOidcExt()
 
     def __create_policy(self):
-        policy_name = f"{self.owner}-{self.repo}-policy"
-        service_path = f"{SECRET_ROOT}/{self.owner}/{self.repo}/*"
-        env_path = f"{SECRET_ROOT}/{self.owner}/{ENV_PATH}/*"
+        policy_name = f'{self.owner}-{self.repo}-policy'
+        service_path = f'{SECRET_ROOT}/{self.owner}/{self.repo}/*'
         service_policy = f'path "{service_path}" {{ capabilities = ["create", "read", "update", "delete", "list"]}}'
-        env_policy = f'path "{env_path}" {{ capabilities = ["read", "list"]}}'
-
         try:
             self.__auth_client()
-            self.client.sys.create_or_update_policy(policy_name, f"{service_policy}\n{env_policy}")
+            self.client.sys.create_or_update_policy(policy_name, service_policy)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
 
     def create_role(self, cluster_name):
         self.logger.info("Creating service role")
-        policy_name = self.__create_policy()
+        policies = [self.__create_policy()]
+        consumer_policy_name = f"{self.owner}-{self.repo}-service-consumer-policy"
+        if M2M_AUTH_ENABLED:
+            policies.append(consumer_policy_name)
         try:
             self.__auth_client()
             service_account_name = f'{self.owner}-{self.repo}'
@@ -50,23 +54,34 @@ class Vault:
                                     mount_point=f"kubernetes-{cluster_name}",
                                     bound_service_account_names=service_account_name,
                                     bound_service_account_namespaces="*",
-                                    policies=[policy_name], ttl="1h")
+                                    policies=policies, ttl="1h")
             return role_name, 0
         except Exception as e:
             self.logger.info("Vault create_role exception is: {}".format(e))
             return str(e), 1
 
-    def create_identity_role(self, role, template):
-        key = f'{self.owner}-{self.repo}-role'
+    def setup_oidc(self, roles):
+        if not M2M_AUTH_ENABLED or len(roles) == 0:
+            return 0, 'ok'
+        oidc_key = f'{self.owner}-{self.repo}'
         try:
             self.__auth_client()
-            self.client.secrets.identity.
+            self.oidc_client.oidc_create_key(oidc_key)
+            self.logger.debug(f'oidc key created: {oidc_key}')
 
-        except Exception as ex:
-            self.logger.info("Vault create_identity_role exception is: {}".format(ex))
-            return str(ex), 1
-        pass
+            for role in roles:
+                # creatre oidc role
+                template = f'{{"permissions":"{role}"}}'
+                self.oidc_client.oidc_create_role(role, oidc_key, template)
+                self.logger.debug(f'oidc role created: "{role}". template: "{template}"')
 
+                # create policy
+                oidc_policy_name = f"{role}-id-token-policy"
+                oidc_policy = f'path "identity/oidc/token/{role}" {{capabilities=["read"]}}'
+                self.client.sys.create_or_update_policy(oidc_policy_name, oidc_policy)
+
+        except Exception as e:
+            return 1, str(e)
 
     def read(self, path):
         self.__auth_client()
@@ -139,5 +154,6 @@ class Vault:
                     self.client.auth_kubernetes(self.service_role, jwt)
             else:
                 self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
+            self.oidc_client = VaultOidcExt(self.client.url, self.client.token)
         except Exception as ex:
             print("Error authenticating vault: {}".format(ex))
