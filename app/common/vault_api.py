@@ -9,7 +9,6 @@ SECRET_ROOT = "secretv2"
 dev_mode = os.getenv("dev_mode", False)
 
 APP_ENV_PATH = "app_env"
-M2M_AUTH_ENABLED = os.getenv("M2M_AUTH_ENABLED", False)
 
 
 class Vault:
@@ -29,23 +28,21 @@ class Vault:
         self.client = hvac.Client()
         self.oidc_client = VaultOidcExt(self.client.url, self.client.token)
 
-    def __create_policy(self):
-        policy_name = f'{self.owner}-{self.repo}-policy'
-        service_path = f'{SECRET_ROOT}/{self.owner}/{self.repo}/*'
-        service_policy = f'path "{service_path}" {{ capabilities = ["create", "read", "update", "delete", "list"]}}'
+    def __create_secrets_policy(self):
+        secrets_policy_name = f'{self.owner}-{self.repo}-policy'
+        secrets_service_path = f'{SECRET_ROOT}/{self.owner}/{self.repo}/*'
+        secrets_service_policy = f'path "{secrets_service_path}" {{ capabilities = ["create", "read", "update", "delete", "list"]}}'
         try:
             self.__auth_client()
-            self.client.sys.create_or_update_policy(policy_name, service_policy)
+            self.client.sys.create_or_update_policy(secrets_policy_name, secrets_service_policy)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
-        return policy_name
+        return secrets_policy_name
 
-    def create_role(self, cluster_name):
+    def create_role(self, cluster_name, roles):
         self.logger.info("Creating service role")
-        policies = [self.__create_policy()]
-        consumer_policy_name = f"{self.owner}-{self.repo}-service-consumer-policy"
-        if M2M_AUTH_ENABLED:
-            policies.append(consumer_policy_name)
+        policies = [self.__create_secrets_policy()]
+        policies.extend(map(lambda role: f"{role}-oidc-token-policy", roles))
         try:
             self.__auth_client()
             service_account_name = f'{self.owner}-{self.repo}'
@@ -60,25 +57,26 @@ class Vault:
             self.logger.info("Vault create_role exception is: {}".format(e))
             return str(e), 1
 
-    def setup_oidc(self, roles):
-        if not M2M_AUTH_ENABLED or len(roles) == 0:
+    def setup_oidc(self, roles_templates):
+        if len(roles_templates) == 0:
             return 0, 'ok'
-        oidc_key = f'{self.owner}-{self.repo}'
         try:
             self.__auth_client()
+            oidc_key = f'{self.owner}-{self.repo}'
             self.oidc_client.oidc_create_key(oidc_key)
             self.logger.debug(f'oidc key created: {oidc_key}')
-
-            for role in roles:
+            for role_template in roles_templates:
                 # create oidc role
-                template = f'{{"permissions":"{role}"}}'
+                template = role_template.get('permissions')
+                role = role_template.get('role')
                 self.oidc_client.oidc_create_role(role, oidc_key, template)
                 self.logger.debug(f'oidc role created: "{role}". template: "{template}"')
 
                 # create policy
-                oidc_policy_name = f"{role}-id-token-policy"
+                oidc_policy_name = f"{role}-oidc-token-policy"
                 oidc_policy = f'path "identity/oidc/token/{role}" {{capabilities=["read"]}}'
                 self.client.sys.create_or_update_policy(oidc_policy_name, oidc_policy)
+                self.logger.debug(f"created oidc policy {oidc_policy_name}")
 
         except Exception as e:
             return 1, str(e)

@@ -8,14 +8,14 @@ class VaultOidcExt():
         self.token = token
         self.session = requests.Session()
 
-    def oidc_create_key(self, key):
+    def oidc_create_key(self, key, verification_ttl='1h', rotation_period='1h'):
         url = f"v1/identity/oidc/key/{key}"
-        payload = {"allowed_client_ids": "*", "verification_ttl": "1h", "rotation_period": "1h"}
+        payload = {"allowed_client_ids": "*", "verification_ttl": verification_ttl, "rotation_period": rotation_period}
         return self.__post(url, payload)
 
-    def oidc_create_role(self, role, key, template):
+    def oidc_create_role(self, role, key, template, ttl='1m'):
         url = f"v1/identity/oidc/role/{role}"
-        payload = {"key": key, "template": template}
+        payload = {"key": key, "template": template, 'ttl': ttl}
         return self.__post(url, payload)
 
     def __post(self, url, body):
