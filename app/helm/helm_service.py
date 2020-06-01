@@ -1,8 +1,11 @@
+import os
+
 from common.kube_api import KctxApi
 from common.vault_api import Vault
 from helm.helm_api import HelmDeployment
 from helm.registry_api import RegistryApi
 
+dev_mode = os.getenv("DEV_MODE", False)
 
 def __common_params(data):
     if not all(k in data for k in ("namespace", "sha")):
@@ -26,11 +29,12 @@ def __helm_params(service, reg_api, kctx_api, job_ref):
 
     k8s_cluster_conf, code = kctx_api.get_kubernetes_context(service["cluster"])
     if code != 0:
-        job_ref.emit("WARNING",
-                     f'Failed to get k8 conf for {service["cluster"]}.'
-                     f' Reason: {k8s_cluster_conf}.'
-                     f' Will use default k8 context for current vm')
-        k8s_cluster_conf = {"cluster_name": service["cluster"]}
+        if dev_mode:
+            job_ref.emit("INFO",
+                         f'Failed to get k8 conf for {service["cluster"]}. Using local one')
+            k8s_cluster_conf = {"cluster_name": service["cluster"]}
+        else:
+            return f'Failed to get k8 context for cluster {service["cluster"]}', 1
     service["k8s_cluster_conf"] = k8s_cluster_conf
     service["image_tag"] = service.get("image_tag")
     return service, 0

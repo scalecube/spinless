@@ -5,7 +5,7 @@ import hvac
 SECRET_ROOT = "secretv2"
 ENV_PATH = "environments"
 
-dev_mode = os.getenv("dev_mode", False)
+dev_mode = os.getenv("DEV_MODE", False)
 
 APP_ENV_PATH = "app_env"
 
