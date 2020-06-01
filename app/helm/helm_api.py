@@ -63,7 +63,7 @@ class HelmDeployment:
         with open(f"{self.helm_dir}/{self.repo}/values.yaml") as default_values_yaml:
             default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
 
-        # inti traefik vaules id necessary:
+        # init traefik values if necessary:
         if default_values.get("traefik"):
             dns_suffix = self.k8s_cluster_conf.get("dns_suffix")
             if not dns_suffix:
@@ -74,6 +74,11 @@ class HelmDeployment:
                 default_values["traefik"]["dns_suffix"] = dns_suffix
 
         self.logger.info(f"Default values are: {default_values}")
+
+        # set cluster name in 'env' per helm chart.
+        # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
+        self.posted_values.get('env', {})['VAULT_MOUNT_POINT'] = f'kubernetes-{self.cluster_name}'
+
         # update values with ones posted in request
         default_values.update(self.posted_values)
         default_values["service_account"] = f'{self.owner}-{self.repo}'
