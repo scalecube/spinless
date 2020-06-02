@@ -1,9 +1,9 @@
 import os
 
 import hvac
+from jinja2 import Environment, FileSystemLoader
 
 SECRET_ROOT = "secretv2"
-ENV_PATH = "environments"
 
 dev_mode = os.getenv("DEV_MODE", False)
 
@@ -13,9 +13,11 @@ APP_ENV_PATH = "app_env"
 class Vault:
     def __init__(self, logger,
                  owner=None,
-                 repo=None):
+                 repo=None,
+                 cluster_name=''):
         self.owner = owner
         self.repo = repo
+        self.mount_point = f'kubernetes-{cluster_name}'
         self.dev_mode = dev_mode
         self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
@@ -24,22 +26,22 @@ class Vault:
             self.service_role = os.getenv("VAULT_ROLE")
         self.logger = logger
         self.vault_jwt_token = os.getenv("VAULT_JWT_PATH", '/var/run/secrets/kubernetes.io/serviceaccount/token')
+        self.j2_env = Environment(
+            loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR', os.getcwd())}/common/templates"),
+            trim_blocks=True)
 
     def __create_policy(self):
         policy_name = f"{self.owner}-{self.repo}-policy"
-        service_path = f"{SECRET_ROOT}/{self.owner}/{self.repo}/*"
-        env_path = f"{SECRET_ROOT}/{self.owner}/{ENV_PATH}/*"
-        service_policy = f'path "{service_path}" {{ capabilities = ["create", "read", "update", "delete", "list"]}}'
-        env_policy = f'path "{env_path}" {{ capabilities = ["read", "list"]}}'
-
+        policies = self.j2_env.get_template('service-policies.j2') \
+            .render(secrets_root=SECRET_ROOT, owner=self.owner, repo=self.repo, mount_point=self.mount_point)
         try:
             self.__auth_client()
-            self.client.sys.create_or_update_policy(policy_name, f"{service_policy}\n{env_policy}")
+            self.client.sys.create_or_update_policy(policy_name, policies)
         except Exception as e:
             self.logger.info("Vault create_policy exception is: {}".format(e))
         return policy_name
 
-    def create_role(self, cluster_name):
+    def create_role(self):
         self.logger.info("Creating service role")
         policy_name = self.__create_policy()
         try:
@@ -47,7 +49,7 @@ class Vault:
             service_account_name = f'{self.owner}-{self.repo}'
             role_name = f"{service_account_name}-role"
             self.client.create_role(role_name,
-                                    mount_point=f"kubernetes-{cluster_name}",
+                                    mount_point=self.mount_point,
                                     bound_service_account_names=service_account_name,
                                     bound_service_account_namespaces="*",
                                     policies=[policy_name], ttl="1h")
@@ -128,4 +130,4 @@ class Vault:
             else:
                 self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
         except Exception as ex:
-            print("Error authenticating vault: {}".format(ex))
+            print(f"Error authenticating vault: {str(ex)}")

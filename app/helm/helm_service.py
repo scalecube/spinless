@@ -125,8 +125,9 @@ def __install_single_helm(job_ref, app_logger, common_props, helm):
     try:
         vault = Vault(logger=app_logger,
                       owner=helm["owner"],
-                      repo=helm["repo"])
-        service_role, err_code = vault.create_role(helm["cluster"])
+                      repo=helm["repo"],
+                      cluster_name=helm["cluster"])
+        service_role, err_code = vault.create_role()
         vault.prepare_service_path(common_props.get("base_namespace"), common_props.get('namespace'))
         if err_code != 0:
             return f'Failed to create role: {service_role}', 1
