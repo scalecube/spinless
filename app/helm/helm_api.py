@@ -75,7 +75,7 @@ class HelmDeployment:
                                  f"Setting up the traefik values with dns suffix: {dns_suffix}")
                 default_values["traefik"]["dns_suffix"] = dns_suffix
 
-        default_values['timestamp'] = self.timestamp
+        default_values['timestamp'] = str(self.timestamp)
 
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
