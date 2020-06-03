@@ -80,6 +80,7 @@ class HelmDeployment:
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
         self.posted_values.get('env', {})['VAULT_MOUNT_POINT'] = f'kubernetes-{self.cluster_name}'
+        self.posted_values.get('env')['CLUSTER_NAME'] = self.cluster_name
 
         # update values with ones posted in request
         default_values.update(self.posted_values)

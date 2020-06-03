@@ -32,9 +32,9 @@ class Vault:
 
     def __create_policy(self):
         policy_name = f"{self.owner}-{self.repo}-policy"
-        policies = self.j2_env.get_template('service-policies.j2') \
-            .render(secrets_root=SECRET_ROOT, owner=self.owner, repo=self.repo, mount_point=self.mount_point)
         try:
+            policies = self.j2_env.get_template('service-policies.j2') \
+                .render(secrets_root=SECRET_ROOT, owner=self.owner, repo=self.repo, mount_point=self.mount_point)
             self.__auth_client()
             self.client.sys.create_or_update_policy(policy_name, policies)
         except Exception as e:
