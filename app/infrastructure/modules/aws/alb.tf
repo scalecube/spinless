@@ -38,7 +38,7 @@ resource "aws_security_group_rule" "alb-ingress-access-http" {
 
 resource "aws_alb" "alb" {
   name            = "traefik-${var.cluster-name}"
-  subnets         = [aws_subnet.public.id, aws_subnet.public2.id]
+  subnets         = "${aws_subnet.public.*.id}"
   security_groups = [aws_security_group.traefik.id]
   internal        = false
 
@@ -93,7 +93,7 @@ resource "aws_alb_target_group" "traefik_target_group" {
   }
 }
 
-resource "aws_autoscaling_attachment" "traefik_asg_attachment" {
-  alb_target_group_arn   = aws_alb_target_group.traefik_target_group.arn
-  autoscaling_group_name =  aws_autoscaling_group.nodePool["kubsystem"].id
-}
+#resource "aws_autoscaling_attachment" "traefik_asg_attachment" {
+#  alb_target_group_arn   = aws_alb_target_group.traefik_target_group.arn
+#  autoscaling_group_name = aws_autoscaling_group.nodePool["kubsystem"].id
+#}

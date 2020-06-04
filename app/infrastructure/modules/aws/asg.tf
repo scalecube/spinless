@@ -27,7 +27,7 @@ resource "aws_launch_configuration" "nodes_configuration" {
   image_id                    = data.aws_ssm_parameter.eks_node.value
   instance_type               = each.value["instanceType"]
   key_name                    = "kube_test"
-  security_groups  = [aws_security_group.eks-node.id]
+  security_groups             = [aws_security_group.eks-node.id]
 
 /*
   user_data_base64 = base64encode(local.eks-node-userdata-${each.value["taint"]})
@@ -54,7 +54,7 @@ resource "aws_autoscaling_group" "nodePool" {
   max_size             = each.value["maxCount"]
   min_size             = each.value["minCount"]
   name                 = "asg-eks-${each.value["taint"]}-${var.cluster-name}"
-  vpc_zone_identifier  = [aws_subnet.kube01.id]
+  vpc_zone_identifier  = "${aws_subnet.kube.*.id}"
 
   depends_on = [aws_launch_configuration.nodes_configuration]
 

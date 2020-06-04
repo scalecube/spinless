@@ -8,6 +8,11 @@ variable "aws_access_key" {
   type        = string
 }
 
+variable "vpc_cidr" {
+  description = "VPC CIDR"
+  default     = "10.0.0.0/16"
+}
+
 variable "aws_secret_key" {
   description = "AWS Secret key"
   type        = string

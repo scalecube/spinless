@@ -7,7 +7,7 @@ resource "aws_eks_cluster" "eks" {
     endpoint_private_access = true
     endpoint_public_access = true
     security_group_ids = [aws_security_group.eks-master.id]
-    subnet_ids         = [aws_subnet.public.id, aws_subnet.kube01.id, aws_subnet.kube02.id]
+    subnet_ids         = flatten([aws_subnet.public.*.id, aws_subnet.kube.*.id])
   }
 
   depends_on = [
