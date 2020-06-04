@@ -78,8 +78,15 @@ class Vault:
         self.client.write(path, wrap_ttl=None, **data)
 
     def delete(self, path):
-        self.__auth_client()
-        self.client.delete(path)
+        try:
+            self.__auth_client()
+            self.client.delete(path)
+            return path, 0
+        except Exception as ex:
+            return str(ex), 1
+
+    def delete_service_path(self, namespace):
+        return self.delete(f'{SECRET_ROOT}/{self.owner}/{self.repo}/{namespace}')
 
     def prepare_service_path(self, base_ns, target_ns):
         service_path = f"{SECRET_ROOT}/{self.owner}/{self.repo}/{target_ns}"

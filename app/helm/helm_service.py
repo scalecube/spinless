@@ -7,6 +7,7 @@ from helm.registry_api import RegistryApi
 
 dev_mode = os.getenv("DEV_MODE", False)
 
+
 def __common_params(data):
     if not all(k in data for k in ("namespace", "sha")):
         return "Not all mandatory fields provided: \"namespace\", \"sha\"", 1
@@ -117,6 +118,28 @@ def helm_deploy(job_ref, app_logger):
                 f'{len(installed_services)}/{len(installed_services) + len(failed_services)} services deployed, namespace={data["namespace"]}')
     except Exception as ex:
         job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
+
+
+def helm_destroy(job_ref, app_logger):
+    data = job_ref.data
+    clusters = data.get("clusters")
+    namespace = data.get("namespace")
+    services = data.get("services")
+    owner = data.get("owner")
+    try:
+        job_ref.emit("RUNNING", f'Destroying environment: {namespace} in cluster {clusters}')
+        # destroy namespace
+
+        [KctxApi(app_logger).delete_ns(cluster_, namespace) for cluster_ in clusters]
+        job_ref.emit("RUNNING", 'Deleted namespace from k8')
+
+        for repo in services:
+            s, err = Vault(app_logger, owner=owner, repo=repo).delete_service_path(namespace)
+            if err != 0:
+                job_ref.emit("RUNNING", f"Failed to delete vault path: {s}")
+        job_ref.complete_succ(f'Destroyed env {namespace} with {len(services)} services')
+    except Exception as ex:
+        job_ref.complete_err(f'Failed to destroy env {namespace}: {str(ex)}')
 
 
 def __install_single_helm(job_ref, app_logger, common_props, helm):
