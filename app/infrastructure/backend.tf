@@ -1,8 +1,8 @@
 terraform {
-  backend "local" {
-  #  organization = "Exberry"
-  #  workspaces {
-  #    prefix = "exberry-"
-  #  }
+  backend "remote" {
+    organization = "Exberry"
+    workspaces {
+      prefix = "exberry-"
+    }
   }
 }
