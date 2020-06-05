@@ -50,9 +50,9 @@ def helm_deploy_status(job_id):
 def destroy_env():
     data = request.get_json()
     if not data:
-        return abort(400, Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
-    if not all(k in data for k in ("clusters", "namespace", "services", "owner")):
-        return abort(400, Response( 'Not all mandatory fields provided: "clusters", "namespace", "services", "owner"'))
+        return abort(400, Response("Give some payload"))
+    if not all(k in data for k in ("clusters", "namespace", "services")):
+        return abort(400, Response('Not all mandatory fields provided: "clusters", "namespace", "services"'))
     if data['namespace'] in PROTECTED_NS:
         return abort(400, jsonify(error=f"Please, don't remove these env-s: {PROTECTED_NS}"))
     app.logger.info(f'Request to destroy namespace is {data}')
