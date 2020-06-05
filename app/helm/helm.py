@@ -4,11 +4,12 @@ from flask import request, jsonify, Response, abort
 # Blueprint Configuration
 from common.job_api import create_job, cancel_job, get_job_status
 from common.log_api import tail_f
-from helm.helm_service import helm_deploy, helm_destroy
+from helm.helm_service import helm_deploy, helm_destroy, helm_list
 
 helm = Blueprint(name='helm', import_name=__name__, url_prefix="/helm")
 
 PROTECTED_NS = ('develop', 'develop-2', 'master', 'master-2')
+
 
 @helm.route('/deploy', methods=['POST'], strict_slashes=False)
 def helm_deploy_start():
@@ -58,3 +59,18 @@ def destroy_env():
     app.logger.info(f'Request to destroy namespace is {data}')
     job = create_job(helm_destroy, app.logger, data).start()
     return jsonify({'id': job.job_id})
+
+
+@helm.route('/list', methods=['POST'], strict_slashes=False)
+def list_services():
+    data = request.get_json()
+    if not data:
+        return abort(400, Response("Give some payload"))
+    if not all(k in data for k in ("clusters", "namespace")):
+        return abort(400, Response('Not all mandatory fields provided: "clusters", "namespace"'))
+    app.logger.info(f'Request to get service versions is {data}')
+    result, err = helm_list(data, app.logger)
+    if err == 0:
+        return jsonify(result)
+    else:
+        return jsonify({"error": result})

@@ -93,6 +93,25 @@ def helm_destroy(job_ref, app_logger):
         job_ref.complete_err(f'Failed to destroy env {namespace}: {str(ex)}')
 
 
+def helm_list(data, app_logger):
+    clusters = data.get("clusters")
+    namespace = data.get("namespace")
+    try:
+        app_logger.info(f'Getting versions of services in ns={namespace}, clusters={clusters}')
+        service_versions = []
+        for cluster in clusters:
+            res, code = KctxApi(app_logger).get_services_by_namespace(cluster, namespace)
+            if code == 0:
+                service_versions.append({"cluster": cluster, "services": res})
+            else:
+                app_logger.warn(res)
+                service_versions.append({"cluster": cluster, "services": []})
+        return service_versions, 0
+    except Exception as ex:
+        app_logger.error(str(ex))
+        return str(ex), 1
+
+
 # Private methods
 
 def __common_params(data):
