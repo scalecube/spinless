@@ -1,7 +1,7 @@
 data "aws_availability_zones" "available" {}
 
 resource "aws_vpc" "kube_vpc" {
-  cidr_block = "${var.vpc_cidr}"
+  cidr_block = "10.${var.network_id}.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support = true
 
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
 
   count             = 2
   availability_zone = data.aws_availability_zones.available.names[0]
-  cidr_block        = "${cidrsubnet(var.vpc_cidr,4,count.index)}"
+  cidr_block        = "${cidrsubnet("10.${var.network_id}.0.0/16",4,count.index)}"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
@@ -57,7 +57,7 @@ resource "aws_subnet" "kube" {
 
   count             = 2
   availability_zone = data.aws_availability_zones.available.names[0]
-  cidr_block        = "${cidrsubnet(var.vpc_cidr,4,count.index)}"
+  cidr_block        = "${cidrsubnet("10.${var.network_id}.0.0/16",4,count.index)}"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {

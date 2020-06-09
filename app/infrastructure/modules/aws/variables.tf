@@ -8,9 +8,9 @@ variable "aws_access_key" {
   type        = string
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR"
-  default     = "10.0.0.0/16"
+variable "network_id" {
+  description = "Network ID"
+  default     = 1
 }
 
 variable "aws_secret_key" {
