@@ -4,6 +4,7 @@ import shlex
 import time
 
 import boto3
+import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from common.shell import shell_await
@@ -323,3 +324,28 @@ class KctxApi:
         if result != 0:
             return f"Failed to 'kubectl delete ns {ns}' ", 1
         return ns, 0
+
+    def get_services_by_namespace(self, cluster_name, ns):
+        kube_env, err = self.__write_and_get_kube_env(cluster_name)
+        if err != 0:
+            return kube_env, 1
+        # get existing charts in cluster
+        cmd = shlex.split(f"helm ls --short -n {ns}")
+        code, output = shell_await(cmd, env=kube_env, with_output=True)
+        charts = list(output)
+        if code != 0 or len(charts) == 0:
+            return f"Failed to get list of releases in namespace {ns} for cluster {cluster_name}", 1
+        service_versions = []
+        for chart in charts:
+            try:
+                cmd = shlex.split(f"helm get values {chart} -n {ns} -o yaml")
+                code, stream_out = shell_await(cmd, env=kube_env, with_output=True, get_stream=True)
+                if code == 0:
+                    values = yaml.load(stream_out, Loader=yaml.FullLoader)
+                    service_name = values['repo']
+                    service_version = values['image_tag']
+                    service_versions.append({"repo": service_name, "version": service_version})
+            except Exception as ex:
+                self.logger.error(ex)
+
+        return service_versions, 0

@@ -76,7 +76,6 @@ def helm_destroy(job_ref, app_logger):
     clusters = data.get("clusters")
     namespace = data.get("namespace")
     services = data.get("services")
-    owner = data.get("owner")
     try:
         job_ref.emit("RUNNING", f'Destroying environment: {namespace} in cluster {clusters}')
         # destroy namespace
@@ -84,13 +83,33 @@ def helm_destroy(job_ref, app_logger):
         [KctxApi(app_logger).delete_ns(cluster_, namespace) for cluster_ in clusters]
         job_ref.emit("RUNNING", 'Deleted namespace from k8')
 
-        for repo in services:
-            s, err = Vault(app_logger, owner=owner, repo=repo).delete_service_path(namespace)
+        for service in services:
+            s, err = Vault(app_logger, owner=service.get("owner", ""),
+                           repo=service.get("repo", "")).delete_service_path(namespace)
             if err != 0:
                 job_ref.emit("RUNNING", f"Failed to delete vault path: {s}")
         job_ref.complete_succ(f'Destroyed env {namespace} with {len(services)} services')
     except Exception as ex:
         job_ref.complete_err(f'Failed to destroy env {namespace}: {str(ex)}')
+
+
+def helm_list(data, app_logger):
+    clusters = data.get("clusters")
+    namespace = data.get("namespace")
+    try:
+        app_logger.info(f'Getting versions of services in ns={namespace}, clusters={clusters}')
+        service_versions = []
+        for cluster in clusters:
+            res, code = KctxApi(app_logger).get_services_by_namespace(cluster, namespace)
+            if code == 0:
+                service_versions.append({"cluster": cluster, "services": res})
+            else:
+                app_logger.warn(res)
+                service_versions.append({"cluster": cluster, "services": []})
+        return service_versions, 0
+    except Exception as ex:
+        app_logger.error(str(ex))
+        return str(ex), 1
 
 
 # Private methods
