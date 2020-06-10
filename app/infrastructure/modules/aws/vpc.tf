@@ -23,7 +23,7 @@ resource "aws_route" "public_route" {
 resource "aws_subnet" "public" {
 
   count             = 2
-  availability_zone = data.aws_availability_zones.available.names[0]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
   cidr_block        = "${cidrsubnet("10.${var.network_id}.0.0/16",4,count.index)}"
   vpc_id            = aws_vpc.kube_vpc.id
 
@@ -56,8 +56,8 @@ resource "aws_route_table" "public_subnet_route_table" {
 resource "aws_subnet" "kube" {
 
   count             = 2
-  availability_zone = data.aws_availability_zones.available.names[0]
-  cidr_block        = "${cidrsubnet("10.${var.network_id}.0.0/16",4,count.index)}"
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  cidr_block        = "${cidrsubnet("10.${var.network_id}.32.0/16",4,count.index)}"
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
