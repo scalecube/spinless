@@ -21,7 +21,10 @@ def kube_cluster_create(job_ref, app_logger):
         #  Get secrets for secret_name
         vault = Vault(logger=app_logger)
         common_path = f"{vault.vault_secrets_path}/common"
-        # Get network_id, increase number for new cluster, save for next deployments
+
+        # Get network_id (for second octet),
+        # increase number for new cluster,
+        # save for next deployments
         common_vault_data = vault.read(common_path)["data"]
         cloud_secrets_path = common_vault_data["cloud_secrets_path"]
         network_id = int(common_vault_data["network_id"]) + 1

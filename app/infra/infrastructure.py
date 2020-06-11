@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import time
+import requests
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
@@ -86,6 +87,22 @@ class TF:
             return res, "Failed to create nodes_cm"
         return res, outp
 
+    def enable_tf_workspace_local_execution(self):
+        tf_token = os.getenv("TF_VAR_token")
+        org = os.getenv("ORG")
+        headers = {
+            "Content-Type": "application/vnd.api+json",
+            "Authorization": f"Bearer {tf_token}"
+        }
+        payload = {"data": {"type": "workspaces", "attributes": {"operations": False}}}
+
+        # TODO: add check if workspace was patched
+        requests.patch(
+            f"https://app.terraform.io/api/v2/organizations/{org}/workspaces/{self.cluster_name}",
+            headers=headers,
+            json=payload,
+            )
+
     def install_kube(self):
         # Create terraform workspace
         _cmd_wksps = f'terraform workspace new {self.cluster_name} {self.tf_working_dir}'
@@ -95,6 +112,8 @@ class TF:
             self.logger.info(s)
             yield s, None
         yield f'Terraform workspace created: {self.cluster_name}', None
+
+        self.enable_tf_workspace_local_execution()
 
         # Create terraform vars
         yield "RUNNING: Creating Terraform vars", None
