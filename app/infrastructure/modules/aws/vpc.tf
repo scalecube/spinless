@@ -33,18 +33,6 @@ resource "aws_subnet" "public" {
   }
 }
 
-#resource "aws_subnet" "public2" {
-#
-#  availability_zone = data.aws_availability_zones.available.names[1]
-#  cidr_block        = "10.0.16.0/20"
-#  vpc_id            = aws_vpc.kube_vpc.id
-#
-#  tags = {
-#    "Name"                                      = "public-subnet"
-#    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
-#  }
-#}
-
 resource "aws_route_table" "public_subnet_route_table" {
   vpc_id = aws_vpc.kube_vpc.id
   route {
@@ -65,18 +53,6 @@ resource "aws_subnet" "kube" {
     "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
-
-#resource "aws_subnet" "kube02" {
-#
-#  availability_zone = data.aws_availability_zones.available.names[1]
-#  cidr_block        = "10.0.48.0/20"
-#  vpc_id            = aws_vpc.kube_vpc.id
-#
-#  tags = {
-#    "Name"                                      = "eks-02-subnet"
-#    "kubernetes.io/cluster/${var.cluster-name}" = "shared"
-#  }
-#}
 
 resource "aws_eip" "private_subnetworks_nat_ip" {}
 

@@ -13,6 +13,11 @@ variable "aws_secret_key" {
   type        = string
 }
 
+variable "network_id" {
+  description = "Network ID"
+  default     = 1
+}
+
 variable "cluster-name" {
   default = "exberry-eks"
   type    = string
