@@ -25,6 +25,7 @@ ENV APP_WORKING_DIR /opt/app
 ENV TF_WORKING_DIR infrastructure
 ENV TF_STATE /opt/state/tfstate
 ENV TF_CLI_CONFIG_FILE /opt/app/infrastructure/.terraformrc
+ENV TF_BACKEND_CONFIG_FILE /opt/app/infrastructure/backend.tf
 
 COPY . /opt
 RUN pip install -r requirements.txt

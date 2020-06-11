@@ -5,7 +5,6 @@ image:
 
 env:
   timestamp: 111111
-  TILLER_NAMESPACE: tiller
 
 podTemplate:
   annotations: {}
