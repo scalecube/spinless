@@ -20,8 +20,14 @@ def kube_cluster_create(job_ref, app_logger):
 
         #  Get secrets for secret_name
         vault = Vault(logger=app_logger)
+        common_path = f"{vault.vault_secrets_path}/common"
+        # Get network_id, increase number for new cluster, save for next deployments
+        common_vault_data = vault.read(common_path)["data"]
+        cloud_secrets_path = common_vault_data["cloud_secrets_path"]
+        network_id = int(common_vault_data["network_id"]) + 1
+        common_vault_data.update({"network_id": network_id})
+        vault.write(common_path, common_vault_data)
 
-        cloud_secrets_path = vault.read(f"{vault.vault_secrets_path}/common")["data"]["cloud_secrets_path"]
         secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
 
         job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
@@ -33,7 +39,9 @@ def kube_cluster_create(job_ref, app_logger):
                        cluster_name=data.get("cluster_name"),
                        kctx_api=KctxApi(app_logger),
                        properties=data.get("properties"),
-                       dns_suffix=data.get("dns_suffix"))
+                       dns_suffix=data.get("dns_suffix"),
+                       network_id=network_id
+                       )
 
         for (msg, res) in terraform.install_kube():
             if res is None:

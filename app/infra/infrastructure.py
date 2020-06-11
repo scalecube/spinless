@@ -23,8 +23,16 @@ class DoubleQuoteDict(dict):
 
 
 class TF:
-    def __init__(self, logger, aws_region, aws_access_key, aws_secret_key,
-                 cluster_name, kctx_api, properties, dns_suffix):
+    def __init__(self,
+                 logger,
+                 aws_region,
+                 aws_access_key,
+                 aws_secret_key,
+                 cluster_name,
+                 kctx_api,
+                 properties,
+                 dns_suffix,
+                 network_id):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -40,6 +48,7 @@ class TF:
         self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
+        self.network_id = network_id
 
     def __create_vars_file(self):
         nodepools = DoubleQuoteDict(self.properties["eks"]["nodePools"])
@@ -48,6 +57,7 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
+            tfvars.write('{} = "{}"\n'.format("network_id", self.network_id))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
             tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
             tfvars.write('{} = {}\n'.format("nodePools", nodepools))
