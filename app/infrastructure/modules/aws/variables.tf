@@ -1,6 +1,6 @@
 variable "aws_region" {
   description = "AWS Region"
-  default     = "us-east-1"
+  default     = "eu-west-1"
 }
 
 variable "aws_access_key" {
@@ -8,10 +8,30 @@ variable "aws_access_key" {
   type        = string
 }
 
+variable "peer_vpc_id" {
+  description = "Network ID"
+  type        = string
+}
+
+variable "nebula_cidr_block" {
+  description = "Nebula CIDR Block"
+  type        = string
+}
+
+variable "peer_account_id" {
+  description = "Network ID"
+  type        = string
+}
+
 variable "network_id" {
   description = "Network ID"
-  default     = 1
+  type        = string
 }
+
+variable "availability_zone" {
+  description = "Availability Zone"
+  default     = "us-east-1a"
+}  
 
 variable "aws_secret_key" {
   description = "AWS Secret key"

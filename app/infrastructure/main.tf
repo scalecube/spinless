@@ -7,4 +7,8 @@ module "aws" {
   cluster-name      = var.cluster-name
   eks-version       = var.eks-version
   nodePools         = var.nodePools
+  nebula_cidr_block = var.nebula_cidr_block
+  network_id        = var.network_id
+  peer_vpc_id       = var.peer_vpc_id
+  peer_account_id   = var.peer_account_id
 }
