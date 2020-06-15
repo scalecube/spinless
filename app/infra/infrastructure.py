@@ -3,6 +3,7 @@ import json
 import os
 import shlex
 import time
+import requests
 
 import boto3
 from jinja2 import Environment, FileSystemLoader
@@ -23,8 +24,16 @@ class DoubleQuoteDict(dict):
 
 
 class TF:
-    def __init__(self, logger, aws_region, aws_access_key, aws_secret_key,
-                 cluster_name, kctx_api, properties, dns_suffix):
+    def __init__(self,
+                 logger,
+                 aws_region,
+                 aws_access_key,
+                 aws_secret_key,
+                 cluster_name,
+                 kctx_api,
+                 properties,
+                 dns_suffix,
+                 network_id):
         self.logger = logger
         curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
@@ -40,6 +49,7 @@ class TF:
         self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
+        self.network_id = network_id
 
     def __create_vars_file(self):
         nodepools = DoubleQuoteDict(self.properties["eks"]["nodePools"])
@@ -48,6 +58,7 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
             tfvars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
+            tfvars.write('{} = "{}"\n'.format("network_id", self.network_id))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
             tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
             tfvars.write('{} = {}\n'.format("nodePools", nodepools))
@@ -76,6 +87,22 @@ class TF:
             return res, "Failed to create nodes_cm"
         return res, outp
 
+    def enable_tf_workspace_local_execution(self):
+        tf_token = os.getenv("TF_VAR_token")
+        org = os.getenv("ORG")
+        headers = {
+            "Content-Type": "application/vnd.api+json",
+            "Authorization": f"Bearer {tf_token}"
+        }
+        payload = {"data": {"type": "workspaces", "attributes": {"operations": False}}}
+
+        # TODO: add check if workspace was patched
+        requests.patch(
+            f"https://app.terraform.io/api/v2/organizations/{org}/workspaces/{self.cluster_name}",
+            headers=headers,
+            json=payload,
+            )
+
     def install_kube(self):
         # Create terraform workspace
         _cmd_wksps = f'terraform workspace new {self.cluster_name} {self.tf_working_dir}'
@@ -85,6 +112,8 @@ class TF:
             self.logger.info(s)
             yield s, None
         yield f'Terraform workspace created: {self.cluster_name}', None
+
+        self.enable_tf_workspace_local_execution()
 
         # Create terraform vars
         yield "RUNNING: Creating Terraform vars", None

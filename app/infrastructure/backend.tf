@@ -1,8 +1,8 @@
 terraform {
   backend "remote" {
-    organization = "Exberry"
+    organization = "ORG"
     workspaces {
-      prefix = "exberry-"
+      prefix = "ORG-"
     }
   }
 }
