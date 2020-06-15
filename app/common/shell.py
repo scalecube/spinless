@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def shell_await(cmd, env=None, with_output=False, cwd=None, timeout=None, get_stream=False):
+def shell_await(cmd, env=None, with_output=False, cwd=None, timeout=300, get_stream=False):
     """
     Execute a command in new Subprocess (Popen(...))
     :param cmd: command to execute (using Popen)
