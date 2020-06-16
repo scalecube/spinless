@@ -57,13 +57,12 @@ resource "aws_subnet" "kube" {
 resource "aws_eip" "kube_eip" {
   count            = 2
   vpc              = true
-  #public_ipv4_pool = var.public_ipv4_pool
 }
 
 resource "aws_nat_gateway" "nat_gateway_for_private_subnetworks" {
-  count = 2
+  count         = 2
   allocation_id = aws_eip.kube_eip[count.index].id
-  subnet_id = aws_subnet.public[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
 
   tags = {
     Name = "NAT"
@@ -75,10 +74,15 @@ resource "aws_route_table" "eks_route_table" {
 }
 
 resource "aws_route" "eks_route" {
-  count = 2
-  route_table_id = aws_route_table.eks_route_table.id
+  count                  = 2
+  route_table_id         = aws_route_table.eks_route_table.id
   destination_cidr_block = var.nebula_cidr_block
-  nat_gateway_id = aws_nat_gateway.nat_gateway_for_private_subnetworks[count.index].id
+  nat_gateway_id         = aws_nat_gateway.nat_gateway_for_private_subnetworks[count.index].id
+}
+
+resource "aws_route" "nebula_route" {
+  route_table_id         = var.nebula_route_table_id
+  destination_cidr_block = aws_vpc.kube_vpc.id 
 }
 
 resource "aws_route_table_association" "eks_rta" {

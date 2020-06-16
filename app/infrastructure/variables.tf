@@ -30,7 +30,12 @@ variable "peer_account_id" {
 
 variable "nebula_cidr_block" {
   description = "Nebula CIDR Block"
-  default     = 1
+  type        = string
+}
+
+variable "nebula_route_table_id" {
+  description = "Nebula Route Table ID"
+  type        = string
 }
 
 variable "cluster-name" {

@@ -28,6 +28,11 @@ variable "network_id" {
   type        = string
 }
 
+variable "nebula_route_table_id" {
+  description = "Nebula Route Table ID"
+  type        = string
+}
+
 variable "availability_zone" {
   description = "Availability Zone"
   default     = "us-east-1a"
