@@ -4,7 +4,7 @@ resource "aws_vpc_peering_connection" "exberry" {
   peer_vpc_id   = "${var.peer_vpc_id}"
   peer_owner_id = "${var.peer_account_id}"
   peer_region   = "${var.aws_region}"
-  auto_accept   = false
+  auto_accept   = true
 
   tags = {
     Side = "Requester"
