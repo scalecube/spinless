@@ -1,4 +1,4 @@
-# Requester's side of the connection cluster.
+# Requester's side of the connection cluster
 resource "aws_vpc_peering_connection" "exberry" {
   vpc_id        = "${aws_vpc.kube_vpc.id}"
   peer_vpc_id   = "${var.peer_vpc_id}"
@@ -11,7 +11,7 @@ resource "aws_vpc_peering_connection" "exberry" {
   }
 }
 
-# Accepter's side of the connection cluster.
+# Accepter's side of the connection cluster
 resource "aws_vpc_peering_connection_accepter" "peer" {
   vpc_peering_connection_id = "${aws_vpc_peering_connection.exberry.id}"
   auto_accept               = true

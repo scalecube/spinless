@@ -14,7 +14,6 @@ resource "aws_security_group" "eks-master" {
     "Name"                                             = "eks-master"
     "kubernetes.io/cluster/${var.cluster-name}"        = "shared"
   }
-
 }
 
 resource "aws_security_group_rule" "eks-ingress-access" {
@@ -36,4 +35,3 @@ resource "aws_security_group_rule" "eks-ingress-vpc" {
   to_port                  = 443
   type                     = "ingress"
 }
-

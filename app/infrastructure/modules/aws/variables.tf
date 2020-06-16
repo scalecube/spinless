@@ -33,11 +33,6 @@ variable "nebula_route_table_id" {
   type        = string
 }
 
-variable "availability_zone" {
-  description = "Availability Zone"
-  default     = "us-east-1a"
-}  
-
 variable "aws_secret_key" {
   description = "AWS Secret key"
   type        = string

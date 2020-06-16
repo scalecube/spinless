@@ -51,4 +51,3 @@ resource "aws_iam_role_policy" "eks-cluster-service-linked-role" {
 }
 EOF
 }
-

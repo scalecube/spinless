@@ -13,7 +13,6 @@ resource "aws_security_group" "traefik" {
   tags = {
     "Name"      = "alb-traefik"
   }
-
 }
 
 resource "aws_security_group_rule" "alb-ingress-access-https" {

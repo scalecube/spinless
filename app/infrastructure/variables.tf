@@ -51,27 +51,27 @@ variable "eks-version" {
 variable "nodePools" {
   default = {
     "pool1" = {
-      "count" = 1,
-      "minCount" = 1,
-      "maxCount" = 2,
+      "count"        = 1,
+      "minCount"     = 1,
+      "maxCount"     = 2,
       "instanceType" = "t3a.medium",
-      "autoscaling": true,
+      "autoscaling" : true,
       "taint" = "gateway"
     },
     "pool2" = {
-      "count" = 2,
-      "minCount" = 2,
-      "maxCount" = 4,
+      "count"        = 2,
+      "minCount"     = 2,
+      "maxCount"     = 4,
       "instanceType" = "t3a.micro",
-      "autoscaling": true,
+      "autoscaling" : true,
       "taint" = "market-service"
     },
     "pool3" = {
-      "count" = 1,
-      "minCount" = 1,
-      "maxCount" = 2,
+      "count"        = 1,
+      "minCount"     = 1,
+      "maxCount"     = 2,
       "instanceType" = "t3a.small",
-      "autoscaling": true,
+      "autoscaling" : true,
       "taint" = "operations"
     }
   }

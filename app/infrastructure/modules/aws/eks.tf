@@ -27,7 +27,6 @@ output "kubeconfig-certificate-authority-data" {
 locals {
   config_map_aws_auth = <<CONFIGMAPAWSAUTH
 
-
 apiVersion: v1
 kind: ConfigMap
 metadata:

@@ -87,5 +87,4 @@ resource "aws_autoscaling_group" "nodePool" {
     value               = each.value["taint"]
     propagate_at_launch = true
   }
-
 }

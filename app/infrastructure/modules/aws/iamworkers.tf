@@ -17,7 +17,6 @@ resource "aws_iam_role" "eks-node" {
 POLICY
 }
 
-
 resource "aws_iam_role_policy" "cluster-autoscaler" {
  name        = "cluster-autoscaler-${var.cluster-name}"
  role = aws_iam_role.eks-node.id
@@ -42,7 +41,6 @@ resource "aws_iam_role_policy" "cluster-autoscaler" {
 }
 POLICY
 }
-
 
 resource "aws_iam_role_policy_attachment" "eks-node-AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
