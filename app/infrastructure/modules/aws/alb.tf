@@ -75,7 +75,7 @@ resource "aws_alb" "alb-ext" {
 
 resource "aws_alb" "alb-int" {
   name            = "traefik-${var.cluster-name}-int"
-  subnets         = "${aws_subnet.private.*.id}"
+  subnets         = "${aws_subnet.kube.*.id}"
   security_groups = [aws_security_group.traefik-alb-int.id]
   internal        = true
 
