@@ -50,7 +50,7 @@ resource "aws_autoscaling_group" "nodePool" {
   for_each             = var.nodePools
 
   desired_capacity     = each.value["count"]
-  launch_configuration = "aws_lc_${each.key}"
+  launch_configuration = "aws_lc_${each.key}_${var.cluster-name}"
   max_size             = each.value["maxCount"]
   min_size             = each.value["minCount"]
   name                 = "asg-eks-${each.value["taint"]}-${var.cluster-name}"
