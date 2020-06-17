@@ -21,7 +21,7 @@ USERDATA
 resource "aws_launch_configuration" "nodes_configuration" {
   for_each                    = var.nodePools
 
-  name                        = "aws_lc_${each.key}"
+  name                        = "aws_lc_${each.key}_${var.cluster-name}"
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.eks-node.name
   image_id                    = data.aws_ssm_parameter.eks_node.value
