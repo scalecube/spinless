@@ -82,6 +82,7 @@ resource "aws_route" "eks_route" {
 
 resource "aws_route" "eks_peering_route" {
   route_table_id            = aws_route_table.eks_route_table.id
+  destination_cidr_block    = var.nebula_cidr_block
   vpc_peering_connection_id = aws_vpc_peering_connection.exberry.id
 }
 
