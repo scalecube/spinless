@@ -74,10 +74,9 @@ resource "aws_route_table" "eks_route_table" {
 }
 
 resource "aws_route" "eks_route" {
-  count                     = 2
   route_table_id            = aws_route_table.eks_route_table.id
   destination_cidr_block    = var.nebula_cidr_block
-  nat_gateway_id            = aws_nat_gateway.nat_gateway_for_private_subnetworks[count.index].id
+  nat_gateway_id            = aws_nat_gateway.nat_gateway_for_private_subnetworks[1].id
 }
 
 resource "aws_route" "eks_peering_route" {
