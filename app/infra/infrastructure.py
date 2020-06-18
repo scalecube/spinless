@@ -59,7 +59,6 @@ class TF:
         self.peer_account_id = peer_account_id,
         self.peer_vpc_id = peer_vpc_id
 
-
     def __create_vars_file(self):
         nodepools = DoubleQuoteDict(self.properties["eks"]["nodePools"])
         with open("{}/tfvars.tf".format(self.tmp_root_path), "w") as tfvars:
