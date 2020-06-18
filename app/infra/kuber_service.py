@@ -34,7 +34,7 @@ def kube_cluster_create(job_ref, app_logger):
         common_vault_data = vault.read(common_path)["data"]
         cloud_secrets_path = common_vault_data["cloud_secrets_path"]
         network_id = int(common_vault_data["network_id"]) + 1
-        common_vault_data.update({"network_id": network_id})
+        common_vault_data.update({"network_id": str(network_id)})
         nebula_cidr_block = common_vault_data["nebula_cidr_block"]
         nebula_route_table_id = common_vault_data["nebula_route_table_id"]
         peer_account_id = common_vault_data["peer_account_id"]
