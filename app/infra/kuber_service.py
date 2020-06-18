@@ -10,7 +10,12 @@ def kube_cluster_create(job_ref, app_logger):
         data = job_ref.data
         app_logger.info("Starting cluster creation...")
 
-        kube_cluster_params = ("cluster_name", "region", "cloud", "secret_name", "dns_suffix", "properties")
+        kube_cluster_params = ("cluster_name",
+                               "region",
+                               "cloud",
+                               "secret_name",
+                               "dns_suffix",
+                               "properties")
 
         # check mandatory params
         if not all(k in data for k in kube_cluster_params):
@@ -29,6 +34,10 @@ def kube_cluster_create(job_ref, app_logger):
         cloud_secrets_path = common_vault_data["cloud_secrets_path"]
         network_id = int(common_vault_data["network_id"]) + 1
         common_vault_data.update({"network_id": network_id})
+        nebula_cidr_block = common_vault_data["nebula_cidr_block"]
+        nebula_route_table_id = common_vault_data["nebula_route_table_id"]
+        peer_account_id = common_vault_data["peer_account_id"]
+        peer_vpc_id = common_vault_data["peer_vpc_id"]
         vault.write(common_path, common_vault_data)
 
         secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
@@ -43,7 +52,11 @@ def kube_cluster_create(job_ref, app_logger):
                        kctx_api=KctxApi(app_logger),
                        properties=data.get("properties"),
                        dns_suffix=data.get("dns_suffix"),
-                       network_id=network_id
+                       network_id=network_id,
+                       nebula_cidr_block=nebula_cidr_block,
+                       nebula_route_table_id=nebula_route_table_id,
+                       peer_account_id=peer_account_id,
+                       peer_vpc_id=peer_vpc_id
                        )
 
         for (msg, res) in terraform.install_kube():
