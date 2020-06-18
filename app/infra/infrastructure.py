@@ -53,10 +53,10 @@ class TF:
         self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
-        self.network_id = network_id,
-        self.nebula_cidr_block = nebula_cidr_block,
-        self.nebula_route_table_id = nebula_route_table_id,
-        self.peer_account_id = peer_account_id,
+        self.network_id = network_id
+        self.nebula_cidr_block = nebula_cidr_block
+        self.nebula_route_table_id = nebula_route_table_id
+        self.peer_account_id = peer_account_id
         self.peer_vpc_id = peer_vpc_id
 
     def __create_vars_file(self):
