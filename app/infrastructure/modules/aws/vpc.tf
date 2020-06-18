@@ -85,11 +85,11 @@ resource "aws_route_table" "eks_route_table" {
   vpc_id = aws_vpc.kube_vpc.id
 }
 
-resource "aws_route" "eks_route" {
-  route_table_id            = aws_route_table.eks_route_table.id
-  destination_cidr_block    = var.nebula_cidr_block
-  nat_gateway_id            = aws_nat_gateway.nat_gateway_for_private_subnetworks[1].id
-}
+//resource "aws_route" "eks_route" {
+//  route_table_id            = aws_route_table.eks_route_table.id
+//  destination_cidr_block    = var.nebula_cidr_block
+//  nat_gateway_id            = aws_nat_gateway.nat_gateway_for_private_subnetworks[1].id
+//}
 
 resource "aws_route" "eks_peering_route" {
   route_table_id            = aws_route_table.eks_route_table.id
@@ -97,11 +97,11 @@ resource "aws_route" "eks_peering_route" {
   vpc_peering_connection_id = aws_vpc_peering_connection.exberry.id
 }
 
-resource "aws_route" "nebula_private_route" {
-  route_table_id            = var.nebula_route_table_id
-  destination_cidr_block    = aws_vpc.kube_vpc.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.exberry.id
-}
+//resource "aws_route" "nebula_private_route" {
+//  route_table_id            = var.nebula_route_table_id
+//  destination_cidr_block    = aws_vpc.kube_vpc.cidr_block
+//  vpc_peering_connection_id = aws_vpc_peering_connection.exberry.id
+//}
 
 resource "aws_route_table_association" "eks_rta" {
   count          = 2
