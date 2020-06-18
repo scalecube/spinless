@@ -109,11 +109,12 @@ class TF:
         payload = {"data": {"type": "workspaces", "attributes": {"operations": False}}}
 
         # TODO: add check if workspace was patched
-        requests.patch(
-            f"https://app.terraform.io/api/v2/organizations/{org}/workspaces/{self.cluster_name}",
+        response = requests.patch(
+            f"https://app.terraform.io/api/v2/organizations/{org}/workspaces/{org}-{self.cluster_name}",
             headers=headers,
             json=payload,
             )
+        self.logger.info("Workspace was patched")
 
     def install_kube(self):
         # Create terraform workspace
