@@ -29,6 +29,12 @@ resource "aws_launch_configuration" "nodes_configuration" {
   key_name                    = "kube_test"
   security_groups             = [aws_security_group.eks-node.id]
 
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 100
+    delete_on_termination = true
+  }
+
 /*
   user_data_base64 = base64encode(local.eks-node-userdata-${each.value["taint"]})
 */

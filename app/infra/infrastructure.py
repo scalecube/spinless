@@ -33,9 +33,13 @@ class TF:
                  kctx_api,
                  properties,
                  dns_suffix,
-                 network_id):
+                 network_id,
+                 nebula_cidr_block,
+                 nebula_route_table_id,
+                 peer_account_id,
+                 peer_vpc_id
+                 ):
         self.logger = logger
-        curr_dir = os.getcwd()
         timestamp = round(time.time() * 1000)
         self.tf_working_dir = f"{os.getenv('APP_WORKING_DIR')}/{os.getenv('TF_WORKING_DIR')}"
         self.tf_state_dir = f"{os.getenv('TF_STATE')}"
@@ -49,7 +53,12 @@ class TF:
         self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
-        self.network_id = network_id
+        self.network_id = network_id,
+        self.nebula_cidr_block = nebula_cidr_block,
+        self.nebula_route_table_id = nebula_route_table_id,
+        self.peer_account_id = peer_account_id,
+        self.peer_vpc_id = peer_vpc_id
+
 
     def __create_vars_file(self):
         nodepools = DoubleQuoteDict(self.properties["eks"]["nodePools"])
@@ -61,6 +70,10 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("network_id", self.network_id))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
             tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
+            tfvars.write('{} = "{}"\n'.format("nebula_cidr_block", self.nebula_cidr_block))
+            tfvars.write('{} = "{}"\n'.format("nebula_route_table_id", self.nebula_route_table_id))
+            tfvars.write('{} = "{}"\n'.format("peer_account_id", self.peer_account_id))
+            tfvars.write('{} = "{}"\n'.format("peer_vpc_id", self.peer_vpc_id))
             tfvars.write('{} = {}\n'.format("nodePools", nodepools))
 
     def __generate_configmap(self):
