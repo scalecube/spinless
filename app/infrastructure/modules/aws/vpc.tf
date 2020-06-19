@@ -6,7 +6,7 @@ resource "aws_vpc" "kube_vpc" {
   enable_dns_support = true
 
   tags = {
-    Name = "kube_vpc"
+    Name = var.cluster-name
   }
 }
 
