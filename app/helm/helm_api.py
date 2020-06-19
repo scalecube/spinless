@@ -8,6 +8,7 @@ import requests
 import yaml
 
 from common.shell import shell_await
+from common.vault_api import Vault
 
 
 class HelmDeployment:
@@ -96,6 +97,16 @@ class HelmDeployment:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
         return path_to_values_yaml, default_values
 
+    def get_tolerations(self):
+        vault = Vault(self.logger)
+        try:
+            tolerations = vault.read(f"{vault.vault_secrets_path}/common/tolerations/{self.cluster_name}")["data"]
+            self.logger.info("Tolerations are: {tolerations}")
+        except Exception as e:
+            tolerations = False
+            self.logger.info(f"Exception is: {e}")
+        return tolerations
+
     def install_package(self):
         yield "Preparing package...", None
         prepare_pkg_result, err = self.prepare_package()
@@ -147,6 +158,17 @@ class HelmDeployment:
         if dockerjson:
             helm_install_cmd.append('--set')
             helm_install_cmd.append(f'dockerjsontoken={dockerjson}')
+
+        # Tolerations
+        # TODO: tolerations class and array of tolerations
+        tolerations = self.get_tolerations()
+        if tolerations:
+            toleration_val = tolerations.get(self.repo, tolerations.get("default"))
+            helm_install_cmd.append('--set tolerations[0].key=type ')
+            helm_install_cmd.append(f'--set tolerations[0].value={toleration_val} ')
+            helm_install_cmd.append('--set tolerations[0].operator=Equal ')
+            helm_install_cmd.append('--set tolerations[0].effect=NoSchedule ')
+
         yield f"Installing package: {helm_install_cmd}", None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
         if helm_install_res != 0:
