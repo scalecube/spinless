@@ -165,10 +165,14 @@ class HelmDeployment:
         tolerations = self.get_tolerations()
         if tolerations:
             toleration_val = tolerations.get(self.repo, tolerations.get("default"))
-            helm_install_cmd.append('--set tolerations[0].key=type ')
-            helm_install_cmd.append(f'--set tolerations[0].value={toleration_val} ')
-            helm_install_cmd.append('--set tolerations[0].operator=Equal ')
-            helm_install_cmd.append('--set tolerations[0].effect=NoSchedule ')
+            helm_install_cmd.append('--set')
+            helm_install_cmd.append('tolerations[0].key=type')
+            helm_install_cmd.append('--set')
+            helm_install_cmd.append(f'tolerations[0].value={toleration_val}')
+            helm_install_cmd.append('--set')
+            helm_install_cmd.append('tolerations[0].operator=Equal')
+            helm_install_cmd.append('--set')
+            helm_install_cmd.append('tolerations[0].effect=NoSchedule')
 
         yield f"Installing package: {helm_install_cmd}", None
         helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
