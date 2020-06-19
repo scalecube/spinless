@@ -101,7 +101,7 @@ class HelmDeployment:
         vault = Vault(self.logger)
         try:
             tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
-            self.logger.info("Tolerations are: {tolerations}")
+            self.logger.info(f"Tolerations are: {tolerations}")
         except Exception as e:
             tolerations = False
             self.logger.info(f"Get tolerations Exception is: {e}")
