@@ -100,11 +100,11 @@ class HelmDeployment:
     def get_tolerations(self):
         vault = Vault(self.logger)
         try:
-            tolerations = vault.read(f"{vault.vault_secrets_path}/common/tolerations/{self.cluster_name}")["data"]
+            tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
             self.logger.info("Tolerations are: {tolerations}")
         except Exception as e:
             tolerations = False
-            self.logger.info(f"Exception is: {e}")
+            self.logger.info(f"Get tolerations Exception is: {e}")
         return tolerations
 
     def install_package(self):
@@ -159,6 +159,7 @@ class HelmDeployment:
             helm_install_cmd.append('--set')
             helm_install_cmd.append(f'dockerjsontoken={dockerjson}')
 
+        self.logger.info("Adding tolerations")
         # Tolerations
         # TODO: tolerations class and array of tolerations
         tolerations = self.get_tolerations()
