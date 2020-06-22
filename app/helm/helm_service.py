@@ -24,7 +24,7 @@ def helm_deploy(job_ref, app_logger):
 
         services = []
         for service in data.get("services", []):
-            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref)
+            dependency, code = __helm_params(service, registry_api, kctx_api, job_ref, common_props['env'])
             if code != 0:
                 return job_ref.complete_err(dependency)
             services.append(dependency)
@@ -48,7 +48,7 @@ def helm_deploy(job_ref, app_logger):
         service = data.get("service")
         if service:
             job_ref.emit("RUNNING", f'Installing service {service["repo"]}')
-            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref)
+            target_service, code = __helm_params(service, registry_api, kctx_api, job_ref, common_props['env'])
             if code != 0:
                 return job_ref.complete_err(target_service)
 
@@ -126,7 +126,7 @@ def __common_params(data):
     return result, 0
 
 
-def __helm_params(service, reg_api, kctx_api, job_ref):
+def __helm_params(service, reg_api, kctx_api, job_ref, env):
     if not all(k in service for k in ("owner", "repo", "registry", "cluster")):
         return "owner/repo/registry/cluster are mandatory ", 1
     registries_fetched, err = __prepare_regs(service["registry"], reg_api)
@@ -144,6 +144,7 @@ def __helm_params(service, reg_api, kctx_api, job_ref):
             return f'Failed to get k8 context for cluster {service["cluster"]}', 1
     service["k8s_cluster_conf"] = k8s_cluster_conf
     service["image_tag"] = service.get("image_tag")
+    service['env'] = env.update(service.get("env", {}))
     return service, 0
 
 
