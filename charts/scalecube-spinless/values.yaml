@@ -22,4 +22,4 @@ service:
 ingress:
   dnsname: scalecube-spinless
 
-storageClassName: aws-reclaimdel
+storageClassName: aws-reclaim

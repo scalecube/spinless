@@ -3,7 +3,7 @@ import os
 import hvac
 from jinja2 import Environment, FileSystemLoader
 
-MOUNT_POINT = "kubernetes-nebula"
+MOUNT_POINT = "kubernetes"
 SECRET_ROOT = "secretv2"
 
 dev_mode = os.getenv("DEV_MODE", False)
