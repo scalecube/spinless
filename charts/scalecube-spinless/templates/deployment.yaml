@@ -10,7 +10,6 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: 
       release: {{ .Release.Name | quote }}
   replicas: 1
   strategy:
@@ -21,16 +20,9 @@ spec:
         app: {{ .Chart.Name }}
         release: {{ .Release.Name | quote }}
       annotations:
-{{- if .Values.podAnnotations }}
-{{ toYaml .Values.podAnnotations | indent 8 }}
-{{- end }}
     spec:
       serviceAccount: scalecube-spinless
       serviceAccountName: scalecube-spinless
-      nodeSelector:
-{{- range $key, $value := .Values.nodeSelector }}
-  {{ indent 6 $key }}: {{ $value }}
-{{- end }}
       imagePullSecrets:
       - name: regsecret
       containers:
@@ -77,3 +69,17 @@ spec:
         - name: spinless-state-volume
           persistentVolumeClaim:
             claimName: state-volume-claim
+      tolerations:
+        - effect: NoSchedule
+          key: type
+          operator: Equal
+          value: kubsystem
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
+

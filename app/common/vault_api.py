@@ -3,6 +3,7 @@ import os
 import hvac
 from jinja2 import Environment, FileSystemLoader
 
+MOUNT_POINT = "kubernetes-nebula"
 SECRET_ROOT = "secretv2"
 
 dev_mode = os.getenv("DEV_MODE", False)
@@ -133,7 +134,7 @@ class Vault:
             if not self.dev_mode:
                 with open(self.vault_jwt_token)as f:
                     jwt = f.read()
-                    self.client.auth_kubernetes(self.service_role, jwt)
+                    self.client.auth_kubernetes(self.service_role, jwt, MOUNT_POINT)
             else:
                 self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
         except Exception as ex:
