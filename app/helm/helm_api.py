@@ -150,7 +150,7 @@ class HelmDeployment:
         # actually call helm install
         helm_cmd = self.get_helm_cmd()
         helm_install_cmd = [helm_cmd, "upgrade",
-                            f'{self.owner}-{self.repo}-{self.image_tag}',
+                            f'{self.owner}-{self.repo}',
                             f'{self.helm_dir}/{self.repo}',
                             "--debug", "--install", "--namespace", self.namespace,
                             "-f", path_to_values_yaml,
