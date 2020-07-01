@@ -231,6 +231,10 @@ class KctxApi:
                   f'--set ports.discovery.expose=true ' \
                   f'--set ports.discovery.exposedPort=5801 ' \
                   f'--set ports.discovery.nodePort=30004 ' \
+                  f'--set ports.external.port=8002 ' \
+                  f'--set ports.external.expose=true ' \
+                  f'--set ports.external.exposedPort=20000 ' \
+                  f'--set ports.external.nodePort=30005 ' \
                   f'--set tolerations[0].key=type ' \
                   f'--set tolerations[0].value=kubsystem ' \
                   f'--set tolerations[0].operator=Equal ' \
