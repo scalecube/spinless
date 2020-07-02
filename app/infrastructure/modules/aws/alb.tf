@@ -1,3 +1,37 @@
+resource "aws_security_group" "traefik-alb-discovery" {
+  name        = "traefik-sg-alb-discovery"
+  description = "Application discovery load balancer-traefik"
+  vpc_id      = aws_vpc.kube_vpc.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    "Name"      = "alb-discovery-traefik"
+  }
+}
+
+resource "aws_security_group" "traefik-alb-transport" {
+  name        = "traefik-sg-alb-transport"
+  description = "Application transport load balancer-traefik"
+  vpc_id      = aws_vpc.kube_vpc.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    "Name" = "alb-transport-traefik"
+  }
+}
+
 resource "aws_security_group" "traefik-alb-ext" {
   name        = "traefik-sg-alb-ext"
   description = "Application external load balancer-traefik"
@@ -12,23 +46,6 @@ resource "aws_security_group" "traefik-alb-ext" {
 
   tags = {
     "Name"      = "alb-ext-traefik"
-  }
-}
-
-resource "aws_security_group" "traefik-alb-int" {
-  name        = "traefik-sg-alb-int"
-  description = "Application internal load balancer-traefik"
-  vpc_id      = aws_vpc.kube_vpc.id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    "Name" = "alb-int-traefik"
   }
 }
 
@@ -52,14 +69,44 @@ resource "aws_security_group_rule" "alb-ext-ingress-access-http" {
   cidr_blocks              = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "alb-int-ingress-access" {
-  description       = "Allow clients instances to communicate with the ALB"
-  from_port         = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.traefik-alb-int.id
-  to_port           = 0
-  type              = "ingress"
-  cidr_blocks       = ["10.0.0.0/8"]
+resource "aws_security_group_rule" "alb-discovery-ingress-access-https" {
+  description              = "Allow clients instances to communicate with the ALB"
+  from_port                = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.traefik-alb-discovery.id
+  to_port                  = 443
+  type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "alb-discovery-ingress-access-http" {
+  description              = "Allow clients instances to communicate with the ALB"
+  from_port                = 80
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.traefik-alb-discovery.id
+  to_port                  = 80
+  type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "alb-transport-ingress-access-https" {
+  description              = "Allow clients instances to communicate with the ALB"
+  from_port                = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.traefik-alb-transport.id
+  to_port                  = 443
+  type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "alb-transport-ingress-access-http" {
+  description              = "Allow clients instances to communicate with the ALB"
+  from_port                = 80
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.traefik-alb-transport.id
+  to_port                  = 80
+  type                     = "ingress"
+  cidr_blocks              = ["0.0.0.0/0"]
 }
 
 resource "aws_alb" "alb-ext" {
@@ -73,14 +120,25 @@ resource "aws_alb" "alb-ext" {
   }
 }
 
-resource "aws_alb" "alb-int" {
-  name            = "traefik-${var.cluster-name}-int"
+resource "aws_alb" "alb-transport" {
+  name            = "traefik-${var.cluster-name}-transport"
   subnets         = "${aws_subnet.kube.*.id}"
-  security_groups = [aws_security_group.traefik-alb-int.id]
+  security_groups = [aws_security_group.traefik-alb-transport.id]
   internal        = true
 
   tags = {
-    Name = "alb-traefik-${var.cluster-name}-ext"
+    Name = "alb-traefik-${var.cluster-name}-transport"
+  }
+}
+
+resource "aws_alb" "alb-discovery" {
+  name            = "traefik-${var.cluster-name}-discovery"
+  subnets         = "${aws_subnet.kube.*.id}"
+  security_groups = [aws_security_group.traefik-alb-discovery.id]
+  internal        = true
+
+  tags = {
+    Name = "alb-traefik-${var.cluster-name}-discovery"
   }
 }
 
@@ -95,13 +153,24 @@ resource "aws_alb_listener" "alb_listener_ext" {
   }
 }
 
-resource "aws_alb_listener" "alb_listener_int" {
-  load_balancer_arn = aws_alb.alb-int.arn
+resource "aws_alb_listener" "alb_listener_discovery" {
+  load_balancer_arn = aws_alb.alb-discovery.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
-    target_group_arn = aws_alb_target_group.traefik_target_group_int.arn
+    target_group_arn = aws_alb_target_group.traefik_target_group_discovery.arn
+    type             = "forward"
+  }
+}
+
+resource "aws_alb_listener" "alb_listener_transport" {
+  load_balancer_arn = aws_alb.alb-transport.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    target_group_arn = aws_alb_target_group.traefik_target_group_transport.arn
     type             = "forward"
   }
 }
@@ -121,13 +190,28 @@ resource "aws_alb_listener_rule" "listener_rule" {
   }
 }
 
-resource "aws_alb_listener_rule" "listener_rule_int" {
-  depends_on   = [aws_alb_target_group.traefik_target_group_int]
-  listener_arn = aws_alb_listener.alb_listener_int.arn
+resource "aws_alb_listener_rule" "listener_rule_transport" {
+  depends_on   = [aws_alb_target_group.traefik_target_group_transport]
+  listener_arn = aws_alb_listener.alb_listener_transport.arn
   priority     = 100
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.traefik_target_group_int.arn
+    target_group_arn = aws_alb_target_group.traefik_target_group_transport.arn
+  }
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
+resource "aws_alb_listener_rule" "listener_rule_discovery" {
+  depends_on   = [aws_alb_target_group.traefik_target_group_discovery]
+  listener_arn = aws_alb_listener.alb_listener_discovery.arn
+  priority     = 100
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.traefik_target_group_discovery.arn
   }
   condition {
     path_pattern {
@@ -156,13 +240,13 @@ resource "aws_alb_target_group" "traefik_target_group_ext" {
   }
 }
 
-resource "aws_alb_target_group" "traefik_target_group_int" {
-  name     = "target-${var.cluster-name}-int"
+resource "aws_alb_target_group" "traefik_target_group_discovery" {
+  name     = "target-${var.cluster-name}-discovery"
   port     = 30004
   protocol = "HTTP"
   vpc_id   = aws_vpc.kube_vpc.id
   tags = {
-    name = "target-${var.cluster-name}-int"
+    name = "target-${var.cluster-name}-discovery"
   }
 
   health_check {
@@ -176,12 +260,37 @@ resource "aws_alb_target_group" "traefik_target_group_int" {
   }
 }
 
+resource "aws_alb_target_group" "traefik_target_group_transport" {
+  name     = "target-${var.cluster-name}-transport"
+  port     = 30005
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.kube_vpc.id
+  tags = {
+    name = "target-${var.cluster-name}-transport"
+  }
+
+  health_check {
+    healthy_threshold   = 3
+    unhealthy_threshold = 10
+    timeout             = 5
+    interval            = 10
+    path                = "/"
+    port                = "30005"
+    matcher             = 404
+  }
+}
+
 resource "aws_autoscaling_attachment" "traefik_asg_attachment_ext" {
   alb_target_group_arn   = aws_alb_target_group.traefik_target_group_ext.arn
   autoscaling_group_name = aws_autoscaling_group.nodePool["kubsystem"].id
 }
 
-resource "aws_autoscaling_attachment" "traefik_asg_attachment_int" {
-  alb_target_group_arn   = aws_alb_target_group.traefik_target_group_int.arn
+resource "aws_autoscaling_attachment" "traefik_asg_attachment_transport" {
+  alb_target_group_arn   = aws_alb_target_group.traefik_target_group_transport.arn
+  autoscaling_group_name = aws_autoscaling_group.nodePool["kubsystem"].id
+}
+
+resource "aws_autoscaling_attachment" "traefik_asg_attachment_discovery" {
+  alb_target_group_arn   = aws_alb_target_group.traefik_target_group_discovery.arn
   autoscaling_group_name = aws_autoscaling_group.nodePool["kubsystem"].id
 }

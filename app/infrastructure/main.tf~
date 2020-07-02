@@ -12,5 +12,4 @@ module "aws" {
   peer_vpc_id           = var.peer_vpc_id
   peer_account_id       = var.peer_account_id
   nebula_route_table_id = var.nebula_route_table_id
-  cluster_type          = var.cluster_type
 }

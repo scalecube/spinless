@@ -1,5 +1,4 @@
 resource "aws_security_group" "eks-node" {
-  name = "workers-${var.cluster-name}"
   description = "Security group for all nodes in the cluster"
   vpc_id      = aws_vpc.kube_vpc.id
 
@@ -21,8 +20,8 @@ resource "aws_security_group_rule" "eks-node-access-vpc" {
   from_port                = 0
   protocol                 = "-1"
   security_group_id        = aws_security_group.eks-node.id
-  cidr_blocks              = ["10.${var.network_id}.0.0/16"]
-  to_port                  = 0
+  cidr_blocks              = ["10.0.0.0/16"]
+  to_port                  = 65535
   type                     = "ingress"
 }
 
@@ -45,4 +44,3 @@ resource "aws_security_group_rule" "node-ingress-cluster" {
   to_port                  = 65535
   type                     = "ingress"
 }
-

@@ -43,16 +43,6 @@ variable "cluster-name" {
   type    = string
 }
 
-variable "cluster_type" {
-  default = "exchange"
-  type    = string
-}
-
-variable "db_user" {
-  default = "exchange"
-  type    = string
-}
-
 variable "eks-version" {
   default = "1.16"
   type    = string
