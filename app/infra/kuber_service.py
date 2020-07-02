@@ -11,6 +11,7 @@ def kube_cluster_create(job_ref, app_logger):
         app_logger.info("Starting cluster creation...")
 
         kube_cluster_params = ("cluster_name",
+                               "cluster_type",
                                "region",
                                "cloud",
                                "secret_name",
@@ -50,6 +51,7 @@ def kube_cluster_create(job_ref, app_logger):
                        aws_access_key=secrets.get("aws_access_key"),
                        aws_secret_key=secrets.get("aws_secret_key"),
                        cluster_name=data.get("cluster_name"),
+                       cluster_type=data.get("cluster_type"),
                        kctx_api=KctxApi(app_logger),
                        properties=data.get("properties"),
                        dns_suffix=data.get("dns_suffix"),

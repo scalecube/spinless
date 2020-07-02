@@ -30,6 +30,7 @@ class TF:
                  aws_access_key,
                  aws_secret_key,
                  cluster_name,
+                 cluster_type,
                  kctx_api,
                  properties,
                  dns_suffix,
@@ -50,6 +51,7 @@ class TF:
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
         self.cluster_name = cluster_name
+        self.cluster_type = cluster_type
         self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
@@ -68,6 +70,7 @@ class TF:
             tfvars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
             tfvars.write('{} = "{}"\n'.format("network_id", self.network_id))
             tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
+            tfvars.write('{} = "{}"\n'.format("cluster_type", self.cluster_type))
             tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
             tfvars.write('{} = "{}"\n'.format("nebula_cidr_block", self.nebula_cidr_block))
             tfvars.write('{} = "{}"\n'.format("nebula_route_table_id", self.nebula_route_table_id))
