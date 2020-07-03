@@ -13,6 +13,12 @@ resource "aws_security_group" "traefik-alb-discovery" {
   tags = {
     "Name"      = "alb-discovery-traefik"
   }
+
+  timeouts {
+    create = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_security_group" "traefik-alb-transport" {
@@ -30,6 +36,12 @@ resource "aws_security_group" "traefik-alb-transport" {
   tags = {
     "Name" = "alb-transport-traefik"
   }
+
+  timeouts {
+    create = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_security_group" "traefik-alb-ext" {
@@ -47,6 +59,12 @@ resource "aws_security_group" "traefik-alb-ext" {
   tags = {
     "Name"      = "alb-ext-traefik"
   }
+
+  timeouts {
+    create = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_security_group_rule" "alb-ext-ingress-access-https" {
@@ -118,6 +136,13 @@ resource "aws_alb" "alb-ext" {
   tags = {
     Name    = "alb-traefik-${var.cluster-name}-ext"
   }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_alb" "alb-transport" {
@@ -129,6 +154,13 @@ resource "aws_alb" "alb-transport" {
   tags = {
     Name = "alb-traefik-${var.cluster-name}-transport"
   }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_alb" "alb-discovery" {
@@ -140,6 +172,13 @@ resource "aws_alb" "alb-discovery" {
   tags = {
     Name = "alb-traefik-${var.cluster-name}-discovery"
   }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
+
 }
 
 resource "aws_alb_listener" "alb_listener_ext" {

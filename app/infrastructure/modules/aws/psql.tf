@@ -63,4 +63,11 @@ resource "aws_db_instance" "ex-data" {
   multi_az = false
   port = 5432
   skip_final_snapshot = true
+
+  timeouts {
+    create = "60m"
+    update = "120m"
+    delete = "60m"
+  }
+
 }

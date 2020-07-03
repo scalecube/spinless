@@ -14,6 +14,12 @@ resource "aws_eks_cluster" "eks" {
     aws_iam_role_policy_attachment.eks-AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.eks-AmazonEKSServicePolicy
   ]
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
 }
 
 output "endpoint" {
