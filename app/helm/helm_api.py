@@ -67,16 +67,14 @@ class HelmDeployment:
         self.logger.info(f"Default values are: {default_values}")
 
         # init traefik values if necessary:
-        if default_values.get("traefik"):
-            dns_suffix = self.k8s_cluster_conf.get("dns_suffix")
-            if not dns_suffix:
-                self.logger.warn("traefik conf found in chart but nothing configured for cluster")
-            else:
-                self.logger.info("Traefik config detected in values.yaml. "
-                                 f"Setting up the traefik values with dns suffix: {dns_suffix}")
-                default_values["traefik"]["dns_suffix"] = dns_suffix
+        if "traefik" in default_values and "dns_suffix" in self.k8s_cluster_conf:
+            default_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
 
+        # trigger pods restart any redeploy
         default_values['timestamp'] = str(self.timestamp)
+
+        # docker token to put into image pull secret
+        default_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
 
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
@@ -145,20 +143,13 @@ class HelmDeployment:
 
         path_to_values_yaml, values_content = self.enrich_values_yaml()
 
-        dockerjson = self.__dockerjson(values_content, self.registries)
-
         # actually call helm install
-        helm_cmd = self.get_helm_cmd()
-        helm_install_cmd = [helm_cmd, "upgrade",
+        helm_install_cmd = ['helm', "upgrade",
                             f'{self.owner}-{self.repo}',
-                            f'{self.helm_dir}/{self.repo}',
+                            f'{self.helm_dir}/{self.repo}', "--force",
                             "--debug", "--install", "--namespace", self.namespace,
                             "-f", path_to_values_yaml,
                             ]
-        if dockerjson:
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append(f'dockerjsontoken={dockerjson}')
-
         self.logger.info("Adding tolerations")
         # Tolerations
         # TODO: tolerations class and array of tolerations
@@ -186,19 +177,3 @@ class HelmDeployment:
         if os.name == 'nt':
             kubectl = "kubectl"
         return kubectl
-
-    def get_helm_cmd(self):
-        helm_cmd = os.getenv('HELM_CMD', "/usr/local/bin/helm")
-        if os.name == 'nt':
-            helm_cmd = "helm"
-        return helm_cmd
-
-    def __dockerjson(self, valuesyaml, registries):
-        if registries.get("docker"):
-            result = registries.get("docker").get("dockerjsontoken", "")
-        else:
-            result = valuesyaml.get("dockerjsontoken", "")
-        if not result or result == "":
-            self.logger.warn(
-                "Using default docker registry since didn't find dockerjson neither in values nor in registry data.")
-        return result
