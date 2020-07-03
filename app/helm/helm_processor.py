@@ -1,25 +1,28 @@
 from multiprocessing import Process
+from threading import Thread
 
 
 class HelmProcessor:
     def __init__(self, task_queue, completion_dict):
         self.task_queue = task_queue
         self.completion_dict = completion_dict
-        self.reader_p = Process(target=self._poll_queue)
+        self.reader_thread = Thread(target=self._poll_queue)
 
     def start(self):
-        # self.reader_p.daemon = True
-        self.reader_p.start()
+        self.reader_thread.start()
         return self
 
     def submit_deployment(self, job_and_deployment):
-        self.task_queue.add(job_and_deployment)
+        print("Submitting task")
+        self.task_queue.put(job_and_deployment)
 
     def _poll_queue(self):
         while True:
+            print("Waiting for next task")
             job_and_deployment = self.task_queue.get()
+            print("New task has arrived")
             deployment = job_and_deployment.deployment
-            service_key = f'{deployment["namespace"]}/{deployment["owner"]}-{deployment["repo"]}'
+            service_key = f'{deployment.namespace}/{deployment.owner}-{deployment.repo}'
             helm_result = {"service": service_key, "success": False}
             try:
                 for (msg, code) in job_and_deployment.deployment.install_package():

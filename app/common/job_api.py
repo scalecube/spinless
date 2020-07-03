@@ -63,13 +63,6 @@ class Job:
         self.thread = Thread(target=func, args=(self, logger))
         self.status = Status(self.job_id)
 
-    def __init__(self, func, func_owner, logger, data):
-        self.job_id = str(uuid.uuid1())
-        self.data = data
-        self.logger = JobLogger(self.job_id)
-        self.thread = Thread(target=func, args=(func_owner, self, logger))
-        self.status = Status(self.job_id)
-
     def emit(self, _status, message):
         if not self.logger.handlers():
             self.logger = JobLogger(self.job_id)
@@ -89,13 +82,7 @@ class Job:
             self.thread.start()
         except Exception as ex:
             self.__upd_state(JobState.FAILED)
-            self.__terminate()
         return self
-
-    def cancel(self):
-        if self.__running():
-            self.__upd_state(JobState.CANCELLED)
-        return self.__terminate()
 
     def __upd_state(self, _state):
         # Job complete
@@ -105,25 +92,9 @@ class Job:
         else:
             self.status.update(_state.value)
 
-    def __running(self):
-        return self.thread and self.thread.pid and psutil.pid_exists(self.thread.pid)
-
-    def __terminate(self):
-        if self.__running():
-            self.thread.terminate()
-            return True
-        else:
-            return False
-
 
 def create_job(func, app_logger, data):
     job = Job(func, app_logger, data)
-    jobs_dict[job.job_id] = job
-    return job
-
-
-def create_job(func, func_owner, app_logger, data):
-    job = Job(func, func_owner, app_logger, data)
     jobs_dict[job.job_id] = job
     return job
 

@@ -22,11 +22,11 @@ class HelmService:
         end_waiting = datetime.now().timestamp() + self.TIMEOUT_MIN * 60 * 1000
         curr_status = self.helm_results.get(job_id)
         while datetime.now().timestamp() <= end_waiting:
-            curr_status = self.helm_results.get(job_id)
+            curr_status = self.helm_results.get(job_id, {"services": []})
             if expected_services_count != len(curr_status["services"]):
                 print(
                     f'Awaiting for job {job_id} completion: {len(curr_status["services"])}/{expected_services_count} done')
-                time.sleep(3)
+                time.sleep(0.5)
             else:
                 del self.helm_results[job_id]
                 return curr_status
@@ -61,12 +61,12 @@ class HelmService:
             for service in services:
                 self.__install_single_helm(job_ref, app_logger, common_props, service)
             status = self._await_helms_installation(job_ref.job_id, len(services))
-            errors = list(filter(lambda s: "error" not in s, status.get("services")))
+            errors = list(filter(lambda s: "error" in s, status.get("services")))
             if len(errors) == 0 and len(status.get("services")) == len(services):
                 job_ref.complete_succ(f'Installed {len(services)}/{len(services)} services')
             else:
                 job_ref.complete_err(
-                    f'Installed {len(status.get("services"))}/{len(services)} services. With errors: {len(errors)}')
+                    f'Installed {len(status.get("services")) - len(errors)} /{len(services)} services. With errors: {len(errors)}')
         except Exception as ex:
             job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
 

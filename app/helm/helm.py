@@ -4,7 +4,7 @@ from flask import current_app as app, g as global_ctx, Blueprint
 from flask import request, jsonify, Response, abort
 
 # Blueprint Configuration
-from common.job_api import create_job, cancel_job, get_job_status
+from common.job_api import create_job, get_job_status
 from common.log_api import tail_f
 
 helm_bp_instance = Blueprint(name='helm', import_name=__name__, url_prefix="/helm")
@@ -19,7 +19,7 @@ def helm_deploy_start():
     if not data:
         return abort(400, Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
     app.logger.info(f'Request to CI/CD is {data}')
-    job = create_job(helm_service.helm_deploy, helm_service, app.logger, data).start()
+    job = create_job(helm_service.helm_deploy, app.logger, data).start()
     return jsonify({'id': job.job_id})
 
 
@@ -29,16 +29,6 @@ def get_log_api(job_id):
     if not job_id:
         return abort(400, Response("No job id provided"))
     return Response(tail_f(job_id))
-
-
-@helm_bp_instance.route('/deploy/cancel/<job_id>', strict_slashes=False)
-def helm_deploy_cancel(job_id):
-    app.logger.info(f'Request to cancel {job_id}')
-    if not job_id:
-        return jsonify({"message": "Provide 'job_id' field."})
-    if cancel_job(job_id):
-        return jsonify({"message": f'Canceled job {job_id}', "id": job_id})
-    return jsonify({"message": f'Job {job_id} was not running'})
 
 
 @helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
@@ -59,7 +49,7 @@ def destroy_env():
     if data['namespace'] in PROTECTED_NS:
         return abort(400, jsonify(error=f"Please, don't remove these env-s: {PROTECTED_NS}"))
     app.logger.info(f'Request to destroy namespace is {data}')
-    job = create_job(helm_service.helm_destroy, helm_service, app.logger, data).start()
+    job = create_job(helm_service.helm_destroy, app.logger, data).start()
     return jsonify({'id': job.job_id})
 
 
