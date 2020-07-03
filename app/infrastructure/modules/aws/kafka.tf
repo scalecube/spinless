@@ -1,3 +1,9 @@
+resource "random_string" "random" {
+  length = 8
+  number = true
+  special = false
+}
+
 resource "aws_security_group" "msk" {
   count = "${var.cluster_type == "ops" ? 1 : 0}"
   name = "kafka-${var.cluster-name}"
@@ -31,7 +37,7 @@ resource "aws_security_group_rule" "msk-access" {
 resource "aws_msk_configuration" "unlim-logs" {
   count = "${var.cluster_type == "ops" ? 1 : 0}"
   kafka_versions = ["2.2.1"]
-  name           = "unlim-logs-${var.cluster-name}"
+  name           = "unlim-log-${var.cluster-name}-${random_string.random.result}"
 
   server_properties = <<PROPERTIES
 auto.create.topics.enable=false

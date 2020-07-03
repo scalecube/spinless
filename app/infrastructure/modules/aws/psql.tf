@@ -1,3 +1,9 @@
+resource "random_password" "pass" {
+  length = 16
+  special = false
+  number = true
+}
+
 resource "aws_security_group" "rds-psql" {
   count = "${var.cluster_type == "ops" ? 1 : 0}"
   name = "psql-${var.cluster-name}"
@@ -53,7 +59,7 @@ resource "aws_db_instance" "ex-data" {
   instance_class       = "db.t3.medium"
   name                 = "exchange"
   username             = "${var.db_user}"
-  password = "E6NQb464fSR9JyUQga${var.cluster-name}"
+  password = "${random_password.pass.result}"
   identifier = "exchange-${var.cluster-name}"
   vpc_security_group_ids = [
     "${aws_security_group.rds-psql[count.index].id}"
