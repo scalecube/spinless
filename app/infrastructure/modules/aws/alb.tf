@@ -11,7 +11,7 @@ resource "aws_security_group" "traefik-alb-discovery" {
   }
 
   tags = {
-    "Name"      = "alb-discovery-traefik"
+    "name"      = "alb-discovery-traefik-${var.cluster-name}"
   }
 
   timeouts {
@@ -34,7 +34,7 @@ resource "aws_security_group" "traefik-alb-transport" {
   }
 
   tags = {
-    "Name" = "alb-transport-traefik"
+    "name" = "alb-transport-traefik-${var.cluster-name}"
   }
 
   timeouts {
@@ -57,7 +57,7 @@ resource "aws_security_group" "traefik-alb-ext" {
   }
 
   tags = {
-    "Name"      = "alb-ext-traefik"
+    "name"      = "alb-ext-traefik-${var.cluster-name}"
   }
 
   timeouts {
@@ -284,6 +284,7 @@ resource "aws_alb_target_group" "traefik_target_group_discovery" {
   port     = 30004
   protocol = "HTTP"
   vpc_id   = aws_vpc.kube_vpc.id
+  
   tags = {
     name = "target-${var.cluster-name}-discovery"
   }
@@ -304,6 +305,7 @@ resource "aws_alb_target_group" "traefik_target_group_transport" {
   port     = 30005
   protocol = "HTTP"
   vpc_id   = aws_vpc.kube_vpc.id
+  
   tags = {
     name = "target-${var.cluster-name}-transport"
   }
