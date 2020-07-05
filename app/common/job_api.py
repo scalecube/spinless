@@ -3,6 +3,7 @@ import time
 import uuid
 from enum import Enum
 from multiprocessing import Process, Value
+from threading import Thread
 
 import psutil
 
@@ -55,11 +56,11 @@ class Status:
 
 
 class Job:
-    def __init__(self, func, args, data):
+    def __init__(self, func, logger, data):
         self.job_id = str(uuid.uuid1())
         self.data = data
         self.logger = JobLogger(self.job_id)
-        self.proc = Process(target=func, args=(self, args))
+        self.thread = Thread(target=func, args=(self, logger))
         self.status = Status(self.job_id)
 
     def emit(self, _status, message):
@@ -78,16 +79,10 @@ class Job:
     def start(self):
         try:
             self.__upd_state(JobState.RUNNING)
-            self.proc.start()
+            self.thread.start()
         except Exception as ex:
             self.__upd_state(JobState.FAILED)
-            self.__terminate()
         return self
-
-    def cancel(self):
-        if self.__running():
-            self.__upd_state(JobState.CANCELLED)
-        return self.__terminate()
 
     def __upd_state(self, _state):
         # Job complete
@@ -96,16 +91,6 @@ class Job:
             self.logger.write_eof()
         else:
             self.status.update(_state.value)
-
-    def __running(self):
-        return self.proc and self.proc.pid and psutil.pid_exists(self.proc.pid)
-
-    def __terminate(self):
-        if self.__running():
-            self.proc.terminate()
-            return True
-        else:
-            return False
 
 
 def create_job(func, app_logger, data):
