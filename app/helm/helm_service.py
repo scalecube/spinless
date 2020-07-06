@@ -14,22 +14,28 @@ dev_mode = os.getenv("DEV_MODE", False)
 class HelmService:
 
     def __init__(self, helm_results, helm_processor):
-        self.TIMEOUT_MIN = 20.  # 10 charts - 1 min for each, plus wait time in case of same namespace parallel installation
+        # 10 charts - 1 min for each, plus wait time in case of same namespace parallel installation
+        self.TIMEOUT_MIN = 20.
         self.helm_results = helm_results
         self.helm_processor = helm_processor
 
     def _await_helms_installation(self, job_id, expected_services_count):
+        """
+        Await for job completion and return status
+        :param job_id: job id
+        :param expected_services_count: expected number of services to await for completion
+        :return:
+        """
         end_waiting = datetime.now().timestamp() + self.TIMEOUT_MIN * 60 * 1000
         curr_status = self.helm_results.get(job_id)
         while datetime.now().timestamp() <= end_waiting:
             curr_status = self.helm_results.get(job_id, {"services": []})
             if expected_services_count != len(curr_status["services"]):
-                print(
-                    f'Awaiting for job {job_id} completion: {len(curr_status["services"])}/{expected_services_count} done')
-                time.sleep(0.5)
+                time.sleep(1.)
             else:
-                del self.helm_results[job_id]
+                self.helm_results.pop(job_id)
                 return curr_status
+        self.helm_results.pop(job_id)
         return curr_status
 
     def helm_deploy(self, job_ref, app_logger):
@@ -61,14 +67,16 @@ class HelmService:
             for service in services:
                 self.__install_single_helm(job_ref, app_logger, common_props, service)
             status = self._await_helms_installation(job_ref.job_id, len(services))
-            errors = list(filter(lambda s: "error" in s, status.get("services")))
+            for result in status.get("services", []):
+                job_ref.emit_all("RUNNING", result.get("log", ()))
+            errors = list(filter(lambda s: s.get("error_code", 1) != 0, status.get("services")))
             if len(errors) == 0 and len(status.get("services")) == len(services):
                 job_ref.complete_succ(f'Installed {len(services)}/{len(services)} services')
             else:
                 job_ref.complete_err(
                     f'Installed {len(status.get("services")) - len(errors)} /{len(services)} services. With errors: {len(errors)}')
         except Exception as ex:
-            job_ref.complete_err(f'Unexpected failure while installing services,  reason: {ex}')
+            job_ref.complete_err(f'Unexpected error while installing services,  reason: {ex}')
 
     def helm_destroy(self, job_ref, app_logger):
         data = job_ref.data

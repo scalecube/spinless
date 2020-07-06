@@ -50,7 +50,7 @@ if __name__ == '__main__':
     # initialize helm service
     manager = multiprocessing.Manager()
     helm_results = manager.dict()
-    helm_processor = HelmProcessor(manager.Queue(), helm_results)
+    helm_processor = HelmProcessor(manager.Queue(), helm_results, app.logger)
     helm_processor.start()
 
     helm.helm_service = HelmService(helm_results, helm_processor)
@@ -58,4 +58,3 @@ if __name__ == '__main__':
     app.register_blueprint(helm_bp_instance)
     app.register_blueprint(infra)
     app.run(host='0.0.0.0')
-    # app.run(host='0.0.0.0', processes=1)
