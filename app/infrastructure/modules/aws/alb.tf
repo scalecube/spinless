@@ -41,7 +41,6 @@ resource "aws_security_group" "traefik-alb-transport" {
     create = "60m"
     delete = "60m"
   }
-
 }
 
 resource "aws_security_group" "traefik-alb-ext" {
@@ -64,7 +63,6 @@ resource "aws_security_group" "traefik-alb-ext" {
     create = "60m"
     delete = "60m"
   }
-
 }
 
 resource "aws_security_group_rule" "alb-ext-ingress-access-https" {
@@ -142,14 +140,13 @@ resource "aws_alb" "alb-ext" {
     update = "60m"
     delete = "60m"
   }
-
 }
 
 resource "aws_alb" "alb-transport" {
   name            = "traefik-${var.cluster-name}-transport"
-  subnets         = "${aws_subnet.kube.*.id}"
+  subnets         = "${aws_subnet.public.*.id}"
   security_groups = [aws_security_group.traefik-alb-transport.id]
-  internal        = true
+  internal        = false
 
   tags = {
     Name = "alb-traefik-${var.cluster-name}-transport"
@@ -160,14 +157,13 @@ resource "aws_alb" "alb-transport" {
     update = "60m"
     delete = "60m"
   }
-
 }
 
 resource "aws_alb" "alb-discovery" {
   name            = "traefik-${var.cluster-name}-discovery"
-  subnets         = "${aws_subnet.kube.*.id}"
+  subnets         = "${aws_subnet.public.*.id}"
   security_groups = [aws_security_group.traefik-alb-discovery.id]
-  internal        = true
+  internal        = false
 
   tags = {
     Name = "alb-traefik-${var.cluster-name}-discovery"
@@ -178,7 +174,6 @@ resource "aws_alb" "alb-discovery" {
     update = "60m"
     delete = "60m"
   }
-
 }
 
 resource "aws_alb_listener" "alb_listener_ext" {

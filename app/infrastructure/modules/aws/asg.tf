@@ -17,7 +17,6 @@ USERDATA
 }
 */
 
-
 resource "aws_launch_configuration" "nodes_configuration" {
   for_each                    = var.nodePools
 
