@@ -7,7 +7,7 @@ import time
 import requests
 import yaml
 
-from common.shell import shell_await
+from common.shell import shell_await, shell_run
 from common.vault_api import Vault
 
 
@@ -70,11 +70,17 @@ class HelmDeployment:
         if "traefik" in default_values and "dns_suffix" in self.k8s_cluster_conf:
             default_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
 
-        # trigger pods restart any redeploy
+        # trigger pods restart for every redeploy
         default_values['timestamp'] = str(self.timestamp)
 
         # docker token to put into image pull secret
         default_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
+
+        tolerations = self.get_tolerations()
+        if tolerations is not None:
+            toleration = tolerations.get(self.repo, tolerations.get("default", "kubesystem"))
+            toleration_val = {"key": "type", "value": toleration, "operator": "Equal", "effect": "NoSchedule"}
+            default_values['tolerations'] = [toleration_val]
 
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
@@ -101,7 +107,7 @@ class HelmDeployment:
             tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
             self.logger.info(f"Tolerations are: {tolerations}")
         except Exception as e:
-            tolerations = False
+            tolerations = None
             self.logger.info(f"Get tolerations Exception is: {e}")
         return tolerations
 
@@ -134,32 +140,14 @@ class HelmDeployment:
         else:
             env = {}
 
-        path_to_values_yaml, values_content = self.enrich_values_yaml()
+        values_path, values_content = self.enrich_values_yaml()
 
         # actually call helm install
-        helm_install_cmd = ['helm', "upgrade",
-                            f'{self.owner}-{self.repo}',
-                            f'{self.helm_dir}/{self.repo}', "--force",
-                            "--debug", "--install", "--namespace", self.namespace, "--create-namespace"
-                            "-f", path_to_values_yaml,
-                            ]
-        self.logger.info("Adding tolerations")
-        # Tolerations
-        # TODO: tolerations class and array of tolerations
-        tolerations = self.get_tolerations()
-        if tolerations:
-            toleration_val = tolerations.get(self.repo, tolerations.get("default"))
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].key=type')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append(f'tolerations[0].value={toleration_val}')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].operator=Equal')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].effect=NoSchedule')
+        helm_install_cmd = f'helm upgrade -i {self.owner}-{self.repo} {self.helm_dir}/{self.repo} -f {values_path}  ' \
+                           f'-n {self.namespace} --create-namespace --debug'
 
         yield f"Installing package: {helm_install_cmd}", None
-        helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
+        helm_install_res, stdout_iter = shell_run(helm_install_cmd, env, with_output=True)
         if helm_install_res != 0:
             for s in stdout_iter:
                 yield s, None
