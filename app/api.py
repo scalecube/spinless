@@ -1,16 +1,20 @@
+import multiprocessing
 import os
 from logging.config import dictConfig
 
+import flask
 from dotenv import load_dotenv
 from flask import request, Response, abort
 from flask_api import FlaskAPI
 
-from helm.helm import helm
+from helm import helm, helm_service
+from helm.helm import helm_bp_instance
+from helm.helm_processor import HelmProcessor
+from helm.helm_service import HelmService
 from infra.cloud_service import create_cloud_secret
 from infra.infra import infra
 
 load_dotenv()
-
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -26,7 +30,6 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
-
 app = FlaskAPI(__name__)
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
@@ -43,8 +46,15 @@ def create_aws_secret():
     return create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
 
 
-app.register_blueprint(helm)
-app.register_blueprint(infra)
-
 if __name__ == '__main__':
+    # initialize helm service
+    manager = multiprocessing.Manager()
+    helm_results = manager.dict()
+    helm_processor = HelmProcessor(manager.Queue(), helm_results, app.logger)
+    helm_processor.start()
+
+    helm.helm_service = HelmService(helm_results, helm_processor)
+
+    app.register_blueprint(helm_bp_instance)
+    app.register_blueprint(infra)
     app.run(host='0.0.0.0')
