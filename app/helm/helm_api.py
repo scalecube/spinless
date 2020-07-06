@@ -134,20 +134,13 @@ class HelmDeployment:
         else:
             env = {}
 
-        # create k8 namespace if necessary
-        kubectl = self.get_kubectl_cmd()
-
-        create_namespace_cmd = [kubectl, "create", "namespace", f"{self.namespace}"]
-        shell_await(create_namespace_cmd, env)
-        self.logger.info(f"Kubernetes namespace {self.namespace} created")
-
         path_to_values_yaml, values_content = self.enrich_values_yaml()
 
         # actually call helm install
         helm_install_cmd = ['helm', "upgrade",
                             f'{self.owner}-{self.repo}',
                             f'{self.helm_dir}/{self.repo}', "--force",
-                            "--debug", "--install", "--namespace", self.namespace,
+                            "--debug", "--install", "--namespace", self.namespace, "--create-namespace"
                             "-f", path_to_values_yaml,
                             ]
         self.logger.info("Adding tolerations")
@@ -171,9 +164,3 @@ class HelmDeployment:
             for s in stdout_iter:
                 yield s, None
         yield f'Helm command complete with error code={helm_install_res}', helm_install_res
-
-    def get_kubectl_cmd(self):
-        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
-        if os.name == 'nt':
-            kubectl = "kubectl"
-        return kubectl
