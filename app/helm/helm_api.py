@@ -95,6 +95,7 @@ class HelmDeployment:
 
         # update values with ones posted in request
         actual_values.update(self.values)
+        actual_values["env"] = self.env
         actual_values["service_account"] = f'{self.owner}-{self.repo}'
         # Set vault address into values.yaml if vault.addr key exists
         actual_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
