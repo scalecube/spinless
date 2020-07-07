@@ -93,20 +93,20 @@ class Vault:
         service_path = f"{SECRET_ROOT}/{self.owner}/{self.repo}/{target_ns}"
         if not base_ns:
             self.logger.warning(f"base secrets namespace not provided. will not populate the new secrets")
-            return 0, service_path
+            return service_path, 0
         base_path = f"{SECRET_ROOT}/{self.owner}/{self.repo}/{base_ns}"
         self.__auth_client()
         try:
             existing = self.client.read(service_path)
             if existing and existing.get('data'):
-                return 0, service_path
+                return service_path, 0
             else:
                 base_secrets = self.client.read(base_path)
                 if base_secrets and base_secrets.get('data'):
                     self.client.write(service_path, **base_secrets.get('data'))
         except Exception as e:
             self.logger.warning(f"Failed prepare service path: {e}")
-            return 1, str(e)
+            return str(e), 1
 
     def enable_k8_auth(self, cluster_name, reviewer_jwt, kube_ca, kube_serv):
         try:

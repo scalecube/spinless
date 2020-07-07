@@ -1,6 +1,5 @@
 from common.vault_api import Vault
 
-STATUS_OK_ = {"status": "OK"}
 APP_REG_PATH = "registries"
 
 
@@ -9,56 +8,21 @@ class RegistryApi:
         self.vault = Vault(logger)
         self.logger = logger
 
-    def save_reg(self, reg_data):
-        reg_type = reg_data["type"]
-        if reg_type not in ("docker", "helm"):
-            self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(reg_type))
-            return {"error": "Missing type (docker/helm)"}
-        if not all(k in reg_data for k in ("name", "username", "password", "repo_path")):
-            self.logger.error("Mandatory fields not provided (\"name\",\"username\", \"password\", \"repo_path\")")
-            return {"error": "Missing mandatory fields"}
-        reg_path = "{}/{}/{}/{}".format(self.vault.vault_secrets_path, APP_REG_PATH, reg_type, reg_data["name"])
-        secret_payload = dict((k, reg_data[k]) for k in ("username", "password", "repo_path"))
-        try:
-            self.logger.info("Saving registry data into path: {}".format(reg_path))
-            self.vault.write(reg_path, **secret_payload)
-            return STATUS_OK_
-        except Exception as e:
-            self.logger.info("Failed to write secret to path {}, {}".format(reg_path, e))
-            return {"error": "Failed to write secret"}
+    def get_registry(self, registry_type, registry_name):
+        """
+        Get registry by type and name
+        :param registry_type type of registry, currently supported are "docker"/"helm"
+        :param registry_name name of registry to get
+        :return: (registry data, 0) in case of success, (error string , error code) otherwise
+        """
 
-    def get_reg(self, reg_data):
-        reg_type = reg_data["type"]
-        if reg_type not in ("docker", "helm"):
-            self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(reg_type))
-            return 1, "Missing type (docker/helm)"
-        if not reg_data["name"]:
-            self.logger.error("Repo \"name\" is mandatory")
-            return 1, "Repo \"name\" is mandatory"
-        reg_path = "{}/{}/{}/{}".format(self.vault.vault_secrets_path, APP_REG_PATH, reg_type, reg_data["name"])
+        if registry_type not in ("docker", "helm"):
+            return f"Supported registry types are docker/helm, not {registry_type}", 1
+        reg_path = f"{self.vault.vault_secrets_path}/{APP_REG_PATH}/{registry_type}/{registry_name}"
         try:
-            reg_secret = self.vault.read(reg_path)
-            if not reg_secret or not reg_secret["data"]:
-                return 1, f'No such registry: {reg_data}'
-            return 0, reg_secret["data"]
+            registry_secret = self.vault.read(reg_path)
+            if not registry_secret or not registry_secret["data"]:
+                return f'No such {registry_type} registry: {registry_name}', 1
+            return registry_secret["data"], 0
         except Exception as e:
-            return 1, f'Failed to read secret from path {reg_path}, {e}'
-
-    def delete_reg(self, reg_data):
-        reg_type = reg_data["type"]
-        if reg_type not in ("docker", "helm"):
-            self.logger.error("Field \'type\' should be one of \'helm\' or \'docker\' but was {}".format(reg_type))
-            return {"error": "Missing type (docker/helm)"}
-        if not reg_data["name"]:
-            self.logger.error("Repo \"name\" is mandatory")
-            return {"error": "Repo \"name\" is mandatory"}
-        if reg_data["name"] == "default":
-            self.logger.error("Not allowed to remove default registry")
-            return {"error": "Not allowed to remove default registry"}
-        reg_path = "{}/{}/{}/{}".format(self.vault.vault_secrets_path, APP_REG_PATH, reg_type, reg_data["name"])
-        try:
-            self.vault.delete(reg_path)
-            return STATUS_OK_
-        except Exception as e:
-            self.logger.info("Failed to delete secret from path {}, {}".format(reg_path, e))
-            return {"error": "Failed to delete secret"}
+            return f'Failed to read secret from path {reg_path}, {str(e)}', 1
