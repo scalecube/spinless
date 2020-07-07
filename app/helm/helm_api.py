@@ -7,7 +7,7 @@ import time
 import requests
 import yaml
 
-from common.shell import shell_await
+from common.shell import shell_run
 from common.vault_api import Vault
 
 
@@ -70,11 +70,17 @@ class HelmDeployment:
         if "traefik" in default_values and "dns_suffix" in self.k8s_cluster_conf:
             default_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
 
-        # trigger pods restart any redeploy
+        # trigger pods restart for every redeploy
         default_values['timestamp'] = str(self.timestamp)
 
         # docker token to put into image pull secret
         default_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
+
+        tolerations = self.__get_tolerations()
+        if tolerations is not None:
+            toleration = tolerations.get(self.repo, tolerations.get("default", "kubesystem"))
+            toleration_val = {"key": "type", "value": toleration, "operator": "Equal", "effect": "NoSchedule"}
+            default_values['tolerations'] = [toleration_val]
 
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
@@ -95,85 +101,66 @@ class HelmDeployment:
             yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
         return path_to_values_yaml, default_values
 
-    def get_tolerations(self):
-        vault = Vault(self.logger)
-        try:
-            tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
-            self.logger.info(f"Tolerations are: {tolerations}")
-        except Exception as e:
-            tolerations = False
-            self.logger.info(f"Get tolerations Exception is: {e}")
-        return tolerations
-
     def install_package(self):
-        yield "Preparing package...", None
+        """
+        Runs helm install command according to the properties set up in object.
+        :return: error_code of helm upgrade command and output of (err_code, output). If helm command failed,
+        the output will also contain the helm command output log (including syserr)
+        """
+        pkg = f'{self.namespace}/{self.owner}/{self.repo}'
+        result_output = list()
+        result_output.append(f"{pkg}: Preparing package...")
         prepare_pkg_result, err = self.prepare_package()
         if err != 0:
-            yield f"Preparing package failed: {prepare_pkg_result}", err
+            result_output.append(f"{pkg}: Preparing package failed: {prepare_pkg_result}")
+            return err, result_output
         else:
             helm_tag_gz_path = f'{self.target_path}/{self.repo}.tgz'
             with open(helm_tag_gz_path, "wb") as helm_archive:
                 helm_archive.write(prepare_pkg_result)
             self.untar_helm_gz(helm_tag_gz_path)
-        yield "Package ready", None
+
+        result_output.append(f"{pkg}: Package ready")
+
         kubeconfig_base64 = self.k8s_cluster_conf.get("kube_config")
         if not kubeconfig_base64:
-            yield "WARNING: No kube ctx. Deploying to default cluster", None
+            result_output.append(f"{pkg}: WARNING: No kube ctx. Deploying to default cluster")
         else:
             with open(self.kube_conf_path, "w") as kubeconf_file:
                 kubeconf_str = base64.standard_b64decode(kubeconfig_base64.encode("utf-8")).decode("utf-8")
                 kubeconf_file.writelines(kubeconf_str)
 
         # set aws secrets and custom kubeconfig if all secrets are present, otherwise - default cloud wil be used
+        env = {}
         if all(k in self.k8s_cluster_conf for k in ("aws_region", "aws_access_key", "aws_secret_key")):
             env = {"KUBECONFIG": self.kube_conf_path,
                    "AWS_DEFAULT_REGION": self.k8s_cluster_conf.get("aws_region"),
                    "AWS_ACCESS_KEY_ID": self.k8s_cluster_conf.get("aws_access_key"),
                    "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
                    }
-        else:
-            env = {}
 
-        # create k8 namespace if necessary
-        kubectl = self.get_kubectl_cmd()
-
-        create_namespace_cmd = [kubectl, "create", "namespace", f"{self.namespace}"]
-        shell_await(create_namespace_cmd, env)
-        self.logger.info(f"Kubernetes namespace {self.namespace} created")
-
-        path_to_values_yaml, values_content = self.enrich_values_yaml()
+        values_path, values_content = self.enrich_values_yaml()
 
         # actually call helm install
-        helm_install_cmd = ['helm', "upgrade",
-                            f'{self.owner}-{self.repo}',
-                            f'{self.helm_dir}/{self.repo}', "--force",
-                            "--debug", "--install", "--namespace", self.namespace,
-                            "-f", path_to_values_yaml,
-                            ]
-        self.logger.info("Adding tolerations")
-        # Tolerations
-        # TODO: tolerations class and array of tolerations
-        tolerations = self.get_tolerations()
-        if tolerations:
-            toleration_val = tolerations.get(self.repo, tolerations.get("default"))
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].key=type')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append(f'tolerations[0].value={toleration_val}')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].operator=Equal')
-            helm_install_cmd.append('--set')
-            helm_install_cmd.append('tolerations[0].effect=NoSchedule')
+        helm_install_cmd = f'helm upgrade -i {self.owner}-{self.repo} {self.helm_dir}/{self.repo} -f {values_path}  ' \
+                           f'-n {self.namespace} --create-namespace --debug'
 
-        yield f"Installing package: {helm_install_cmd}", None
-        helm_install_res, stdout_iter = shell_await(helm_install_cmd, env, with_output=True)
-        if helm_install_res != 0:
-            for s in stdout_iter:
-                yield s, None
-        yield f'Helm command complete with error code={helm_install_res}', helm_install_res
+        result_output.append(f"{pkg}: Installing package: {helm_install_cmd}")
+        err_code, cmd_output = shell_run(helm_install_cmd, env)
+        cmd_output = map(lambda s: f"{pkg}: " + s, cmd_output)
+        if err_code == 0:
+            result_output.append(f"{pkg}: Release installed successfully ")
+        else:
+            result_output.append(f"{pkg}: Failed to install release. Details:")
+            result_output.extend(cmd_output)
+        return err_code, result_output
 
-    def get_kubectl_cmd(self):
-        kubectl = os.getenv("KUBECTL_PATH", "/usr/local/bin/kubectl")
-        if os.name == 'nt':
-            kubectl = "kubectl"
-        return kubectl
+    def __get_tolerations(self):
+        vault = Vault(self.logger)
+        try:
+            tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
+            self.logger.info(f"Tolerations are: {tolerations}")
+        except Exception as e:
+            tolerations = None
+            self.logger.info(f"Get tolerations Exception is: {e}")
+        return tolerations

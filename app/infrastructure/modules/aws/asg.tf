@@ -17,7 +17,6 @@ USERDATA
 }
 */
 
-
 resource "aws_launch_configuration" "nodes_configuration" {
   for_each                    = var.nodePools
 
@@ -43,8 +42,8 @@ resource "aws_launch_configuration" "nodes_configuration" {
 #!/bin/bash
 set -o xtrace
 yum update && yum install ec2-net-utils -y
-service network restart
 /etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.eks.endpoint}' --kubelet-extra-args '--register-with-taints="type=${each.value["taint"]}:NoSchedule"'  --b64-cluster-ca '${aws_eks_cluster.eks.certificate_authority.0.data}' '${var.cluster-name}'
+/sbin/reboot
 USERDATA
 )
 

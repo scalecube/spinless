@@ -68,6 +68,12 @@ class Job:
             self.logger = JobLogger(self.job_id)
         self.logger.emit(_status, message)
 
+    def emit_all(self, _status, messages):
+        if not self.logger.handlers():
+            self.logger = JobLogger(self.job_id)
+        for msg in messages:
+            self.logger.emit(_status, msg)
+
     def complete_err(self, msg):
         self.emit("ERROR", msg)
         self.__upd_state(JobState.FAILED)
