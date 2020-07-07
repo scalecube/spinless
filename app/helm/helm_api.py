@@ -10,29 +10,35 @@ import yaml
 from common.shell import shell_run
 from common.vault_api import Vault
 
+SUPPORTED_VALUES = ("owner", "repo", "namespace")
+
 
 class HelmDeployment:
 
-    def __init__(self, logger, k8s_cluster_conf, namespace, posted_values, owner, image_tag, repo, registries,
-                 service_role, helm_version):
-
-        self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
+    def __init__(self, logger, helm_values, k8s_cluster_conf, registries, helm_version="0.0.1"):
         self.logger = logger
-        self.owner = owner
-        self.repo = repo
-        self.posted_values = posted_values
+        self.k8s_cluster_conf = k8s_cluster_conf
+        self.registries = registries
         self.helm_version = helm_version
+        self.owner = helm_values['owner']
+        self.repo = helm_values['repo']
+        if 'env' not in helm_values:
+            self.env = {}
+        else:
+            self.env = helm_values['env']
+        self.namespace = helm_values['namespace']
+        self.image_tag = helm_values['image_tag']
+
+        # calculated properties
+        self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
         self.timestamp = round(time.time() * 1000)
         self.target_path = f'{self.prj_dir}/state/pkg/{self.timestamp}'
         self.kube_conf_path = f'{self.prj_dir}/state/pkg/{self.timestamp}/kubeconfig'
         self.helm_dir = f'{self.target_path}'
-        self.namespace = namespace
-        self.registries = registries
-        self.k8s_cluster_conf = k8s_cluster_conf
-        self.service_role = service_role
+        self.service_role = f"{self.owner}-{self.repo}-role"
         self.cluster_name = k8s_cluster_conf["cluster_name"]
         self.create_dir(self.target_path)
-        self.image_tag = image_tag
+        self.values = {k: v for (k, v) in helm_values.items() if k in SUPPORTED_VALUES}
 
     def create_dir(self, path):
         try:
@@ -62,44 +68,44 @@ class HelmDeployment:
 
     def enrich_values_yaml(self):
         with open(f"{self.helm_dir}/{self.repo}/values.yaml") as default_values_yaml:
-            default_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
+            actual_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
 
-        self.logger.info(f"Default values are: {default_values}")
+        self.logger.info(f"Default values are: {actual_values}")
 
         # init traefik values if necessary:
-        if "traefik" in default_values and "dns_suffix" in self.k8s_cluster_conf:
-            default_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
+        if "traefik" in actual_values and "dns_suffix" in self.k8s_cluster_conf:
+            actual_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
 
         # trigger pods restart for every redeploy
-        default_values['timestamp'] = str(self.timestamp)
+        actual_values['timestamp'] = str(self.timestamp)
 
         # docker token to put into image pull secret
-        default_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
+        actual_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
 
         tolerations = self.__get_tolerations()
         if tolerations is not None:
             toleration = tolerations.get(self.repo, tolerations.get("default", "kubesystem"))
             toleration_val = {"key": "type", "value": toleration, "operator": "Equal", "effect": "NoSchedule"}
-            default_values['tolerations'] = [toleration_val]
+            actual_values['tolerations'] = [toleration_val]
 
         # set cluster name in 'env' per helm chart.
         # That should correspond to vault mount auth path (prefixed with 'kubernetes-')
-        self.posted_values.get('env', {})['VAULT_MOUNT_POINT'] = f'kubernetes-{self.cluster_name}'
-        self.posted_values.get('env')['CLUSTER_NAME'] = self.cluster_name
+        self.env['VAULT_MOUNT_POINT'] = f'kubernetes-{self.cluster_name}'
+        self.env['CLUSTER_NAME'] = self.cluster_name
 
         # update values with ones posted in request
-        default_values.update(self.posted_values)
-        default_values["service_account"] = f'{self.owner}-{self.repo}'
+        actual_values.update(self.values)
+        actual_values["service_account"] = f'{self.owner}-{self.repo}'
         # Set vault address into values.yaml if vault.addr key exists
-        default_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
-                                   "role": self.service_role,
-                                   "jwtprovider": f'kubernetes-{self.cluster_name}'}
-        default_values["images"]["service"]["tag"] = self.image_tag
-        self.logger.info(f"Env before writing: {default_values}")
+        actual_values["vault"] = {"addr": os.getenv("VAULT_ADDR", "http://localhost:8200/"),
+                                  "role": self.service_role,
+                                  "jwtprovider": f'kubernetes-{self.cluster_name}'}
+        actual_values["images"]["service"]["tag"] = self.image_tag
+        self.logger.info(f"Env before writing: {actual_values}")
         path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
-            yaml.dump(default_values, spinless_values_yaml, default_flow_style=False)
-        return path_to_values_yaml, default_values
+            yaml.dump(actual_values, spinless_values_yaml, default_flow_style=False)
+        return path_to_values_yaml, actual_values
 
     def install_package(self):
         """
