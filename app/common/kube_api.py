@@ -48,10 +48,14 @@ class KctxApi:
         return self.save_kubernetes_context(secret)
 
     def get_kubernetes_context(self, cluster_name):
+        """
+        Get kubernetes ocnfig by  cluster name. That's stored in Vault path for Spinless under ../kctx/{cluster}
+        :param cluster_name: cluster name
+        :return: (context, 0) in case of success, or (message, err_code) in case of error
+        """
         self.logger.info("Getting kube context")
         if not cluster_name:
-            self.logger.warn("Kube ctx \"name\" is empty, using \"default\"")
-            cluster_name = DEFAULT_K8S_CTX_ID
+            return "No cluster name provided", 1
         kctx_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}/{cluster_name}'
         try:
             kctx_secret = self.vault.read(kctx_path)

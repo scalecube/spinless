@@ -5,10 +5,11 @@ from datetime import datetime
 from common.kube_api import KctxApi
 from common.vault_api import Vault
 from helm.helm_api import HelmDeployment
+from helm.helm_processor import HelmTask
 from helm.registry_api import RegistryApi
-from helm.helm_processor import JobAndDeployment
 
 dev_mode = os.getenv("DEV_MODE", False)
+SUPPORTED_HELM_PROPERTIES = ("owner", "repo", "image_tag", "env", "namespace", "base_namespace", "cluster")
 
 
 class HelmService:
@@ -19,7 +20,7 @@ class HelmService:
         self.helm_results = helm_results
         self.helm_processor = helm_processor
 
-    def _await_helms_installation(self, job_id, expected_services_count):
+    def __await_helms_installation(self, job_id, expected_services_count):
         """
         Await for job completion and return status
         :param job_id: job id
@@ -44,37 +45,46 @@ class HelmService:
                 "Spinless is not initialized properly and can't work with helms. Check Helm task queue initialization")
         try:
             data = job_ref.data
-            job_ref.emit("RUNNING", f'Start service deploy to kubernetes namespace: {data.get("namespace")}')
+            helms_input = data.get("services", [])
+            job_ref.emit("RUNNING", f'Start deployment of {len(helms_input)} services')
 
-            # Common params
-            common_props, code = self.__common_params(data)
-            if code != 0:
-                return job_ref.complete_err(common_props)
+            # Check mandatory params:
+            mandatory_params = ("owner", "repo", "registry", "cluster", "namespace", "image_tag")
+            for h in helms_input:
+                if not all(k in h for k in mandatory_params):
+                    return job_ref.complete_err(f"Not all mandatory params ({mandatory_params}) "
+                                                f"provided for chart {h.get('repo', 'undefined')}.")
 
-            # Params for helms
-            registry_api = RegistryApi(app_logger)
-            kctx_api = KctxApi(app_logger)
-            services = []
-            # TODO: read kubernetes config once per cluster and store in map
-            for service in data.get("services", []):
-                dependency, code = self.__helm_params(service, registry_api, kctx_api, job_ref, common_props['env'])
-                if code != 0:
-                    return job_ref.complete_err(dependency)
-                services.append(dependency)
+            # Parse k8 Contexts and registries for all services for helms
+            registries, err = self.__parse_registries(app_logger, helms_input)
+            if err != 0:
+                return job_ref.complete_err(registries)
+            k8_contexts, err = self.__parse_k8_contexts(app_logger, helms_input)
+            if err != 0:
+                return job_ref.complete_err(k8_contexts)
 
-            # Install services
-            job_ref.emit("RUNNING", f'Installing {len(services)} charts into namespace {common_props["namespace"]}')
-            for service in services:
-                self.__install_single_helm(job_ref, app_logger, common_props, service)
-            status = self._await_helms_installation(job_ref.job_id, len(services))
+            job_ref.emit("RUNNING", f'Installing {len(helms_input)} helm releases...')
+            for h_input in helms_input:
+                helm_properties = {k: v for (k, v) in h_input.items() if k in SUPPORTED_HELM_PROPERTIES}
+                registry = {r_type: registries.get(r_type).get(r_name) for (r_type, r_name) in
+                            h_input["registry"].items()}
+                k8_config = k8_contexts.get(h_input["cluster"])
+
+                helm_task = HelmTask(job_ref.job_id, helm_properties, registry, k8_config)
+                # Submit tasks to install services
+                self.helm_processor.submit_deployment(helm_task)
+
+            # Await for the tasks to complete
+            status = self.__await_helms_installation(job_ref.job_id, len(helms_input))
             for result in status.get("services", []):
                 job_ref.emit_all("RUNNING", result.get("log", ()))
             errors = list(filter(lambda s: s.get("error_code", 1) != 0, status.get("services")))
-            if len(errors) == 0 and len(status.get("services")) == len(services):
-                job_ref.complete_succ(f'Installed {len(services)}/{len(services)} services')
+            if len(errors) == 0 and len(status.get("services")) == len(helms_input):
+                job_ref.complete_succ(f'Installed {len(helms_input)}/{len(helms_input)} services')
             else:
                 job_ref.complete_err(
-                    f'Installed {len(status.get("services")) - len(errors)} /{len(services)} services. With errors: {len(errors)}')
+                    f'Installed {len(status.get("services")) - len(errors)} /{len(helms_input)} services. '
+                    f'With errors: {len(errors)}')
         except Exception as ex:
             job_ref.complete_err(f'Unexpected error while installing services,  reason: {ex}')
 
@@ -117,70 +127,31 @@ class HelmService:
             app_logger.error(str(ex))
             return str(ex), 1
 
-    # Private methods
-
-    def __common_params(self, data):
-        if not all(k in data for k in ("namespace", "sha")):
-            return "Not all mandatory fields provided: \"namespace\", \"sha\"", 1
-        result = {
-            'namespace': data["namespace"],
-            'sha': data["sha"],
-            'env': data.get('env', {}),
-            'base_namespace': data.get('base_namespace')
-        }
-        return result, 0
-
-    def __helm_params(self, service, reg_api, kctx_api, job_ref, env):
-        if not all(k in service for k in ("owner", "repo", "registry", "cluster")):
-            return "owner/repo/registry/cluster are mandatory ", 1
-        registries_fetched, err = self.__prepare_regs(service["registry"], reg_api)
-        if err != 0:
-            return registries_fetched, err
-        service["registry"] = registries_fetched
-
-        k8s_cluster_conf, code = kctx_api.get_kubernetes_context(service["cluster"])
-        if code != 0:
-            if dev_mode:
-                job_ref.emit("INFO",
-                             f'Failed to get k8 conf for {service["cluster"]}. Using local one')
-                k8s_cluster_conf = {"cluster_name": service["cluster"]}
-            else:
-                return f'Failed to get k8 context for cluster {service["cluster"]}', 1
-        service["k8s_cluster_conf"] = k8s_cluster_conf
-        service["image_tag"] = service.get("image_tag")
-        service['env'] = env.update(service.get("env", {}))
-        return service, 0
-
-    def __prepare_regs(self, registries, registry_api):
+    def __parse_k8_contexts(self, app_logger, helms_input):
         """
-        Get registries from vault. None will cause errer. pass empty dict if empty result expected. No defaults
-        :param registries: reg_type -> reg_name mapping. Empty if no data
-        :param registry_api: initialized registry api
-        :return: reg_type -> reg_data from vault if the reg type to reg name exists. No defaults
+        map cluster -> k8 context for all clusters in request
+        :param app_logger: logger
+        :param helms_input: helm charts to install that were received in user request
+        :return: (mapping, 0) in case of success, (err message, err_code) - otherwise
         """
         result = {}
-        for reg in registries:
-            code, res = registry_api.get_reg({"type": reg, "name": registries.get(reg)})
-            if code != 0:
-                return res, code
-            result[reg] = res
+        clusters = set(map(lambda h: h.get("cluster", ""), helms_input))
+        k8_config_api = KctxApi(app_logger)
+        for cluster in clusters:
+            context, err = k8_config_api.get_kubernetes_context(cluster)
+            if err != 0:
+                return f"Failed to read context for cluster {cluster}", 1
+            result[cluster] = context
         return result, 0
 
-    def __install_single_helm(self, job_ref, app_logger, common_props, helm):
-        posted_values = {**common_props,
-                         **{k: helm[k] for k in helm if k in ("owner", "repo", "image_tag")}}
-        try:
-            vault = Vault(logger=app_logger,
-                          owner=helm["owner"],
-                          repo=helm["repo"],
-                          cluster_name=helm["cluster"])
-            service_role, err_code = vault.create_role()
-            vault.prepare_service_path(common_props.get("base_namespace"), common_props.get('namespace'))
-            if err_code != 0:
-                return f'Failed to create role: {service_role}', 1
-            deployment = HelmDeployment(app_logger, helm["k8s_cluster_conf"], common_props["namespace"], posted_values,
-                                        helm["owner"], helm["image_tag"], helm["repo"], helm["registry"], service_role,
-                                        "0.0.1")
-            self.helm_processor.submit_deployment(JobAndDeployment(job_ref.job_id, deployment))
-        except Exception as ex:
-            return str(ex), 1
+    def __parse_registries(self, app_logger, helms_input):
+        registry_types = ("docker", "helm")
+        result = {reg_type: {} for reg_type in registry_types}
+        registry_api = RegistryApi(app_logger)
+        for registry_type in registry_types:
+            for registry_name in set(map(lambda h: h.get("registry", {}).get(registry_type, ""), helms_input)):
+                registry, err = registry_api.get_registry(registry_type, registry_name)
+                if err != 0:
+                    return f"Failed to read {registry_type} registry {registry_name}", 1
+                result[registry_type][registry_name] = registry
+        return result, 0
