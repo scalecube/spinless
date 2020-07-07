@@ -16,7 +16,7 @@ resource "aws_eks_cluster" "eks" {
   ]
 
   tags = {
-    name = "aws-eks-cluster-${var.cluster-name}-eks"
+    Name = "aws-eks-cluster-${var.cluster-name}-eks"
   }
 
   timeouts {
