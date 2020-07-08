@@ -9,9 +9,8 @@ from infra.cloud_service import create_cloud_provider
 from infra.kctx_service import list_clusters
 from infra.kuber_service import kube_cluster_create, kube_cluster_delete, delete_ns, get_ns
 
-RESERVED_CLUSTERS = {"exberry-cloud", "exberry-demo"}
+RESERVED_CLUSTERS = {"dev-exchange", "dev-ops", "dev-exchange", "nebula", "uat-exchange", "uat-ops"}
 RESERVED_NAMESPACES = {"master", "develop"}
-
 
 infra = Blueprint(name='infra', import_name=__name__, url_prefix="/clusters")
 

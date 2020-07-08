@@ -9,7 +9,7 @@ from helm.helm_processor import HelmTask
 from helm.registry_api import RegistryApi
 
 dev_mode = os.getenv("DEV_MODE", False)
-SUPPORTED_HELM_PROPERTIES = ("owner", "repo", "image_tag", "env", "namespace", "base_namespace", "cluster")
+SUPPORTED_HELM_PROPERTIES = ("owner", "repo", "image_tag", "env", "namespace", "base_namespace", "cluster", "helm_version")
 
 
 class HelmService:
