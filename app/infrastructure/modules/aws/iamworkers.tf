@@ -18,7 +18,7 @@ POLICY
 }
 
 resource "aws_iam_role_policy" "cluster-autoscaler" {
- name        = "cluster-autoscaler-${var.cluster-name}"
+ name        = "${var.cluster-name}-cluster-autoscaler"
  role = aws_iam_role.eks-node.id
 
  policy = <<POLICY

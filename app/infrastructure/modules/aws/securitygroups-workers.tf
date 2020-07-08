@@ -11,7 +11,7 @@ resource "aws_security_group" "eks-node" {
   }
 
   tags = {
-    Name                                               = "aws-security-group-${var.cluster-name}-eks-node"
+    Name                                               = "${var.cluster-name}-worker-eks-security-group"
     "kubernetes.io/cluster/${var.cluster-name}"        = "shared"
   }
 }

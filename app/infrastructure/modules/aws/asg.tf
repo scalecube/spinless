@@ -67,7 +67,7 @@ resource "aws_autoscaling_group" "nodePool" {
 
   tag {
     key                 = "Name"
-    value               = "asg-eks-${each.value["instanceType"]}-${var.cluster-name}"
+    value               = "${var.cluster-name}-${each.value["instanceType"]}-asg-eks"
     propagate_at_launch = true
   }
 
