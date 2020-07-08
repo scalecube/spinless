@@ -15,19 +15,19 @@ SUPPORTED_VALUES = ("owner", "repo", "namespace")
 
 class HelmDeployment:
 
-    def __init__(self, logger, helm_values, k8s_cluster_conf, registries, helm_version="0.0.1"):
+    def __init__(self, logger, helm_values, k8s_cluster_conf, registries):
         self.logger = logger
         self.k8s_cluster_conf = k8s_cluster_conf
         self.registries = registries
-        self.helm_version = helm_version
         self.owner = helm_values['owner']
         self.repo = helm_values['repo']
+        self.namespace = helm_values['namespace']
+        self.image_tag = helm_values['image_tag']
+        self.helm_version = helm_values.get("helm_version", "0.0.1")
         if 'env' not in helm_values:
             self.env = {}
         else:
             self.env = helm_values['env']
-        self.namespace = helm_values['namespace']
-        self.image_tag = helm_values['image_tag']
 
         # calculated properties
         self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
