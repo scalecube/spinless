@@ -11,7 +11,7 @@ resource "aws_security_group" "traefik-alb-discovery" {
   }
 
   tags = {
-    "name"      = "alb-discovery-traefik-${var.cluster-name}"
+    "name"      = "${var.cluster-name}-alb-discovery-traefik"
   }
 
   timeouts {
@@ -34,7 +34,7 @@ resource "aws_security_group" "traefik-alb-transport" {
   }
 
   tags = {
-    "name" = "alb-transport-traefik-${var.cluster-name}"
+    "name" = "${var.cluster-name}-alb-transport-traefik"
   }
 
   timeouts {
@@ -56,7 +56,7 @@ resource "aws_security_group" "traefik-alb-ext" {
   }
 
   tags = {
-    "name"      = "alb-ext-traefik-${var.cluster-name}"
+    "name"      = "${var.cluster-name}-alb-ext-traefik"
   }
 
   timeouts {

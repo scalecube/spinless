@@ -6,7 +6,7 @@ resource "aws_vpc" "kube_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name = "aws-vpc-${var.cluster-name}-kube"
+    Name = "${var.cluster-name}-kube-vpc"
   }
 }
 
@@ -28,7 +28,7 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
-      Name                                      = "public-subnet-${var.cluster-name}-${count.index + 0}"
+      Name                                      = "${var.cluster-name}-${count.index + 0}-public-subnet"
     "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
@@ -49,7 +49,7 @@ resource "aws_subnet" "kube" {
   vpc_id            = aws_vpc.kube_vpc.id
 
   tags = {
-    Name                                      = "eks-kube-subnet-${var.cluster-name}-${count.index + 0}"
+    Name                                      = "${var.cluster-name}-${count.index + 0}-kube-subnet"
     "kubernetes.io/cluster/${var.cluster-name}" = "shared"
   }
 }
@@ -64,7 +64,7 @@ resource "aws_nat_gateway" "nat_gateway_for_private_subnetworks" {
   subnet_id     = aws_subnet.public[count.index].id
 
   tags = {
-    Name = "nat-gateway-${var.cluster-name}"
+    Name = "${var.cluster-name}-nat-gateway"
   }
 }
 
