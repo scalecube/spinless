@@ -27,3 +27,18 @@ parameters:
 provisioner: kubernetes.io/aws-ebs
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
+---
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  labels:
+    app: {{ app }}
+  name: aws-retain
+parameters:
+  fsType: ext4
+  type: gp2
+  zone: eu-west-2a
+provisioner: kubernetes.io/aws-ebs
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
