@@ -131,6 +131,15 @@ class TF:
 
         self.enable_tf_workspace_local_execution()
 
+        # Select terraform workspace if workspace already exists
+        _cmd_wksps = f'terraform workspace select {self.cluster_name} {self.tf_working_dir}'
+        yield "Selecting Workspace: {}".format(_cmd_wksps), None
+        wksp_res, outp = shell_await(shlex.split(_cmd_wksps), with_output=True, cwd=self.tf_state_dir)
+        for s in outp:
+            self.logger.info(s)
+            yield s, None
+        yield f'Terraform workspace selected: {self.cluster_name}', None
+
         # Create terraform vars
         yield "RUNNING: Creating Terraform vars", None
         self.__create_vars_file()
