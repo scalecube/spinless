@@ -23,7 +23,7 @@ class DoubleQuoteDict(dict):
         return json.dumps(self)
 
 
-class TF:
+class Terraform:
     def __init__(self,
                  logger,
                  aws_region,
@@ -119,7 +119,7 @@ class TF:
             )
         self.logger.info("Workspace was patched")
 
-    def install_kube(self):
+    def create_cluster(self):
         # Create terraform workspace
         _cmd_wksps = f'terraform workspace new {self.cluster_name} {self.tf_working_dir}'
         yield "Creating Workspace: {}".format(_cmd_wksps), None
@@ -229,20 +229,21 @@ class TF:
 
         yield "Saved cluster config.", None
 
-    def delete_kube(self):
-        self.__create_vars_file()
-        cmd = f"terraform destroy -var-file={self.tmp_root_path}/{TF_VARS_FILE} -auto-approve {self.tf_working_dir}"
-        yield "Actually destroying cluster. This may take time... {}".format(cmd), None
-        res, outp = shell_await(shlex.split(cmd), with_output=True, cwd=self.tf_state_dir,
-                                timeout=900)
-        for s in outp:
-            self.logger.info(s)
-            yield s, None
-        self.logger.info("Terraform finished cluster removal. Errcode: {}".format(res))
-        if res != 0:
-            yield "Failed to destroy cluster {}".format(self.cluster_name), res
-        yield "Cluster {} destroyed".format(self.cluster_name), None
-        res, msg = self.kctx_api.delete_kubernetes_context(self.cluster_name)
-        if res != 0:
-            yield "Failed to clear cluster info".format(self.cluster_name), res
-        yield "Cluster {} destroyed and cluster related information cleaned".format(self.cluster_name), None
+    def destroy_cluster(self):
+        # self.__create_vars_file()
+        # cmd = f"terraform destroy -var-file={self.tmp_root_path}/{TF_VARS_FILE} -auto-approve {self.tf_working_dir}"
+        # yield "Actually destroying cluster. This may take time... {}".format(cmd), None
+        # res, outp = shell_await(shlex.split(cmd), with_output=True, cwd=self.tf_state_dir,
+        #                         timeout=900)
+        # for s in outp:
+        #     self.logger.info(s)
+        #     yield s, None
+        # self.logger.info("Terraform finished cluster removal. Errcode: {}".format(res))
+        # if res != 0:
+        #     yield "Failed to destroy cluster {}".format(self.cluster_name), res
+        # yield "Cluster {} destroyed".format(self.cluster_name), None
+        # res, msg = self.kctx_api.delete_kubernetes_context(self.cluster_name)
+        # if res != 0:
+        #     yield "Failed to clear cluster info".format(self.cluster_name), res
+        # yield "Cluster {} destroyed and cluster related information cleaned".format(self.cluster_name), None
+        yield "Functionality not implemented yet", None
