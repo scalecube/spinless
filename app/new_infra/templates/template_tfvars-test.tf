@@ -1,0 +1,1 @@
+instance_type = "{{ instance_type }}"

@@ -60,23 +60,23 @@ class InfrastructureService:
             vault.write(common_path, **common_vault_data)
 
             self.__setup_git_ssh(common_vault_data)
-
             secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
-
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-            aws_creds = dict(aws_region=data.get("region"),
-                             aws_access_key=secrets.get("aws_access_key"),
-                             aws_secret_key=secrets.get("aws_secret_key"))
-            tf_vars = dict(
-                cluster_name=data.get("cluster_name"),
-                cluster_type=data.get("cluster_type"),
-                properties=data.get("properties"),
-                network_id=network_id,
-                nebula_cidr_block=nebula_cidr_block,
-                nebula_route_table_id=nebula_route_table_id,
-                peer_account_id=peer_account_id,
-                peer_vpc_id=peer_vpc_id)
+            aws_creds = {"aws_region": data.get("region"),
+                         "aws_access_key": secrets.get("aws_access_key"),
+                         "aws_secret_key": secrets.get("aws_secret_key")}
+
+            tf_vars = {
+                "cluster_name": data.get("cluster_name"),
+                "cluster_type": data.get("cluster_type"),
+                "properties": data.get("properties"),
+                "network_id": network_id,
+                "nebula_cidr_block": nebula_cidr_block,
+                "nebula_route_table_id": nebula_route_table_id,
+                "peer_account_id": peer_account_id,
+                "peer_vpc_id": peer_vpc_id}
+
             terraform = Terraform(logger=self.app_logger,
                                   cluster_name=data.get("cluster_name"),
                                   kctx_api=KctxApi(self.app_logger),
