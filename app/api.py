@@ -10,8 +10,11 @@ from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
 from helm.helm_service import HelmService
-from infra.infrastructure_bp import infra
+from infra.infrastructure_bp import infra_bp_instance
 from infra.infrastructure_service import create_cloud_secret
+from new_infra import new_infrastructure_bp
+from new_infra.new_infrastructure_bp import new_infra_bp_instance
+from new_infra.new_infrastructure_service import InfrastructureService
 
 load_dotenv()
 dictConfig({
@@ -53,7 +56,9 @@ if __name__ == '__main__':
     helm_processor.start()
 
     helm_bp.helm_service = HelmService(helm_results, helm_processor)
+    new_infrastructure_bp.service = InfrastructureService(app.logger)
 
     app.register_blueprint(helm_bp_instance)
-    app.register_blueprint(infra)
+    app.register_blueprint(infra_bp_instance)
+    app.register_blueprint(new_infra_bp_instance)
     app.run(host='0.0.0.0')

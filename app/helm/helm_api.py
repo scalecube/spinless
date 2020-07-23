@@ -7,7 +7,7 @@ import time
 import requests
 import yaml
 
-from common.shell import shell_run
+from common.shell import shell_run, create_dir
 from common.vault_api import Vault
 
 SUPPORTED_VALUES = ("owner", "repo", "namespace")
@@ -30,23 +30,16 @@ class HelmDeployment:
             self.env = helm_values['env']
 
         # calculated properties
-        self.prj_dir = os.path.dirname(sys.modules['__main__'].__file__)
+
+        self.prj_dir = os.getcwd()
         self.timestamp = round(time.time() * 1000)
         self.target_path = f'{self.prj_dir}/state/pkg/{self.timestamp}'
         self.kube_conf_path = f'{self.prj_dir}/state/pkg/{self.timestamp}/kubeconfig'
         self.helm_dir = f'{self.target_path}'
         self.service_role = f"{self.owner}-{self.repo}-role"
         self.cluster_name = k8s_cluster_conf["cluster_name"]
-        self.create_dir(self.target_path)
+        create_dir(self.target_path)
         self.values = {k: v for (k, v) in helm_values.items() if k in SUPPORTED_VALUES}
-
-    def create_dir(self, path):
-        try:
-            os.makedirs(path)
-        except OSError:
-            pass
-        else:
-            print("Successfully created the directory %s" % path)
 
     def untar_helm_gz(self, helm_tag_gz):
         self.logger.info(f'Untar helm_tar_gz is: {helm_tag_gz}')

@@ -1,6 +1,4 @@
-import multiprocessing
-
-from flask import current_app as app, g as global_ctx, Blueprint
+from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
 # Blueprint Configuration
