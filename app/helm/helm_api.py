@@ -7,7 +7,7 @@ import time
 import requests
 import yaml
 
-from common.shell import shell_run, create_dir
+from common.shell import shell_run, create_dirs
 from common.vault_api import Vault
 
 SUPPORTED_VALUES = ("owner", "repo", "namespace")
@@ -31,14 +31,13 @@ class HelmDeployment:
 
         # calculated properties
 
-        self.prj_dir = os.getcwd()
         self.timestamp = round(time.time() * 1000)
-        self.target_path = f'{self.prj_dir}/state/pkg/{self.timestamp}'
-        self.kube_conf_path = f'{self.prj_dir}/state/pkg/{self.timestamp}/kubeconfig'
+        self.target_path = f'{os.getcwd()}/state/pkg/{self.timestamp}'
+        self.kube_conf_path = f'{os.getcwd()}/state/pkg/{self.timestamp}/kubeconfig'
         self.helm_dir = f'{self.target_path}'
         self.service_role = f"{self.owner}-{self.repo}-role"
         self.cluster_name = k8s_cluster_conf["cluster_name"]
-        create_dir(self.target_path)
+        create_dirs(self.target_path)
         self.values = {k: v for (k, v) in helm_values.items() if k in SUPPORTED_VALUES}
 
     def untar_helm_gz(self, helm_tag_gz):

@@ -3,14 +3,13 @@ import json
 import os
 import shlex
 import time
-import requests
 
 import boto3
 from awscli.errorhandler import ClientError
 from jinja2 import Environment, FileSystemLoader
 
 from common.kube_api import KctxApi
-from common.shell import shell_await, shell_run, create_dir
+from common.shell import shell_await, shell_run, create_dirs
 
 KUBECONF_FILE = "kubeconfig"
 TF_VARS_FILE = 'tfvars.tf'
@@ -18,51 +17,24 @@ AWS_VARS_FILE = 'aws_vars.tf'
 BACKEND_FILE = 'backend.tf'
 
 
-class DoubleQuoteDict(dict):
-    def __str__(self):
-        return json.dumps(self)
-
-    def __repr__(self):
-        return json.dumps(self)
-
-
 class Terraform:
-    def __init__(self,
-                 logger,
-                 aws_region,
-                 aws_access_key,
-                 aws_secret_key,
-                 cluster_name,
-                 cluster_type,
-                 kctx_api,
-                 properties,
-                 dns_suffix,
-                 network_id,
-                 nebula_cidr_block,
-                 nebula_route_table_id,
-                 peer_account_id,
-                 peer_vpc_id
-                 ):
+    def __init__(self, logger, cluster_name, kctx_api, dns_suffix, aws_creds, tf_vars):
         self.logger = logger
-        timestamp = round(time.time() * 1000)
-        self.work_dir = f"clusters/create-{cluster_name}-{timestamp}"
-        create_dir(self.work_dir)
-        self.kube_config_file_path = f"{self.work_dir}/{KUBECONF_FILE}"
-        self.aws_region = aws_region
-        self.aws_access_key = aws_access_key
-        self.aws_secret_key = aws_secret_key
         self.cluster_name = cluster_name
-        self.cluster_type = cluster_type
-        self.properties = properties
         self.kctx_api = kctx_api
         self.dns_suffix = dns_suffix
-        self.network_id = network_id
-        self.nebula_cidr_block = nebula_cidr_block
-        self.nebula_route_table_id = nebula_route_table_id
-        self.peer_account_id = peer_account_id
-        self.peer_vpc_id = peer_vpc_id
+        self.aws_creds = aws_creds
+        tf_vars.properties["eks"]["nodePools"] = json.dumps(tf_vars.properties["eks"]["nodePools"])
+        self.tf_vars = tf_vars
+
+        # calculated props
+        timestamp = round(time.time() * 1000)
+        self.work_dir = f'{os.getcwd()}/state/clusters/create-{cluster_name}-{timestamp}'
+        create_dirs(self.work_dir)
+        self.kube_config_file_path = f"{self.work_dir}/{KUBECONF_FILE}"
         self.templates = Environment(loader=FileSystemLoader("new_infra/templates"), trim_blocks=True)
 
+        # cluster state properties
         # TODO: pass as parameters from POST request
         self.tf_dynamodb_table = "terraform-lock"  # dynamodb table used to lock states
         self.env = "dev"  # (dev/preprod/prod)
@@ -78,7 +50,7 @@ class Terraform:
         # generate tf vars (aws credentials and actually cloud configs)
         yield "RUNNING: Creating Terraform vars", None
         aws_vars_path = self._generate_aws_variables()
-        cloud_vars_path = self.__generate_cloud_variables()
+        cloud_vars_path = self.__generate_cluster_variables()
 
         # Terraform init
         _cmd_init = f"terraform init " \
@@ -114,9 +86,9 @@ class Terraform:
 
         # If deployment was successful, save kubernetes context to vault
         kube_conf_str, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
-                                                              aws_region=self.aws_region,
-                                                              aws_access_key=self.aws_access_key,
-                                                              aws_secret_key=self.aws_secret_key,
+                                                              aws_region=self.aws_creds.aws_region,
+                                                              aws_access_key=self.aws_creds.aws_access_key,
+                                                              aws_secret_key=self.aws_creds.aws_secret_key,
                                                               conf_path=self.kube_config_file_path
                                                               )
         if err == 0:
@@ -125,9 +97,9 @@ class Terraform:
             yield "ERROR: Failed to create kubernetes config", err
 
         kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
-        self.kctx_api.save_aws_context(aws_access_key=self.aws_access_key,
-                                       aws_secret_key=self.aws_secret_key,
-                                       aws_region=self.aws_region,
+        self.kctx_api.save_aws_context(aws_access_key=self.aws_creds.aws_access_key,
+                                       aws_secret_key=self.aws_creds.aws_secret_key,
+                                       aws_region=self.aws_creds.aws_region,
                                        kube_cfg_base64=kube_conf_base64,
                                        cluster_name=self.cluster_name,
                                        dns_suffix=self.dns_suffix)
@@ -143,25 +115,17 @@ class Terraform:
     def _generate_aws_variables(self):
         f_name = f"{self.work_dir}/{AWS_VARS_FILE}"
         with open(f_name, "w") as aws_vars:
-            aws_vars.write('{} = "{}"\n'.format("aws_region", self.aws_region))
-            aws_vars.write('{} = "{}"\n'.format("aws_access_key", self.aws_access_key))
-            aws_vars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_secret_key))
+            aws_vars.write('{} = "{}"\n'.format("aws_region", self.aws_creds.aws_region))
+            aws_vars.write('{} = "{}"\n'.format("aws_access_key", self.aws_creds.aws_access_key))
+            aws_vars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_creds.aws_secret_key))
         return f_name
 
-    # TODO: rewrite this
-    def __generate_cloud_variables(self):
+    def __generate_cluster_variables(self):
         f_name = f"{self.work_dir}/tfvars.tf"
         with open(f_name, "w") as tfvars:
-            self.logger.info(f"tfvars file is: {self.work_dir}/tfvars.tf")
-            tfvars.write('{} = "{}"\n'.format("network_id", self.network_id))
-            tfvars.write('{} = "{}"\n'.format("cluster-name", self.cluster_name))
-            tfvars.write('{} = "{}"\n'.format("cluster_type", self.cluster_type))
-            tfvars.write('{} = "{}"\n'.format("eks-version", self.properties["eks"]["version"]))
-            tfvars.write('{} = "{}"\n'.format("nebula_cidr_block", self.nebula_cidr_block))
-            tfvars.write('{} = "{}"\n'.format("nebula_route_table_id", self.nebula_route_table_id))
-            tfvars.write('{} = "{}"\n'.format("peer_account_id", self.peer_account_id))
-            tfvars.write('{} = "{}"\n'.format("peer_vpc_id", self.peer_vpc_id))
-            tfvars.write('{} = {}\n'.format("nodePools", DoubleQuoteDict(self.properties["eks"]["nodePools"])))
+            gen_template = self.templates.get_template('template_tfvars.tf').render(
+                variables=self.tf_vars)
+            tfvars.write(gen_template)
         return f_name
 
     def __generate_backend_tf(self):
@@ -185,9 +149,9 @@ class Terraform:
 
     def __generate_configmap(self):
         client = boto3.client('iam',
-                              region_name=self.aws_region,
-                              aws_access_key_id=self.aws_access_key,
-                              aws_secret_access_key=self.aws_secret_key,
+                              region_name=self.aws_creds.aws_region,
+                              aws_access_key_id=self.aws_creds.aws_access_key,
+                              aws_secret_access_key=self.aws_creds.aws_secret_key,
                               )
         role_arn = client.get_role(RoleName=f'eks-node-role-{self.cluster_name}')['Role']['Arn']
         f_name = f"{self.work_dir}/nodes_cm.yaml"
@@ -210,9 +174,9 @@ class Terraform:
         # Generate cluster config
         yield "RUNNING: Generating kubernetes cluster config...", None
         kube_env = {"KUBECONFIG": self.kube_config_file_path,
-                    "AWS_DEFAULT_REGION": self.aws_region,
-                    "AWS_ACCESS_KEY_ID": self.aws_access_key,
-                    "AWS_SECRET_ACCESS_KEY": self.aws_secret_key
+                    "AWS_DEFAULT_REGION": self.aws_creds.aws_region,
+                    "AWS_ACCESS_KEY_ID": self.aws_creds.aws_access_key,
+                    "AWS_SECRET_ACCESS_KEY": self.aws_creds.aws_secret_key
                     }
         # Apply node auth confmap
         yield "RUNNING: Applying node auth configmap...", None
@@ -235,7 +199,7 @@ class Terraform:
         yield "Storage volume set up successfully.", None
 
         #  Setup cluster autoscaler
-        ca, msg = self.kctx_api.setup_ca(kube_env, self.cluster_name, self.aws_region)
+        ca, msg = self.kctx_api.setup_ca(kube_env, self.cluster_name, self.aws_creds.aws_region)
         if ca != 0:
             yield "Failed to setup cluster autoscaler. Resuming anyway", None
         else:
@@ -267,9 +231,9 @@ class Terraform:
                 github_module_version=self.tf_repository_version)
             file.write(gen_template)
         s3_client = boto3.client('s3',
-                                 region_name=self.aws_region,
-                                 aws_access_key_id=self.aws_access_key,
-                                 aws_secret_access_key=self.aws_secret_key,
+                                 region_name=self.aws_creds.aws_region,
+                                 aws_access_key_id=self.aws_creds.aws_access_key,
+                                 aws_secret_access_key=self.aws_creds.aws_secret_key,
                                  )
         env_path = f"environments/{self.cluster_name}"
         try:

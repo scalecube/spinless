@@ -65,21 +65,24 @@ class InfrastructureService:
 
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
+            aws_creds = dict(aws_region=data.get("region"),
+                             aws_access_key=secrets.get("aws_access_key"),
+                             aws_secret_key=secrets.get("aws_secret_key"))
+            tf_vars = dict(
+                cluster_name=data.get("cluster_name"),
+                cluster_type=data.get("cluster_type"),
+                properties=data.get("properties"),
+                network_id=network_id,
+                nebula_cidr_block=nebula_cidr_block,
+                nebula_route_table_id=nebula_route_table_id,
+                peer_account_id=peer_account_id,
+                peer_vpc_id=peer_vpc_id)
             terraform = Terraform(logger=self.app_logger,
-                                  aws_region=data.get("region"),
-                                  aws_access_key=secrets.get("aws_access_key"),
-                                  aws_secret_key=secrets.get("aws_secret_key"),
                                   cluster_name=data.get("cluster_name"),
-                                  cluster_type=data.get("cluster_type"),
                                   kctx_api=KctxApi(self.app_logger),
-                                  properties=data.get("properties"),
                                   dns_suffix=data.get("dns_suffix"),
-                                  network_id=network_id,
-                                  nebula_cidr_block=nebula_cidr_block,
-                                  nebula_route_table_id=nebula_route_table_id,
-                                  peer_account_id=peer_account_id,
-                                  peer_vpc_id=peer_vpc_id
-                                  )
+                                  aws_creds=aws_creds,
+                                  tf_vars=tf_vars)
 
             for (msg, res) in terraform.create_cluster():
                 if res is None:

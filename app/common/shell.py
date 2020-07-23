@@ -66,7 +66,7 @@ def shell_run(cmd, env=None, cwd=None, timeout=300, get_stream=False):
         return return_code, completed.stdout.decode('utf-8').split('\n')
 
 
-def create_dir(path):
+def create_dirs(path):
     try:
         os.makedirs(path)
     except OSError:
