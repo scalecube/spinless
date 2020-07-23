@@ -23,7 +23,7 @@ class HelmDeployment:
         self.repo = helm_values['repo']
         self.namespace = helm_values['namespace']
         self.image_tag = helm_values['image_tag']
-        self.helm_version = helm_values.get("helm_version", "1.0-develop")
+        self.helm_version = helm_values.get("helm_version", f"1.0-{self.image_tag}")
         if 'env' not in helm_values:
             self.env = {}
         else:

@@ -1,11 +1,9 @@
 from common.kube_api import KctxApi
 from common.vault_api import Vault
-from infra.infrastructure import TF
-
-DEFAULT_CLOUD = {"type": "eks", "name": "default"}
+from infra.terraform_api import Terraform
 
 
-def kube_cluster_create(job_ref, app_logger):
+def create_cluster(job_ref, app_logger):
     try:
         data = job_ref.data
         app_logger.info("Starting cluster creation...")
@@ -46,23 +44,23 @@ def kube_cluster_create(job_ref, app_logger):
 
         job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-        terraform = TF(logger=app_logger,
-                       aws_region=data.get("region"),
-                       aws_access_key=secrets.get("aws_access_key"),
-                       aws_secret_key=secrets.get("aws_secret_key"),
-                       cluster_name=data.get("cluster_name"),
-                       cluster_type=data.get("cluster_type"),
-                       kctx_api=KctxApi(app_logger),
-                       properties=data.get("properties"),
-                       dns_suffix=data.get("dns_suffix"),
-                       network_id=network_id,
-                       nebula_cidr_block=nebula_cidr_block,
-                       nebula_route_table_id=nebula_route_table_id,
-                       peer_account_id=peer_account_id,
-                       peer_vpc_id=peer_vpc_id
-                       )
+        terraform = Terraform(logger=app_logger,
+                              aws_region=data.get("region"),
+                              aws_access_key=secrets.get("aws_access_key"),
+                              aws_secret_key=secrets.get("aws_secret_key"),
+                              cluster_name=data.get("cluster_name"),
+                              cluster_type=data.get("cluster_type"),
+                              kctx_api=KctxApi(app_logger),
+                              properties=data.get("properties"),
+                              dns_suffix=data.get("dns_suffix"),
+                              network_id=network_id,
+                              nebula_cidr_block=nebula_cidr_block,
+                              nebula_route_table_id=nebula_route_table_id,
+                              peer_account_id=peer_account_id,
+                              peer_vpc_id=peer_vpc_id
+                              )
 
-        for (msg, res) in terraform.install_kube():
+        for (msg, res) in terraform.create_cluster():
             if res is None:
                 job_ref.emit("RUNNING", msg)
             else:
@@ -77,7 +75,7 @@ def kube_cluster_create(job_ref, app_logger):
         job_ref.complete_err(f'failed to create cluster. reason {ex}')
 
 
-def kube_cluster_delete(job_ref, app_logger):
+def destroy_cluster(job_ref, app_logger):
     try:
         data = job_ref.data
         # check mandatory params
@@ -99,16 +97,16 @@ def kube_cluster_delete(job_ref, app_logger):
         secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
 
         job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
-        terraform = TF(logger=app_logger,
-                       aws_region=data.get("region"),
-                       aws_access_key=secrets.get("aws_access_key"),
-                       aws_secret_key=secrets.get("aws_secret_key"),
-                       cluster_name=data.get("cluster_name"),
-                       kctx_api=KctxApi(app_logger),
-                       properties=data.get("properties"),
-                       dns_suffix=data.get("dns_suffix"))
+        terraform = Terraform(logger=app_logger,
+                              aws_region=data.get("region"),
+                              aws_access_key=secrets.get("aws_access_key"),
+                              aws_secret_key=secrets.get("aws_secret_key"),
+                              cluster_name=data.get("cluster_name"),
+                              kctx_api=KctxApi(app_logger),
+                              properties=data.get("properties"),
+                              dns_suffix=data.get("dns_suffix"))
 
-        for (msg, res) in terraform.delete_kube():
+        for (msg, res) in terraform.destroy_cluster():
             if res is None:
                 job_ref.emit("RUNNING", msg)
             else:
@@ -123,15 +121,29 @@ def kube_cluster_delete(job_ref, app_logger):
         job_ref.complete_err(f'failed to delete cluster {ex}')
 
 
-def get_ns(cluster_name, app_logger):
+def list_clusters(logger):
+    return KctxApi(logger).get_clusters_list()
+
+
+def get_namespaces(cluster_name, app_logger):
     nss, code = KctxApi(app_logger).get_ns(cluster_name)
     if code != 0:
         return {"error": nss}
     return {"result": nss}
 
 
-def delete_ns(cluster_name, ns, app_logger):
+def delete_namespace(cluster_name, ns, app_logger):
     nss, code = KctxApi(app_logger).delete_ns(cluster_name, ns)
     if code != 0:
         return {"error": nss}
     return {"result": nss}
+
+
+def create_cloud_secret(logger, secret_name, aws_access_key, aws_secret_key):
+    vault = Vault(logger)
+    common_data = vault.read(f"{vault.vault_secrets_path}/common")
+    cloud_secrets_path = common_data["data"]["cloud_secrets_path"]
+    vault.write(f"{cloud_secrets_path}/{secret_name}",
+                aws_access_key=aws_access_key,
+                aws_secret_key=aws_secret_key)
+    return {f"Secret {secret_name}": "added"}

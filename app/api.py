@@ -2,17 +2,16 @@ import multiprocessing
 import os
 from logging.config import dictConfig
 
-import flask
 from dotenv import load_dotenv
 from flask import request, Response, abort
 from flask_api import FlaskAPI
 
-from helm import helm, helm_service
-from helm.helm import helm_bp_instance
+from helm import helm_bp
+from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
 from helm.helm_service import HelmService
-from infra.cloud_service import create_cloud_secret
-from infra.infra import infra
+from infra.infrastructure_bp import infra
+from infra.infrastructure_service import create_cloud_secret
 
 load_dotenv()
 dictConfig({
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     helm_processor = HelmProcessor(manager.Queue(), helm_results, app.logger)
     helm_processor.start()
 
-    helm.helm_service = HelmService(helm_results, helm_processor)
+    helm_bp.helm_service = HelmService(helm_results, helm_processor)
 
     app.register_blueprint(helm_bp_instance)
     app.register_blueprint(infra)
