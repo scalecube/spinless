@@ -89,7 +89,7 @@ class InfrastructureService:
                     job_ref.emit("RUNNING", msg)
                 else:
                     if res == 0:
-                        job_ref.complete_succ(f'Finished. cluster created successfully: {msg}')
+                        job_ref.complete_succ(f'Finished. cluster created successfully')
                     else:
                         job_ref.complete_err(f'Finished. cluster creation failed: {msg}')
                     # Don't go further in job. it's over. if that failed, it will not continue the flow.

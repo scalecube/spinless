@@ -1,1 +1,1 @@
-instance_type = "{{ instance_type }}"
+instance_type = "{{ variables.instance_type }}"

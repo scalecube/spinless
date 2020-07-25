@@ -1,5 +1,7 @@
-module "env-1" {
-//  source = "git@github.com:exberry-io/terraform-eks-exberry-tenant.git?ref=v0.1"
+module "{{ module_name }}" {
   source = "git@github.com:{{ repository }}.git?ref={{ version }}"
+  {% for key in variables %}
+  {{ key }} = var.{{ key }}
+  {% endfor %}
 }
 

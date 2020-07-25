@@ -1,18 +1,14 @@
-import base64
+import json
 import os
-import shlex
 import time
 
 import boto3
 from awscli.errorhandler import ClientError
 from jinja2 import Environment, FileSystemLoader
 
-from common.kube_api import KctxApi
-from common.shell import shell_await, shell_run, create_dirs
+from common.shell import shell_run, create_dirs
 
 KUBECONF_FILE = "kubeconfig"
-TF_VARS_FILE = 'tfvars.tf'
-AWS_VARS_FILE = 'aws_vars.tf'
 BACKEND_FILE = 'backend.tf'
 
 
@@ -44,15 +40,17 @@ class Terraform:
         self.logger.info(f"Started to create cluster in directory {self.work_dir}")
         # generate tf configuration files (using mapping between cluster type to github repo for tf files)
         self.__generate_backend_tf()
-        self.__generate_main_tf()
+
         # generate tf vars (aws credentials and actually cloud configs)
         yield "RUNNING: Creating Terraform vars", None
-        aws_vars_path = self._generate_aws_variables()
-        cloud_vars_path = self.__generate_cluster_variables()
+        aws_vars_path, aws_vars = self._generate_aws_variables()
+        cloud_vars_path, cluster_vars = self.__generate_cluster_variables()
+
+        self.__generate_main_tf({**aws_vars, **cluster_vars})
 
         # Terraform init
         _cmd_init = f"terraform init " \
-                    f"-backend-config={self.work_dir}/{AWS_VARS_FILE}"
+                    f"-backend-config={aws_vars_path}"
         yield "RUNNING: Initializing terraform...", None
         # Attention to "cwd=" that's important to work in same directory (/tmp/...)
         err, outp = shell_run(_cmd_init, cwd=self.work_dir, timeout=300)
@@ -63,14 +61,17 @@ class Terraform:
         else:
             yield "RUNNING: Terraform init complete", None
 
+        # TODO: this is workaround(?). need to copy variables.tf to working dir
+        _cmd_copy_variables = f"cp {self.work_dir}/.terraform/modules/{self.cluster_name}/variables.tf {self.work_dir}/"
+        shell_run(_cmd_copy_variables)
+
         # Terraform apply
         _cmd_apply = f"terraform apply -var-file={aws_vars_path} -var-file={cloud_vars_path} -auto-approve"
         yield f"RUNNING: Actually creating cluster. This may take time... {_cmd_apply}", None
-        err_code_apply, outp = shell_await(shlex.split(_cmd_apply), with_output=True, cwd=self.work_dir,
-                                           timeout=900)
+        err_code_apply, outp = shell_run(_cmd_apply, cwd=self.work_dir, timeout=900)
         for s in outp:
             self.logger.info(s)
-            yield f"Teraform apply: {s}", None
+            yield f"Terraform apply: {s}", None
         self.logger.info(f"Terraform finished cluster creation. Errcode: {err_code_apply}")
         if err_code_apply != 0:
             yield "FAILED: Failed to create cluster", err_code_apply
@@ -111,46 +112,59 @@ class Terraform:
         else:
             yield "Saving cluster parameters to S3: FAIL", None
 
+        yield "success", 0
+
     def _generate_aws_variables(self):
-        f_name = f"{self.work_dir}/{AWS_VARS_FILE}"
+        """
+        generate file containing aws credentials (aws.tfvars)
+        :return: pair of filename that was generated and actual dictionary of its content
+        """
+        f_name = f"{self.work_dir}/aws.tfvars"
         with open(f_name, "w") as aws_vars:
             aws_vars.write('{} = "{}"\n'.format("aws_region", self.aws_creds["aws_region"]))
             aws_vars.write('{} = "{}"\n'.format("aws_access_key", self.aws_creds["aws_access_key"]))
             aws_vars.write('{} = "{}"\n'.format("aws_secret_key", self.aws_creds["aws_secret_key"]))
-        return f_name
+        return f_name, self.aws_creds
 
-    # def __generate_cluster_variables(self):
-    #     f_name = f"{self.work_dir}/tfvars.tf"
-    #     self.tf_vars["properties"]["eks"]["nodePools"] = json.dumps(self.tf_vars["properties"]["eks"]["nodePools"])
-    #     with open(f_name, "w") as tfvars:
-    #         gen_template = self.templates.get_template('template_tfvars.tf').render(variables=self.tf_vars)
-    #         tfvars.write(gen_template)
-    #     return f_name
+    def __generate_cluster_variables_real(self):
+        """
+        generate file containing cluster variables names credentials (tfvars.tfvars)
+        :return: pair of filename that was generated and actual dictionary of its content
+        """
+        f_name = f"{self.work_dir}/tfvars.tfvars"
+        self.tf_vars["properties"]["eks"]["nodePools"] = json.dumps(self.tf_vars["properties"]["eks"]["nodePools"])
+        with open(f_name, "w") as tfvars:
+            gen_template = self.templates.get_template('template_tfvars.tf').render(variables=self.tf_vars)
+            tfvars.write(gen_template)
+        return f_name, self.tf_vars
 
     def __generate_cluster_variables(self):
-        f_name = f"{self.work_dir}/tfvars-test.tf"
+        f_name = f"{self.work_dir}/tfvars-test.tfvars"
+        tf_vars = {"instance_type": "t3.micro"}
         with open(f_name, "w") as tfvars:
             gen_template = self.templates.get_template('template_tfvars-test.tf').render(
-                variables={"instance_type": "t3.micro"})
+                variables=tf_vars)
             tfvars.write(gen_template)
-        return f_name
+        return f_name, tf_vars
 
     def __generate_backend_tf(self):
         f_name = f"{self.work_dir}/{BACKEND_FILE}"
         with open(f_name, "w") as file:
             gen_template = self.templates.get_template('template_backend.tf').render(
                 bucket=self.tf_s3_bucket,
-                cluster_name=self.tf_s3_bucket,
+                cluster_name=self.cluster_name,
                 dynamodb_table=self.tf_dynamodb_table)
             file.write(gen_template)
         return f_name
 
-    def __generate_main_tf(self):
+    def __generate_main_tf(self, all_variables):
         f_name = f"{self.work_dir}/main.tf"
         with open(f_name, "w") as file:
             gen_template = self.templates.get_template('template_main.tf').render(
+                module_name=self.cluster_name,
                 repository=self.tf_repository,
-                version=self.tf_repository_version)
+                version=self.tf_repository_version,
+                variables=all_variables)
             file.write(gen_template)
         return f_name
 
@@ -170,7 +184,7 @@ class Terraform:
     def __apply_node_auth_configmap(self, kube_env):
         self.__generate_configmap()
         kube_cmd = "kubectl apply -f {}/nodes_cm.yaml".format(self.work_dir)
-        res, outp = shell_await(shlex.split(kube_cmd), env=kube_env, with_output=True)
+        res, outp = shell_run(kube_cmd, env=kube_env)
         if res != 0:
             for s in outp:
                 self.logger.info(s)
@@ -234,6 +248,7 @@ class Terraform:
         with open(cluster_info_path, "w") as file:
             gen_template = self.templates.get_template('template_cluster_info.yaml').render(
                 env=self.env,
+                cluster_name=self.cluster_name,
                 github_module_ref=self.tf_repository,
                 github_module_version=self.tf_repository_version)
             file.write(gen_template)
