@@ -79,7 +79,6 @@ class InfrastructureService:
 
             terraform = Terraform(logger=self.app_logger,
                                   cluster_name=data.get("cluster_name"),
-                                  kctx_api=KctxApi(self.app_logger),
                                   dns_suffix=data.get("dns_suffix"),
                                   aws_creds=aws_creds,
                                   tf_vars=tf_vars)
@@ -97,6 +96,47 @@ class InfrastructureService:
 
         except Exception as ex:
             job_ref.complete_err(f'failed to create cluster. reason {ex}')
+
+    def destroy_cluster(self, job_ref, app_logger):
+        try:
+            data = job_ref.data
+            kube_cluster_params = ("cluster_name",
+                                   "region",
+                                   "secret_name")
+
+            # check mandatory params
+            if not all(k in data for k in kube_cluster_params):
+                return job_ref.complete_err(f'Not all mandatory params: {kube_cluster_params}')
+
+            job_ref.emit(f"RUNNING: Start to destroy cluster: {data.get('cluster_name')}", None)
+
+            #  Get secrets for secret_name
+            vault = Vault(logger=self.app_logger)
+            common_vault_data = vault.read(f"{vault.vault_secrets_path}/common")["data"]
+            cloud_secrets_path = common_vault_data["cloud_secrets_path"]
+            secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
+            job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
+
+            aws_creds = {"aws_region": data.get("region"),
+                         "aws_access_key": secrets.get("aws_access_key"),
+                         "aws_secret_key": secrets.get("aws_secret_key")}
+
+            terraform = Terraform(logger=self.app_logger,
+                                  cluster_name=data.get("cluster_name"),
+                                  aws_creds=aws_creds)
+
+            for (msg, res) in terraform.destroy_cluster():
+                if res is None:
+                    job_ref.emit("RUNNING", msg)
+                else:
+                    if res == 0:
+                        job_ref.complete_succ(f'Finished. cluster deleted successfully')
+                    else:
+                        job_ref.complete_err(f'Finished. cluster deletion failed: {msg}')
+                    break
+
+        except Exception as ex:
+            job_ref.complete_err(f'failed to delete cluster. reason {ex}')
 
     def list_clusters(self):
         return KctxApi(self.app_logger).get_clusters_list()
