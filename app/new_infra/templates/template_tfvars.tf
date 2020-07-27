@@ -6,4 +6,4 @@ nebula_cidr_block = "{{ variables.nebula_cidr_block }}"
 nebula_route_table_id = "{{ variables.nebula_route_table_id }}"
 peer_account_id = "{{ variables.peer_account_id }}"
 peer_vpc_id = "{{ variables.peer_vpc_id }}"
-nodePools = "{{ variables.properties.eks.nodePools }}"
+nodePools = {{ variables.nodePools }}

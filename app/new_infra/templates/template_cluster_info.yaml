@@ -1,4 +1,4 @@
 env: "{{ env }}"
 module: "{{ github_module_ref }}"
 version: "{{ github_module_version }}"
-cluster_name: "{{ cluster_name }}
+cluster_name: "{{ cluster_name }}"

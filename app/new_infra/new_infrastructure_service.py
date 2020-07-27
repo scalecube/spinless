@@ -77,11 +77,12 @@ class InfrastructureService:
                 "peer_account_id": peer_account_id,
                 "peer_vpc_id": peer_vpc_id}
 
-            terraform = Terraform(logger=self.app_logger,
-                                  cluster_name=data.get("cluster_name"),
+            terraform = Terraform(self.app_logger,
+                                  data.get("cluster_name"),
+                                  aws_creds,
+                                  tf_vars,
                                   dns_suffix=data.get("dns_suffix"),
-                                  aws_creds=aws_creds,
-                                  tf_vars=tf_vars)
+                                  action="create")
 
             for (msg, res) in terraform.create_cluster():
                 if res is None:
@@ -123,7 +124,8 @@ class InfrastructureService:
 
             terraform = Terraform(logger=self.app_logger,
                                   cluster_name=data.get("cluster_name"),
-                                  aws_creds=aws_creds)
+                                  aws_creds=aws_creds,
+                                  action="destroy")
 
             for (msg, res) in terraform.destroy_cluster():
                 if res is None:
