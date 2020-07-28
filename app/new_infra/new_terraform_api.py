@@ -4,7 +4,6 @@ import os
 import time
 
 import boto3
-from awscli.errorhandler import ClientError
 from jinja2 import Environment, FileSystemLoader
 
 from common.kube_api import KctxApi
@@ -236,7 +235,7 @@ class Terraform:
             if var_keys is None:
                 return False, False
             return f_name, var_keys
-        except ClientError as e:
+        except Exception as e:
             self.logger.error(e)
             return False, False
 
@@ -379,7 +378,7 @@ class Terraform:
         try:
             self.s3.upload_file(cluster_vars_path, self.tf_s3_bucket, f"{self.s3_env_path}/cluster.tfvars")
             self.s3.upload_file(cluster_info_path, self.tf_s3_bucket, f"{self.s3_env_path}/cluster_info.yaml")
-        except ClientError as e:
+        except Exception as e:
             self.logger.error(e)
             return False
         return True
@@ -388,7 +387,7 @@ class Terraform:
         try:
             self.s3.delete_object(Bucket=self.tf_s3_bucket, Key=f"{self.s3_env_path}")
             self.s3.delete_object(Bucket=self.tf_s3_bucket, Key=f"states/{self.cluster_name}")
-        except ClientError as e:
+        except Exception as e:
             self.logger.error(e)
             return False
         return True
