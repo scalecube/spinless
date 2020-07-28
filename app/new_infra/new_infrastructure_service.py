@@ -1,7 +1,7 @@
 import base64
 
 from common.kube_api import KctxApi
-from common.shell import create_dirs
+from common.shell import create_dirs, shell_run
 from common.vault_api import Vault
 from new_infra.new_terraform_api import Terraform
 
@@ -22,6 +22,10 @@ class InfrastructureService:
             with open("/root/.ssh/id_rsa.pub", "w") as id_rsa_pub:
                 id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
                 id_rsa_pub.write(id_rsa_pub_decoded)
+            shell_run('chmod 400 /root/.ssh/*')
+            shell_run('eval "$(ssh-agent -s)"')
+            shell_run('ssh-add /root/.ssh/id_rsa')
+
         except Exception as err:
             self.app_logger.error(f"Failed to write git keys from vault to disk: {str(err)}")
 
