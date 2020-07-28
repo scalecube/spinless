@@ -20,7 +20,7 @@ class InfrastructureService:
                 id_rsa_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key']).decode("utf-8")
                 id_rsa.write(id_rsa_decoded)
             with open("/root/.ssh/id_rsa.pub", "w") as id_rsa_pub:
-                id_rsa_pub_decoded = common_vault_data['git_ssh_key_pub']
+                id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
                 id_rsa_pub.write(id_rsa_pub_decoded)
         except Exception as err:
             self.app_logger.error(f"Failed to write git keys from vault to disk: {str(err)}")
