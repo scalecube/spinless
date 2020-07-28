@@ -1,4 +1,5 @@
 import base64
+import os
 
 from common.kube_api import KctxApi
 from common.shell import create_dirs, shell_run
@@ -16,15 +17,17 @@ class InfrastructureService:
         try:
             # write git ssh keys to disk
             create_dirs("/root/.ssh")
-            with open("/root/.ssh/id_rsa", "w") as id_rsa:
+            rsa_path = "/root/.ssh/id_rsa"
+            with open(rsa_path, "w") as id_rsa:
                 id_rsa_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key']).decode("utf-8")
                 id_rsa.write(id_rsa_decoded)
-            with open("/root/.ssh/id_rsa.pub", "w") as id_rsa_pub:
+            rsa_pub_path = "/root/.ssh/id_rsa.pub"
+            with open(rsa_pub_path, "w") as id_rsa_pub:
                 id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
                 id_rsa_pub.write(id_rsa_pub_decoded)
-            err_code, cmd_output = shell_run('chmod 400 /root/.ssh/*')
-            self.app_logger.info(f"chmod command: {err_code}/{cmd_output}")
 
+            os.chmod(rsa_path, 0o400)
+            os.chmod(rsa_pub_path, 0o400)
             shell_run('ssh-agent -s')
             shell_run('ssh-add /root/.ssh/id_rsa')
 
