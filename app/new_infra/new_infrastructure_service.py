@@ -22,7 +22,9 @@ class InfrastructureService:
             with open("/root/.ssh/id_rsa.pub", "w") as id_rsa_pub:
                 id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
                 id_rsa_pub.write(id_rsa_pub_decoded)
-            shell_run('chmod 400 /root/.ssh/*')
+            err_code, cmd_output = shell_run('chmod 400 /root/.ssh/*')
+            self.app_logger.info(f"chmod command: {err_code}/{cmd_output}")
+
             shell_run('ssh-agent -s')
             shell_run('ssh-add /root/.ssh/id_rsa')
 
