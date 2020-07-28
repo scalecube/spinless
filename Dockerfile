@@ -26,6 +26,7 @@ ENV TF_WORKING_DIR infrastructure
 ENV TF_STATE /opt/state/tfstate
 ENV TF_CLI_CONFIG_FILE /opt/app/infrastructure/.terraformrc
 ENV TF_BACKEND_CONFIG_FILE /opt/app/infrastructure/backend.tf
+ENV GIT_SSH_COMMAND='ssh -o IdentitiesOnly=yes -i /root/.ssh/id_rsa -F /dev/null'
 
 COPY . /opt
 RUN pip install -r requirements.txt

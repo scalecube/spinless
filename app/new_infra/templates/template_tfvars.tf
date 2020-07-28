@@ -1,0 +1,9 @@
+network_id = "{{ variables.network_id }}"
+cluster-name = "{{ variables.cluster_name }}"
+cluster_type = "{{ variables.cluster_type }}"
+eks-version = "{{ variables.properties.eks.version }}"
+nebula_cidr_block = "{{ variables.nebula_cidr_block }}"
+nebula_route_table_id = "{{ variables.nebula_route_table_id }}"
+peer_account_id = "{{ variables.peer_account_id }}"
+peer_vpc_id = "{{ variables.peer_vpc_id }}"
+nodePools = {{ variables.nodePools }}
