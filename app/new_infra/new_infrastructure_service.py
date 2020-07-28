@@ -23,7 +23,7 @@ class InfrastructureService:
                 id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
                 id_rsa_pub.write(id_rsa_pub_decoded)
             shell_run('chmod 400 /root/.ssh/*')
-            shell_run('eval "$(ssh-agent -s)"')
+            shell_run('ssh-agent -s')
             shell_run('ssh-add /root/.ssh/id_rsa')
 
         except Exception as err:
