@@ -1,6 +1,7 @@
 import base64
 
 from common.kube_api import KctxApi
+from common.shell import create_dirs
 from common.vault_api import Vault
 from new_infra.new_terraform_api import Terraform
 
@@ -14,6 +15,7 @@ class InfrastructureService:
     def __setup_git_ssh(self, common_vault_data):
         try:
             # write git ssh keys to disk
+            create_dirs("/root/.ssh")
             with open("/root/.ssh/id_rsa", "w") as id_rsa:
                 id_rsa_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key']).decode("utf-8")
                 id_rsa.write(id_rsa_decoded)

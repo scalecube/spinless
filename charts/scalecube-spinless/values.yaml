@@ -19,7 +19,6 @@ service:
   annotations: {}
   type: NodePort
 
-ingress:
-  dnsname: scalecube-spinless
+dnsname: spinless.nebula.exberry.io
 
 storageClassName: aws-reclaim
