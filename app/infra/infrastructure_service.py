@@ -4,7 +4,7 @@ import os
 from common.kube_api import KctxApi
 from common.shell import create_dirs, shell_run
 from common.vault_api import Vault
-from new_infra.new_terraform_api import Terraform
+from infra.terraform_api import Terraform
 
 
 class InfrastructureService:

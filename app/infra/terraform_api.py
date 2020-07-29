@@ -11,7 +11,7 @@ from common.shell import shell_run, create_dirs
 from common.vault_api import Vault
 
 # TODO: pass as parameters from POST request
-INFRA_TEMPLATES_ROOT = "new_infra/templates"
+INFRA_TEMPLATES_ROOT = "infra/templates"
 DYNAMO_LOCK_TABLE = "terraform-lock"
 CONFIG_ENVIRONMENT = "develop"
 CONFIG_VERSION = "v0.2"
@@ -35,7 +35,7 @@ class Terraform:
         self.work_dir = f'{os.getcwd()}/state/clusters/{action}-{cluster_name}-{timestamp}'
         create_dirs(self.work_dir)
         self.kube_config_file_path = f"{self.work_dir}/{KUBECONF_FILE}"
-        self.templates = Environment(loader=FileSystemLoader("new_infra/templates"), trim_blocks=True)
+        self.templates = Environment(loader=FileSystemLoader("infra/templates"), trim_blocks=True)
         self.kctx_api = KctxApi(logger)
 
         # cluster state properties

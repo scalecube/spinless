@@ -9,17 +9,17 @@ from common.job_api import create_job
 RESERVED_CLUSTERS = {"dev-exchange", "dev-ops", "dev-exchange", "nebula", "uat-exchange", "uat-ops"}
 RESERVED_NAMESPACES = {"master", "develop"}
 
-new_infra_bp_instance = Blueprint(name='new_infra', import_name=__name__, url_prefix="/new-clusters")
+infra_bp_instance = Blueprint(name='infra', import_name=__name__, url_prefix="/clusters")
 service = None
 
 
-@new_infra_bp_instance.route("/", methods=['GET'], strict_slashes=False)
+@infra_bp_instance.route("/", methods=['GET'], strict_slashes=False)
 def get_clusters_api():
     app.logger.info(f"Request to list cluster")
     return service.list_clusters(app.logger)
 
 
-@new_infra_bp_instance.route("/", methods=['POST'], strict_slashes=False)
+@infra_bp_instance.route("/", methods=['POST'], strict_slashes=False)
 def create_cluster_api():
     app.logger.info(f"Request to create cluster is {request}")
     data = request.get_json()
@@ -30,7 +30,7 @@ def create_cluster_api():
     return jsonify({'id': job.job_id})
 
 
-@new_infra_bp_instance.route("/<cluster_name>", methods=['DELETE'], strict_slashes=False)
+@infra_bp_instance.route("/<cluster_name>", methods=['DELETE'], strict_slashes=False)
 def destroy_cluster_api(cluster_name):
     if cluster_name in RESERVED_CLUSTERS:
         return abort(400, Response("Please don't remove this cluster: {}".format(cluster_name)))
@@ -43,13 +43,13 @@ def destroy_cluster_api(cluster_name):
     return jsonify({'id': job.job_id})
 
 
-@new_infra_bp_instance.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
+@infra_bp_instance.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
 def list_namespaces_api(cluster_name):
     app.logger.info(f"Request get namespaces for cluster {cluster_name}")
     return jsonify(service.get_namespaces(cluster_name, app.logger))
 
 
-@new_infra_bp_instance.route("/<cluster_name>/namespaces/<namespace>", methods=['DELETE'], strict_slashes=False)
+@infra_bp_instance.route("/<cluster_name>/namespaces/<namespace>", methods=['DELETE'], strict_slashes=False)
 def delete_namespace_api(cluster_name, namespace):
     app.logger.info(f"Request to delete namespace {namespace} in {cluster_name}")
     if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
