@@ -22,15 +22,11 @@ RUN chmod +x aws-iam-authenticator
 RUN  mv aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
 
 ENV APP_WORKING_DIR /opt/app
-ENV TF_WORKING_DIR infrastructure
-ENV TF_STATE /opt/state/tfstate
-ENV TF_CLI_CONFIG_FILE /opt/app/infrastructure/.terraformrc
-ENV TF_BACKEND_CONFIG_FILE /opt/app/infrastructure/backend.tf
-ENV GIT_SSH_COMMAND='ssh -o IdentitiesOnly=yes -i /root/.ssh/id_rsa -F /dev/null -oStrictHostKeyChecking=no'
+ENV GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -i /root/.ssh/id_rsa -F /dev/null -oStrictHostKeyChecking=no"
 
 COPY . /opt
 RUN pip install -r requirements.txt
-RUN apt update && apt install -y jq vim mc tree
+RUN apt update && apt install -y jq vim mc tree less
 
 EXPOSE 5000
 CMD ["/bin/sh", "-c", "./start_app.sh"]

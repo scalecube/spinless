@@ -10,8 +10,6 @@ from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
 from helm.helm_service import HelmService
-from infra.infrastructure_bp import infra_bp_instance
-from infra.infrastructure_service import create_cloud_secret
 from new_infra import new_infrastructure_bp
 from new_infra.new_infrastructure_bp import new_infra_bp_instance
 from new_infra.new_infrastructure_service import InfrastructureService
@@ -37,6 +35,8 @@ app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
+infrastructure_service = None
+
 
 @app.route("/secrets/cloud", methods=['POST'], strict_slashes=False)
 def create_aws_secret():
@@ -45,7 +45,7 @@ def create_aws_secret():
     aws_access_key = data.get("aws_access_key") or abort(400, Response("Give aws_access_key"))
     aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")
-    return create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
+    return infrastructure_service.create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
 
 
 if __name__ == '__main__':
@@ -56,9 +56,9 @@ if __name__ == '__main__':
     helm_processor.start()
 
     helm_bp.helm_service = HelmService(helm_results, helm_processor)
-    new_infrastructure_bp.service = InfrastructureService(app.logger)
+    infrastructure_service = InfrastructureService(app.logger)
+    new_infrastructure_bp.service = infrastructure_service
 
     app.register_blueprint(helm_bp_instance)
-    app.register_blueprint(infra_bp_instance)
     app.register_blueprint(new_infra_bp_instance)
     app.run(host='0.0.0.0')
