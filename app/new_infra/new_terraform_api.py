@@ -74,8 +74,7 @@ class Terraform:
         self.__generate_tf_configs(aws_vars + cluster_vars)
 
         # Terraform init
-        _cmd_init = f"terraform init " \
-                    f"-backend-config={aws_vars_path}"
+        _cmd_init = f"terraform init"
         yield "RUNNING: Initializing terraform...", None
         # Attention to "cwd=" that's important to work in same directory (/tmp/...)
         err, outp = shell_run(_cmd_init, cwd=self.work_dir, timeout=300)
@@ -138,8 +137,7 @@ class Terraform:
         self.__generate_tf_configs(aws_vars + cluster_vars)
 
         # Terraform init
-        _cmd_init = f"terraform init " \
-                    f"-backend-config={aws_vars_path}"
+        _cmd_init = f"terraform init"
         yield "RUNNING: Initializing terraform...", None
         # Attention to "cwd=" that's important to work in same directory (/tmp/...)
         err, outp = shell_run(_cmd_init, cwd=self.work_dir, timeout=300)
@@ -255,8 +253,11 @@ class Terraform:
         f_name = f"{self.work_dir}/{BACKEND_FILE}"
         with open(f_name, "w") as file:
             gen_template = self.templates.get_template('template_backend.tf').render(
-                bucket=self.tf_s3_bucket,
                 cluster_name=self.cluster_name,
+                bucket=self.tf_s3_bucket,
+                region=self.aws_creds["aws_region"],
+                access_key=self.aws_creds["aws_access_key"],
+                secret_key=self.aws_creds["aws_secret_key"],
                 dynamodb_table=self.tf_dynamodb_table)
             file.write(gen_template)
         return f_name
@@ -325,7 +326,8 @@ class Terraform:
             yield "SUCCESS: Cluster creation and conf setup complete", None
 
         # Provision Vault
-        vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.work_dir, kube_env, templates_root=INFRA_TEMPLATES_ROOT)
+        vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.work_dir, kube_env,
+                                                            templates_root=INFRA_TEMPLATES_ROOT)
         if vault_prov_res != 0:
             yield f"FAILED: Failed setup vault account in new cluster. Aborting: {msg}", vault_prov_res
         yield "Vault provisioning complete", None
