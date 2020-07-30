@@ -4,7 +4,9 @@
 from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
+from common.authentication import require_role, requires_auth, requires_scope, AuthError
 from common.job_api import create_job
+from common.vault_api import Vault
 
 RESERVED_CLUSTERS = {"dev-exchange", "dev-ops", "dev-exchange", "nebula", "uat-exchange", "uat-ops"}
 RESERVED_NAMESPACES = {"master", "develop"}
@@ -55,3 +57,34 @@ def delete_namespace_api(cluster_name, namespace):
     if any(namespace.startswith(br) for br in RESERVED_NAMESPACES):
         return abort(400, Response(f"Namespace {namespace} is reserved and can't be deleted"))
     return jsonify(service.delete_namespace(cluster_name, namespace, app.logger))
+
+
+@infra_bp_instance.route("/public", methods=['GET'])
+def public_test0():
+    return jsonify({"code": "OK", "access": "public"})
+
+
+@infra_bp_instance.route("/private", methods=['GET'])
+@requires_auth
+def public_test1():
+    return jsonify({"code": "OK", "access": "private"})
+
+
+@infra_bp_instance.route("/scoped", methods=['GET'])
+@requires_auth
+def public_test2():
+    if requires_scope("read:clusters"):
+        response = {"code": "OK", "access": "scoped"}
+        return jsonify(response)
+    raise AuthError({
+        "code": "Unauthorized",
+        "description": "You don't have access to this resource"
+    }, 403)
+
+
+@infra_bp_instance.route("/secret", methods=['GET'])
+@requires_auth
+def public_test3():
+    role = require_role()
+    secret_by_role = Vault(app.logger).read(f"secretv2/scalecube/spinless/access/{role}").get("data")
+    return jsonify({"code": "OK", "access": "secret", "role": role, "secret": secret_by_role})

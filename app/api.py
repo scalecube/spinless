@@ -2,10 +2,12 @@ import multiprocessing
 import os
 from logging.config import dictConfig
 
-from dotenv import load_dotenv
-from flask import request, Response, abort
+
+from dotenv import load_dotenv, find_dotenv
+from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
+from common.authentication import AuthError
 from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
@@ -14,7 +16,6 @@ from infra import infrastructure_bp
 from infra.infrastructure_bp import infra_bp_instance
 from infra.infrastructure_service import InfrastructureService
 
-load_dotenv()
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -30,12 +31,24 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
+
+ENV_FILE = find_dotenv()
+if ENV_FILE:
+    load_dotenv(ENV_FILE)
+
 app = FlaskAPI(__name__)
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
 
 infrastructure_service = None
+
+
+@app.errorhandler(AuthError)
+def handle_auth_error(ex):
+    response = jsonify(ex.error)
+    response.status_code = ex.status_code
+    return response
 
 
 @app.route("/secrets/cloud", methods=['POST'], strict_slashes=False)
