@@ -356,7 +356,7 @@ class KctxApi:
                 if code == 0:
                     values = yaml.load(stream_out, Loader=yaml.FullLoader)
                     service_name = values['repo']
-                    service_version = values['image_tag']
+                    service_version = values['images']['service']['tag']
                     service_versions.append({"repo": service_name, "version": service_version})
             except Exception as ex:
                 self.logger.error(ex)

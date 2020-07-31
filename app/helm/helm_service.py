@@ -4,12 +4,12 @@ from datetime import datetime
 
 from common.kube_api import KctxApi
 from common.vault_api import Vault
-from helm.helm_api import HelmDeployment
 from helm.helm_processor import HelmTask
 from helm.registry_api import RegistryApi
 
 dev_mode = os.getenv("DEV_MODE", False)
-SUPPORTED_HELM_PROPERTIES = ("owner", "repo", "image_tag", "env", "namespace", "base_namespace", "cluster", "helm_version")
+SUPPORTED_HELM_PROPERTIES = (
+    "owner", "repo", "image_tag", "env", "namespace", "base_namespace", "cluster", "helm_version")
 
 
 class HelmService:
@@ -110,18 +110,19 @@ class HelmService:
             job_ref.complete_err(f'Failed to destroy env {namespace}: {str(ex)}')
 
     def helm_list(self, data, app_logger):
-        clusters = data.get("clusters")
-        namespace = data.get("namespace")
+        envs = data.get("environments", [])
         try:
-            app_logger.info(f'Getting versions of services in ns={namespace}, clusters={clusters}')
+            app_logger.info(f'Getting versions of environments={envs}')
             service_versions = []
-            for cluster in clusters:
+            for environment in envs:
+                cluster = environment.get("cluster")
+                namespace = environment.get("namespace")
                 res, code = KctxApi(app_logger).get_services_by_namespace(cluster, namespace)
                 if code == 0:
-                    service_versions.append({"cluster": cluster, "services": res})
+                    service_versions.append({"cluster": cluster, "namespace": namespace, "services": res})
                 else:
                     app_logger.warn(res)
-                    service_versions.append({"cluster": cluster, "services": []})
+                    service_versions.append({"cluster": cluster, "namespace": namespace, "services": []})
             return service_versions, 0
         except Exception as ex:
             app_logger.error(str(ex))

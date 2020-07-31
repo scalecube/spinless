@@ -56,7 +56,7 @@ def list_services():
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload"))
-    if not all(k in data for k in ("clusters", "namespace")):
+    if "environments" not in data:
         return abort(400, Response('Not all mandatory fields provided: "clusters", "namespace"'))
     app.logger.info(f'Request to get service versions is {data}')
     result, err = helm_service.helm_list(data, app.logger)
