@@ -5,6 +5,7 @@ import json
 from functools import wraps
 from os import environ as env
 
+import requests
 from dotenv import find_dotenv, load_dotenv
 from flask import request, _request_ctx_stack
 from jose import jwt
@@ -15,6 +16,8 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 
 AUTH0_DOMAIN = env.get("AUTH0_DOMAIN")
+AUTH0_CLIENT_ID = env.get("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = env.get("AUTH0_CLIENT_SECRET")
 API_IDENTIFIER = env.get("API_IDENTIFIER")
 ALGORITHMS = ["RS256"]
 
@@ -148,3 +151,18 @@ def require_role():
     raise AuthError({"code": "no_role_permission",
                      "description": "Tried to access resource that requires 'role:role' "
                                     "permissions but no role was found"}, 401)
+
+
+def get_token(user_creds):
+    app_creds = {
+        "client_id": AUTH0_CLIENT_ID,
+        "client_secret": AUTH0_CLIENT_SECRET,
+        "audience": API_IDENTIFIER,
+        "grant_type": "password"
+    }
+    payload = {**app_creds, **user_creds}
+    url = f"https://{AUTH0_DOMAIN}/oauth/token"
+    response = requests.post(url, payload)
+    if response.status_code != 200:
+        raise AuthError(response.text, response.status_code)
+    return response.text

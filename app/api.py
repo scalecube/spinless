@@ -2,12 +2,11 @@ import multiprocessing
 import os
 from logging.config import dictConfig
 
-
 from dotenv import load_dotenv, find_dotenv
 from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
-from common.authentication import AuthError
+from common.authentication import AuthError, get_token
 from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
@@ -59,6 +58,11 @@ def create_aws_secret():
     aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")
     return infrastructure_service.create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
+
+
+@app.route("/token", methods=['POST'], strict_slashes=False)
+def get_token_api():
+    return get_token(request.get_json())
 
 
 if __name__ == '__main__':
