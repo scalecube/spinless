@@ -6,7 +6,7 @@ from dotenv import load_dotenv, find_dotenv
 from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
-from common.authentication import AuthError, get_token
+from common.authentication import AuthError, get_token, requires_auth, requires_role
 from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
@@ -51,9 +51,12 @@ def handle_auth_error(ex):
 
 
 @app.route("/secrets/cloud", methods=['POST'], strict_slashes=False)
+@requires_auth
 def create_aws_secret():
     data = request.get_json()
     secret_name = data.get("secret_name") or abort(400, Response("Give secret_name"))
+    requires_role(secret_name)
+
     aws_access_key = data.get("aws_access_key") or abort(400, Response("Give aws_access_key"))
     aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")

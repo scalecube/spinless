@@ -135,7 +135,7 @@ def requires_auth(f):
     return decorated
 
 
-def require_role():
+def requires_role(role):
     """Determines the user's role out of request'a authentication header.
     It should be part of "permissions" claim, and have permission in form of 'role:role_value'
     :return role if exists, otherwise - raise AuthError
@@ -145,11 +145,11 @@ def require_role():
     if unverified_claims.get("permissions"):
         token_scopes = unverified_claims["permissions"]
         for token_scope in token_scopes:
-            splitted = token_scope.split("role:")
+            splitted = token_scope.split(f"role:{role}")
             if len(splitted) == 2 and splitted[1]:
                 return splitted[1]
     raise AuthError({"code": "no_role_permission",
-                     "description": "Tried to access resource that requires 'role:role' "
+                     "description": f"Tried to access resource that requires 'role:{role}' "
                                     "permissions but no role was found"}, 401)
 
 
