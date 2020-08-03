@@ -4,7 +4,7 @@
 from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
-from common.authentication import requires_role, requires_auth, requires_scope
+from common.authentication import requires_account, requires_auth, requires_scope
 from common.job_api import create_job
 
 CLUSTER_READ_SCOPE = "read:cluster"
@@ -35,7 +35,7 @@ def create_cluster_api():
     app.logger.info(f"Request create cluster is {data}")
     secret_name = data.get('secret_name')
     requires_scope(CLUSTER_ADMIN_SCOPE)
-    requires_role(secret_name)
+    requires_account(secret_name)
 
     job = create_job(service.create_cluster, app.logger, data).start()
     return jsonify({'id': job.job_id})
@@ -53,7 +53,7 @@ def destroy_cluster_api(cluster_name):
 
     secret_name = data.get('secret_name')
     requires_scope(CLUSTER_ADMIN_SCOPE)
-    requires_role(secret_name)
+    requires_account(secret_name)
 
     data["cluster_name"] = cluster_name
     job = create_job(service.destroy_cluster, app.logger, data).start()
