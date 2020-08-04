@@ -157,7 +157,7 @@ class HelmDeployment:
     def __get_tolerations(self):
         vault = Vault(self.logger)
         try:
-            tolerations = vault.read(f"{vault.vault_secrets_path}/tolerations/{self.cluster_name}")["data"]
+            tolerations = vault.read(f"{vault.base_path}/tolerations/{self.cluster_name}")["data"]
             self.logger.info(f"Tolerations are: {tolerations}")
         except Exception as e:
             tolerations = None

@@ -30,7 +30,7 @@ class KctxApi:
         if "name" not in ctx_data:
             self.logger.error("Mandatory fields not provided \"name\"")
             return {"error": "Mandatory fields not provided \"name\""}
-        kctx_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}/{ctx_data["name"]}'
+        kctx_path = f'{self.vault.base_path}/{K8S_CTX_PATH}/{ctx_data["name"]}'
         attempts = 0
         while attempts < 3:
             try:
@@ -56,7 +56,7 @@ class KctxApi:
         self.logger.info("Getting kube context")
         if not cluster_name:
             return "No cluster name provided", 1
-        kctx_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}/{cluster_name}'
+        kctx_path = f'{self.vault.base_path}/{K8S_CTX_PATH}/{cluster_name}'
         try:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
@@ -69,11 +69,11 @@ class KctxApi:
 
     def get_clusters_list(self):
         self.logger.info("Listing all clusters")
-        clusters_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}'
+        clusters_path = f'{self.vault.base_path}/{K8S_CTX_PATH}'
         return self.vault.list(clusters_path)
 
     def delete_kubernetes_context(self, cluster_name):
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
+        kctx_path = "{}/{}/{}".format(self.vault.base_path, K8S_CTX_PATH, cluster_name)
         try:
             self.vault.delete(kctx_path)
             return 0, "Deleted kcts successfully"

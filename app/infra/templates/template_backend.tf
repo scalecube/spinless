@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "{{ bucket }}" # i e exberry-terraform-states-develop
+    bucket = "{{ bucket }}" # i e exberry-terraform-states-$account
     key    = "states/{{ cluster_name }}/terraform.tfstate" # i e states/cluster_name/terraform.tfstate
     region = "{{ region }}"
     access_key = "{{ access_key }}"

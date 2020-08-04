@@ -50,17 +50,17 @@ def handle_auth_error(ex):
     return response
 
 
-@app.route("/secrets/cloud", methods=['POST'], strict_slashes=False)
+@app.route("/accounts", methods=['POST'], strict_slashes=False)
 @requires_auth
-def create_aws_secret():
+def create_account():
     data = request.get_json()
-    secret_name = data.get("secret_name") or abort(400, Response("Give secret_name"))
-    requires_account(secret_name)
+    account_name = data.get("name") or abort(400, Response("Give 'name'"))
+    requires_account(account_name)
 
     aws_access_key = data.get("aws_access_key") or abort(400, Response("Give aws_access_key"))
     aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
-    app.logger.info(f"Request for creating secret with '{secret_name}' name")
-    return infrastructure_service.create_account(app.logger, secret_name, aws_access_key, aws_secret_key)
+    app.logger.info(f"Request for creating account with name='{account_name}'")
+    return infrastructure_service.create_account(app.logger, account_name, aws_access_key, aws_secret_key)
 
 
 @app.route("/token", methods=['POST'], strict_slashes=False)

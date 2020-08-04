@@ -135,21 +135,20 @@ def requires_auth(f):
     return decorated
 
 
-def requires_account(role):
-    """Determines the user's role out of request'a authentication header.
-    It should be part of "permissions" claim, and have permission in form of 'role:role_value'
-    :return role if exists, otherwise - raise AuthError
+def requires_account(account):
+    """Determines the user's account from request's authentication header.
+    It should be part of "permissions" claim, and have permission in form of 'account:$account'
+    :return True if exists, otherwise - raise AuthError
     """
     token = get_token_auth_header()
     unverified_claims = jwt.get_unverified_claims(token)
     if unverified_claims.get("permissions"):
         token_scopes = unverified_claims["permissions"]
         for token_scope in token_scopes:
-            splitted = token_scope.split(f"account:{role}")
-            if len(splitted) == 2 and splitted[1]:
-                return splitted[1]
+            if token_scope == f"account:{account}":
+                return True
     raise AuthError({"code": "no_role_permission",
-                     "description": f"Tried to access resource that requires 'account:{role}' "
+                     "description": f"Tried to access resource that requires 'account:{account}' "
                                     "permissions but no role was found"}, 401)
 
 
