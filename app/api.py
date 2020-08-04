@@ -60,7 +60,7 @@ def create_aws_secret():
     aws_access_key = data.get("aws_access_key") or abort(400, Response("Give aws_access_key"))
     aws_secret_key = data.get("aws_secret_key") or abort(400, Response("Give aws_secret_key"))
     app.logger.info(f"Request for creating secret with '{secret_name}' name")
-    return infrastructure_service.create_cloud_secret(app.logger, secret_name, aws_access_key, aws_secret_key)
+    return infrastructure_service.create_account(app.logger, secret_name, aws_access_key, aws_secret_key)
 
 
 @app.route("/token", methods=['POST'], strict_slashes=False)

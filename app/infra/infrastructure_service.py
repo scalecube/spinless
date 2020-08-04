@@ -6,6 +6,8 @@ from common.shell import create_dirs, shell_run
 from common.vault_api import Vault
 from infra.terraform_api import Terraform
 
+ACCOUNTS_PATH = "secretv2/scalecube/spinless/account"
+
 
 class InfrastructureService:
 
@@ -166,11 +168,9 @@ class InfrastructureService:
             return {"error": nss}
         return {"result": nss}
 
-    def create_cloud_secret(self, logger, secret_name, aws_access_key, aws_secret_key):
+    def create_account(self, logger, account_name, aws_access_key, aws_secret_key):
         vault = Vault(logger)
-        common_data = vault.read(f"{vault.vault_secrets_path}/common")
-        cloud_secrets_path = common_data["data"]["cloud_secrets_path"]
-        vault.write(f"{cloud_secrets_path}/{secret_name}",
+        vault.write(f"{ACCOUNTS_PATH}/{account_name}",
                     aws_access_key=aws_access_key,
                     aws_secret_key=aws_secret_key)
-        return {f"Secret {secret_name}": "added"}
+        return {f"Secret {account_name}": "added"}
