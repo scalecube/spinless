@@ -76,10 +76,11 @@ class InfrastructureService:
             account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-            aws_creds = {"as_region": data.get("region"),
-                         "aws_access_key": account_data.get("aws_access_key"),
-                         "aws_secret_key": account_data.get("aws_secret_key"),
-                         "aws_arn_role": account_data.get("aws_arn_role")}
+            account = {"name": data['account'],
+                       "aws_region": data.get("region"),
+                       "aws_access_key": account_data.get("aws_access_key"),
+                       "aws_secret_key": account_data.get("aws_secret_key"),
+                       "aws_role_arn": account_data.get("aws_role_arn")}
 
             tf_vars = {
                 "cluster_name": data.get("cluster_name"),
@@ -93,7 +94,7 @@ class InfrastructureService:
 
             terraform = Terraform(self.app_logger,
                                   data.get("cluster_name"),
-                                  aws_creds,
+                                  account,
                                   tf_vars,
                                   dns_suffix=data.get("dns_suffix"),
                                   action="create")
@@ -117,7 +118,7 @@ class InfrastructureService:
             data = job_ref.data
             kube_cluster_params = ("cluster_name",
                                    "region",
-                                   "secret_name")
+                                   "account")
 
             # check mandatory params
             if not all(k in data for k in kube_cluster_params):
@@ -129,16 +130,18 @@ class InfrastructureService:
             vault = Vault(logger=self.app_logger)
             common_vault_data = vault.read(f"{vault.base_path}/common")["data"]
             accounts_path = common_vault_data["accounts_path"]
-            secrets = vault.read(f"{accounts_path}/{data['account']}")["data"]
+            account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-            aws_creds = {"aws_region": data.get("region"),
-                         "aws_access_key": secrets.get("aws_access_key"),
-                         "aws_secret_key": secrets.get("aws_secret_key")}
+            account = {"name": data['account'],
+                       "aws_region": data.get("region"),
+                       "aws_access_key": account_data.get("aws_access_key"),
+                       "aws_secret_key": account_data.get("aws_secret_key"),
+                       "aws_role_arn": account_data.get("aws_role_arn")}
 
             terraform = Terraform(logger=self.app_logger,
                                   cluster_name=data.get("cluster_name"),
-                                  aws_creds=aws_creds,
+                                  account=account,
                                   action="destroy")
 
             for (msg, res) in terraform.destroy_cluster():

@@ -1,10 +1,11 @@
 terraform {
   backend "s3" {
-    bucket = "{{ bucket }}" # i e exberry-terraform-states-$account
-    key    = "states/{{ cluster_name }}/terraform.tfstate" # i e states/cluster_name/terraform.tfstate
+    bucket = "{{ bucket }}"
+    key    = "{{ resource_path }}/terraform.tfstate"
     region = "{{ region }}"
     access_key = "{{ access_key }}"
     secret_key = "{{ secret_key }}"
-    dynamodb_table = "{{ dynamodb_table }}" # // i e terraform-lock
+    role_arn = "{{ role_arn  }}"
+    dynamodb_table = "{{ dynamodb_table }}"
   }
 }
