@@ -313,7 +313,7 @@ class Terraform:
                     "AWS_ACCESS_KEY_ID": self.account["aws_access_key"],
                     "AWS_SECRET_ACCESS_KEY": self.account["aws_secret_key"]
                     }
-        # Apply node auth confmap
+        # Apply node auth configmap
         yield "RUNNING: Applying node auth configmap...", None
         auth_conf_map_result, msg = self.__apply_node_auth_configmap(kube_env)
         if auth_conf_map_result != 0:
