@@ -20,7 +20,7 @@ class Vault:
         self.repo = repo
         self.mount_point = f'kubernetes-{cluster_name}'
         self.dev_mode = dev_mode
-        self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
+        self.base_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
             self.service_role = "developer",
         else:

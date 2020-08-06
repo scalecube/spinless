@@ -18,7 +18,7 @@ class RegistryApi:
 
         if registry_type not in ("docker", "helm"):
             return f"Supported registry types are docker/helm, not {registry_type}", 1
-        reg_path = f"{self.vault.vault_secrets_path}/{APP_REG_PATH}/{registry_type}/{registry_name}"
+        reg_path = f"{self.vault.base_path}/{APP_REG_PATH}/{registry_type}/{registry_name}"
         try:
             registry_secret = self.vault.read(reg_path)
             if not registry_secret or not registry_secret["data"]:

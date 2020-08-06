@@ -6,6 +6,8 @@ from common.shell import create_dirs, shell_run
 from common.vault_api import Vault
 from infra.terraform_api import Terraform
 
+ACCOUNTS_PATH = "secretv2/scalecube/spinless/accounts"
+
 
 class InfrastructureService:
 
@@ -42,7 +44,7 @@ class InfrastructureService:
                                    "cluster_type",
                                    "region",
                                    "cloud",
-                                   "secret_name",
+                                   "account",
                                    "dns_suffix",
                                    "properties")
 
@@ -52,16 +54,16 @@ class InfrastructureService:
 
             job_ref.emit(f"RUNNING: Start cluster creation job: {data.get('cluster_name')}", None)
 
-            #  Get secrets for secret_name
+            #  Get secrets for account
             vault = Vault(logger=self.app_logger)
-            common_path = f"{vault.vault_secrets_path}/common"
+            common_path = f"{vault.base_path}/common"
 
             # Get network_id (for second octet),
             # increase number for new cluster,
             # save for next deployments
             #
             common_vault_data = vault.read(common_path)["data"]
-            cloud_secrets_path = common_vault_data["cloud_secrets_path"]
+            accounts_path = common_vault_data["accounts_path"]
             network_id = int(common_vault_data["network_id"]) + 1
             common_vault_data.update({"network_id": str(network_id)})
             nebula_cidr_block = common_vault_data["nebula_cidr_block"]
@@ -71,12 +73,14 @@ class InfrastructureService:
             vault.write(common_path, **common_vault_data)
 
             self.__setup_git_ssh(common_vault_data)
-            secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
+            account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-            aws_creds = {"aws_region": data.get("region"),
-                         "aws_access_key": secrets.get("aws_access_key"),
-                         "aws_secret_key": secrets.get("aws_secret_key")}
+            account = {"name": data['account'],
+                       "aws_region": data.get("region"),
+                       "aws_access_key": account_data.get("aws_access_key"),
+                       "aws_secret_key": account_data.get("aws_secret_key"),
+                       "aws_role_arn": account_data.get("aws_role_arn")}
 
             tf_vars = {
                 "cluster_name": data.get("cluster_name"),
@@ -90,7 +94,7 @@ class InfrastructureService:
 
             terraform = Terraform(self.app_logger,
                                   data.get("cluster_name"),
-                                  aws_creds,
+                                  account,
                                   tf_vars,
                                   dns_suffix=data.get("dns_suffix"),
                                   action="create")
@@ -114,7 +118,7 @@ class InfrastructureService:
             data = job_ref.data
             kube_cluster_params = ("cluster_name",
                                    "region",
-                                   "secret_name")
+                                   "account")
 
             # check mandatory params
             if not all(k in data for k in kube_cluster_params):
@@ -122,20 +126,22 @@ class InfrastructureService:
 
             job_ref.emit(f"RUNNING: Start to destroy cluster: {data.get('cluster_name')}", None)
 
-            #  Get secrets for secret_name
+            #  Get secrets for account
             vault = Vault(logger=self.app_logger)
-            common_vault_data = vault.read(f"{vault.vault_secrets_path}/common")["data"]
-            cloud_secrets_path = common_vault_data["cloud_secrets_path"]
-            secrets = vault.read(f"{cloud_secrets_path}/{data['secret_name']}")["data"]
+            common_vault_data = vault.read(f"{vault.base_path}/common")["data"]
+            accounts_path = common_vault_data["accounts_path"]
+            account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
             job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
 
-            aws_creds = {"aws_region": data.get("region"),
-                         "aws_access_key": secrets.get("aws_access_key"),
-                         "aws_secret_key": secrets.get("aws_secret_key")}
+            account = {"name": data['account'],
+                       "aws_region": data.get("region"),
+                       "aws_access_key": account_data.get("aws_access_key"),
+                       "aws_secret_key": account_data.get("aws_secret_key"),
+                       "aws_role_arn": account_data.get("aws_role_arn")}
 
             terraform = Terraform(logger=self.app_logger,
                                   cluster_name=data.get("cluster_name"),
-                                  aws_creds=aws_creds,
+                                  account=account,
                                   action="destroy")
 
             for (msg, res) in terraform.destroy_cluster():
@@ -166,11 +172,9 @@ class InfrastructureService:
             return {"error": nss}
         return {"result": nss}
 
-    def create_cloud_secret(self, logger, secret_name, aws_access_key, aws_secret_key):
+    def create_account(self, logger, account_name, aws_access_key, aws_secret_key):
         vault = Vault(logger)
-        common_data = vault.read(f"{vault.vault_secrets_path}/common")
-        cloud_secrets_path = common_data["data"]["cloud_secrets_path"]
-        vault.write(f"{cloud_secrets_path}/{secret_name}",
+        vault.write(f"{ACCOUNTS_PATH}/{account_name}",
                     aws_access_key=aws_access_key,
                     aws_secret_key=aws_secret_key)
-        return {f"Secret {secret_name}": "added"}
+        return {f"Account '{account_name}' created"}
