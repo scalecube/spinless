@@ -4,9 +4,11 @@ import os
 from common.kube_api import KctxApi
 from common.shell import create_dirs, shell_run
 from common.vault_api import Vault
+from infra.cluster_service import RESERVED_CLUSTERS, compute_properties, RESOURCE_CLUSTER
 from infra.terraform_api import Terraform
 
 ACCOUNTS_PATH = "secretv2/scalecube/spinless/accounts"
+COMMON_PATH = "secretv2/scalecube/spinless/common"
 
 
 class InfrastructureService:
@@ -15,8 +17,9 @@ class InfrastructureService:
         self.app_logger = app_logger
         pass
 
-    def __setup_git_ssh(self, common_vault_data):
+    def __setup_git_ssh(self):
         try:
+            common_vault_data = Vault(self.app_logger).read(COMMON_PATH)["data"]
             # write git ssh keys to disk
             create_dirs("/root/.ssh")
             rsa_path = "/root/.ssh/id_rsa"
@@ -36,126 +39,107 @@ class InfrastructureService:
         except Exception as err:
             self.app_logger.error(f"Failed to write git keys from vault to disk: {str(err)}")
 
-    def create_cluster(self, job_ref, app_logger):
+    def create_resource(self, job_ref, app_logger):
         try:
-            data = job_ref.data
-            self.app_logger.info("Starting cluster creation...")
-            kube_cluster_params = ("cluster_name",
-                                   "cluster_type",
-                                   "region",
-                                   "cloud",
-                                   "account",
-                                   "dns_suffix",
-                                   "properties")
+            request = job_ref.data
+            required_params = ("type",
+                               "name",
+                               "account",
+                               "properties")
 
-            # check mandatory params
-            if not all(k in data for k in kube_cluster_params):
-                return job_ref.complete_err(f'Not all mandatory params: {kube_cluster_params}')
-
-            job_ref.emit(f"RUNNING: Start cluster creation job: {data.get('cluster_name')}", None)
+            self.app_logger.info(f"Validating required parameters: {required_params}")
+            if not all(k in request for k in required_params):
+                return job_ref.complete_err(f'Not all mandatory params: {required_params}')
 
             #  Get secrets for account
             vault = Vault(logger=self.app_logger)
-            common_path = f"{vault.base_path}/common"
-
-            # Get network_id (for second octet),
-            # increase number for new cluster,
-            # save for next deployments
-            #
-            common_vault_data = vault.read(common_path)["data"]
-            accounts_path = common_vault_data["accounts_path"]
-            network_id = int(common_vault_data["network_id"]) + 1
-            common_vault_data.update({"network_id": str(network_id)})
-            nebula_cidr_block = common_vault_data["nebula_cidr_block"]
-            nebula_route_table_id = common_vault_data["nebula_route_table_id"]
-            peer_account_id = common_vault_data["peer_account_id"]
-            peer_vpc_id = common_vault_data["peer_vpc_id"]
-            vault.write(common_path, **common_vault_data)
-
-            self.__setup_git_ssh(common_vault_data)
-            account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
-            job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
-
-            account = {"name": data['account'],
-                       "aws_region": data.get("region"),
+            account_data = vault.read(f"{ACCOUNTS_PATH}/{request['account']}")["data"]
+            account = {"name": request['account'],
+                       "aws_region": request.get("region"),
                        "aws_access_key": account_data.get("aws_access_key"),
                        "aws_secret_key": account_data.get("aws_secret_key"),
                        "aws_role_arn": account_data.get("aws_role_arn")}
 
-            tf_vars = {
-                "cluster_name": data.get("cluster_name"),
-                "cluster_type": data.get("cluster_type"),
-                "properties": data.get("properties"),
-                "network_id": network_id,
-                "nebula_cidr_block": nebula_cidr_block,
-                "nebula_route_table_id": nebula_route_table_id,
-                "peer_account_id": peer_account_id,
-                "peer_vpc_id": peer_vpc_id}
+            # Set up git ssh keys to access terraform modules in github
+            self.__setup_git_ssh()
+
+            # Calculate resource properties
+            resource_type = request.get("type")
+            resource_name = request.get("name")
+            custom_resource_props = {}
+            # Get custom common properties depending on resource_type
+            if resource_type == RESOURCE_CLUSTER:
+                custom_resource_props = compute_properties(app_logger)
+            # Client request may override preconfigured common properties
+            resource_properties = {**custom_resource_props, **request.get('properties')}
 
             terraform = Terraform(self.app_logger,
-                                  data.get("cluster_name"),
+                                  resource_name,
                                   account,
-                                  tf_vars,
-                                  dns_suffix=data.get("dns_suffix"),
-                                  action="create")
+                                  resource_properties,
+                                  action="create",
+                                  resource_type=resource_type)
 
-            for (msg, res) in terraform.create_cluster():
+            for (msg, res) in terraform.create_resource():
                 if res is None:
                     job_ref.emit("RUNNING", msg)
                 else:
                     if res == 0:
-                        job_ref.complete_succ(f'Finished. cluster created successfully')
+                        job_ref.complete_succ(f'Finished. Resource created successfully')
                     else:
-                        job_ref.complete_err(f'Finished. cluster creation failed: {msg}')
-                    # Don't go further in job. it's over. if that failed, it will not continue the flow.
+                        job_ref.complete_err(f'Finished. Resource creation failed: {msg}')
                     break
 
         except Exception as ex:
-            job_ref.complete_err(f'failed to create cluster. reason {ex}')
+            job_ref.complete_err(f'failed to create resource. Reason {ex}')
 
-    def destroy_cluster(self, job_ref, app_logger):
+    def destroy_resource(self, job_ref, app_logger):
         try:
-            data = job_ref.data
-            kube_cluster_params = ("cluster_name",
-                                   "region",
-                                   "account")
+            request = job_ref.data
+            required_params = ("type",
+                               "name",
+                               "account",
+                               "region")
 
             # check mandatory params
-            if not all(k in data for k in kube_cluster_params):
-                return job_ref.complete_err(f'Not all mandatory params: {kube_cluster_params}')
+            if not all(k in request for k in required_params):
+                return job_ref.complete_err(f'Not all mandatory params: {required_params}')
 
-            job_ref.emit(f"RUNNING: Start to destroy cluster: {data.get('cluster_name')}", None)
+            resource_name = request.get('name')
+            resource_type = request.get('type')
+            job_ref.emit(f"RUNNING: Start to destroy resource: {resource_name}", None)
+
+            if resource_type == RESOURCE_CLUSTER and resource_name in RESERVED_CLUSTERS:
+                return job_ref.complete_err(f"Please don't remove this {resource_type}: {resource_name}")
 
             #  Get secrets for account
             vault = Vault(logger=self.app_logger)
-            common_vault_data = vault.read(f"{vault.base_path}/common")["data"]
-            accounts_path = common_vault_data["accounts_path"]
-            account_data = vault.read(f"{accounts_path}/{data['account']}")["data"]
-            job_ref.emit(f"RUNNING: using cloud profile:{data} to create cluster", None)
-
-            account = {"name": data['account'],
-                       "aws_region": data.get("region"),
+            account_data = vault.read(f"{ACCOUNTS_PATH}/{request['account']}")["data"]
+            account = {"name": request['account'],
+                       "aws_region": request.get("region"),
                        "aws_access_key": account_data.get("aws_access_key"),
                        "aws_secret_key": account_data.get("aws_secret_key"),
                        "aws_role_arn": account_data.get("aws_role_arn")}
 
-            terraform = Terraform(logger=self.app_logger,
-                                  cluster_name=data.get("cluster_name"),
-                                  account=account,
-                                  action="destroy")
+            terraform = Terraform(self.app_logger,
+                                  resource_name,
+                                  account,
+                                  request.get('properties'),
+                                  action="destroy",
+                                  resource_type=resource_type)
 
-            for (msg, res) in terraform.destroy_cluster():
+            for (msg, res) in terraform.destroy_resource():
                 if res is None:
                     job_ref.emit("RUNNING", msg)
                 else:
                     if res == 0:
-                        job_ref.complete_succ(f'Finished. cluster deleted successfully')
+                        job_ref.complete_succ(f'Finished. Resource deleted successfully')
                     else:
-                        job_ref.complete_err(f'Finished. cluster deletion failed: {msg}')
+                        job_ref.complete_err(f'Finished. Resource deletion failed: {msg}')
                     break
 
         except Exception as ex:
-            job_ref.complete_err(f'failed to delete cluster. reason {ex}')
+            job_ref.complete_err(f'failed to delete resource. reason {ex}')
 
     def list_clusters(self):
         return KctxApi(self.app_logger).get_clusters_list()
