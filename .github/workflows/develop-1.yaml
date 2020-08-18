@@ -1,0 +1,73 @@
+name: Develop Branch CI
+
+on:
+  push:
+    paths-ignore:
+      - '.github/workflows/**'
+      - 'README.md'
+    branches:
+      - 'develop'
+
+jobs:
+  build:
+    name: Develop Branch CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.6
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+      - name: Maven Build
+        run: mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -Ddockerfile.skip=true -B -V
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
+      - name: Maven Verify
+        run: |
+          docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password ${{ secrets.ORGANIZATION_TOKEN }}
+          mvn verify -B
+      - name: Deploy docker images with develop and latest tags
+        run: mvn -P RunDockerGoals deploy -DskipTests=true -Dmaven.deploy.skip -Ddocker.image.tag=develop -B -V
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
+          GITHUB_REPOSITORY: ${{ secrets.GITHUB_REPOSITORY }}
+      - name: Download Helm
+        run: |
+          curl -L https://get.helm.sh/helm-v3.0.2-linux-amd64.tar.gz | tar -xzf - --strip-component=1 linux-amd64/helm
+          chmod +x helm
+      - name: Package and publish to helm registry
+        run: |
+          for directory in `find ./charts -type d -maxdepth 1 -mindepth 1`
+          do
+              echo helm package for $directory
+              name=$(cat $directory/Chart.yaml | grep ^name: | cut -d: -f2 | cut -c 2- | tr -d '"')
+              chart_version=$(cat $directory/Chart.yaml | grep ^version: | cut -d: -f2 | cut -c 2- | tr -d '"')
+              release_version=$chart_version-develop
+              echo Release chart version $release_version
+              # change helm chart version in Chart.yaml
+              sed -i.bak 's/version:.*/version: '$release_version'/g' $directory/Chart.yaml
+              helm lint --strict $directory || exit 42
+              helm template --debug $directory
+              helm package --debug $directory
+              pkg=$name-$release_version.tgz
+              curl -sSf -u ${{ secrets.HELM_REGISTRY_USER }}:${{ secrets.HELM_REGISTRY_PASSWORD }} -X PUT -T $pkg ${{ secrets.HELM_REGISTRY_URL }}/exberry-io/$name/$pkg
+              # revert changes of helm chart version and remove bak files
+              rm $directory/Chart.yaml
+              mv $directory/Chart.yaml.bak $directory/Chart.yaml
+          done
+  robokit-deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: |
+          echo 'Robokit Deploy Trigger.'

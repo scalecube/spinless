@@ -1,0 +1,56 @@
+name: Release CI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  docker-build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Get release version
+        id: get_version
+        run: echo ::set-env name=RELEASE_VERSION::$(echo ${{ github.event.release.tag_name }} | sed "s/v//")
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag ${{ secrets.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: scalecube/spinless
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tags: "latest,${{ env.RELEASE_VERSION }}"
+  helm-package-post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Helm package
+        run: |
+          wget -q ${{ secrets.HELM_URL }}/${{ secrets.HELM_TGZ }}
+          tar xzfv ${{ secrets.HELM_TGZ }}
+          PATH=`pwd`/linux-amd64/:$PATH && helm init --client-only
+
+      - name: Check Helm package
+        run: |
+          cd ./charts
+          helm lint ./scalecube-spinless
+          helm package ./scalecube-spinless
+
+      - name: POST Helm package
+        run: |
+          for helm_package in $(find . -name '*.tgz'); do curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }}/ --upload-file $helm_package; done
+
+
+  robokit-deploy:
+
+    needs:
+      - docker-build-push
+      - helm-package-post
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy
+        run: |
+          echo 'Robokit Deploy Triggered.'
