@@ -20,7 +20,7 @@ class Vault:
         self.repo = repo
         self.mount_point = f'kubernetes-{cluster_name}'
         self.dev_mode = dev_mode
-        self.vault_secrets_path = os.getenv("VAULT_SECRETS_PATH")
+        self.base_path = os.getenv("VAULT_SECRETS_PATH")
         if dev_mode:
             self.service_role = "developer",
         else:
@@ -125,6 +125,19 @@ class Vault:
             return 0, "success"
         except Exception as e:
             self.logger.warning("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
+            return 1, str(e)
+
+    def disable_vault_mount_point(self, cluster_name):
+        try:
+            self.__auth_client()
+            # Configure auth here
+            mount_point = 'kubernetes-{}'.format(cluster_name)
+            self.client.sys.disable_auth_method(
+                path=mount_point,
+            )
+            return 0, "success"
+        except Exception as e:
+            self.logger.warning(f"Failed to disable k8 auth for {cluster_name}. Reason: {e}")
             return 1, str(e)
 
     # Vault's token ttl is too short so this should be called prior to any operation

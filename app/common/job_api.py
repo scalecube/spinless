@@ -2,10 +2,8 @@ import json
 import time
 import uuid
 from enum import Enum
-from multiprocessing import Process, Value
+from multiprocessing import Value
 from threading import Thread
-
-import psutil
 
 from common.log_api import JobLogger
 

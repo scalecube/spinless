@@ -7,7 +7,7 @@ spec:
     - web
   routes:
   - kind: Rule
-    match: Host(`spinless.nebula.exberry.io`)
+    match: Host(`{{ .Values.dnsname }}`)
     services:
     - name: scalecube-spinless-service
       port: 5000

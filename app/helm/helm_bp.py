@@ -1,11 +1,13 @@
-import multiprocessing
-
-from flask import current_app as app, g as global_ctx, Blueprint
+from flask import current_app as app, Blueprint
 from flask import request, jsonify, Response, abort
 
 # Blueprint Configuration
+from common.authentication import requires_auth, requires_scope
 from common.job_api import create_job, get_job_status
 from common.log_api import tail_f
+
+HELM_ADMIN_SCOPE = "admin:helm"
+HELM_READ_SCOPE = "read:helm"
 
 helm_bp_instance = Blueprint(name='helm', import_name=__name__, url_prefix="/helm")
 helm_service = None
@@ -14,7 +16,9 @@ PROTECTED_NS = ('develop', 'develop-2', 'master', 'master-2')
 
 
 @helm_bp_instance.route('/deploy', methods=['POST'], strict_slashes=False)
+@requires_auth
 def helm_deploy_start():
+    requires_scope(HELM_ADMIN_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
@@ -24,6 +28,7 @@ def helm_deploy_start():
 
 
 @helm_bp_instance.route('/deploy/<job_id>', strict_slashes=False)
+@requires_auth
 def get_log_api(job_id):
     app.logger.info(f'Request to get_log  is {job_id}')
     if not job_id:
@@ -32,6 +37,7 @@ def get_log_api(job_id):
 
 
 @helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
+@requires_auth
 def helm_deploy_status(job_id):
     app.logger.info(f'Request to status is {job_id}')
     if not job_id:
@@ -40,7 +46,9 @@ def helm_deploy_status(job_id):
 
 
 @helm_bp_instance.route('/destroy', methods=['POST'], strict_slashes=False)
+@requires_auth
 def destroy_env():
+    requires_scope(HELM_ADMIN_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload"))
@@ -54,11 +62,13 @@ def destroy_env():
 
 
 @helm_bp_instance.route('/list', methods=['POST'], strict_slashes=False)
+@requires_auth
 def list_services():
+    requires_scope(HELM_READ_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload"))
-    if not all(k in data for k in ("clusters", "namespace")):
+    if "environments" not in data:
         return abort(400, Response('Not all mandatory fields provided: "clusters", "namespace"'))
     app.logger.info(f'Request to get service versions is {data}')
     result, err = helm_service.helm_list(data, app.logger)

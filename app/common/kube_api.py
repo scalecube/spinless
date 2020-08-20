@@ -30,7 +30,7 @@ class KctxApi:
         if "name" not in ctx_data:
             self.logger.error("Mandatory fields not provided \"name\"")
             return {"error": "Mandatory fields not provided \"name\""}
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, ctx_data["name"])
+        kctx_path = f'{self.vault.base_path}/{K8S_CTX_PATH}/{ctx_data["name"]}'
         attempts = 0
         while attempts < 3:
             try:
@@ -38,7 +38,7 @@ class KctxApi:
                 self.vault.write(kctx_path, **ctx_data)
                 return STATUS_OK_
             except Exception as e:
-                self.logger.info("Failed to write secret to path {}, {}; attempt = {}".format(kctx_path, e, attempts))
+                self.logger.info(f"Failed to write secret to path {kctx_path}, {e}; attempt = {attempts}")
                 attempts += 1
         return {"error": "Failed to write secret"}
 
@@ -56,7 +56,7 @@ class KctxApi:
         self.logger.info("Getting kube context")
         if not cluster_name:
             return "No cluster name provided", 1
-        kctx_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}/{cluster_name}'
+        kctx_path = f'{self.vault.base_path}/{K8S_CTX_PATH}/{cluster_name}'
         try:
             kctx_secret = self.vault.read(kctx_path)
             if not kctx_secret or not kctx_secret["data"]:
@@ -69,11 +69,11 @@ class KctxApi:
 
     def get_clusters_list(self):
         self.logger.info("Listing all clusters")
-        clusters_path = f'{self.vault.vault_secrets_path}/{K8S_CTX_PATH}'
+        clusters_path = f'{self.vault.base_path}/{K8S_CTX_PATH}'
         return self.vault.list(clusters_path)
 
     def delete_kubernetes_context(self, cluster_name):
-        kctx_path = "{}/{}/{}".format(self.vault.vault_secrets_path, K8S_CTX_PATH, cluster_name)
+        kctx_path = "{}/{}/{}".format(self.vault.base_path, K8S_CTX_PATH, cluster_name)
         try:
             self.vault.delete(kctx_path)
             return 0, "Deleted kcts successfully"
@@ -83,7 +83,8 @@ class KctxApi:
 
     @staticmethod
     def generate_aws_kube_config(cluster_name, aws_region,
-                                 aws_access_key, aws_secret_key, conf_path):
+                                 aws_access_key, aws_secret_key, conf_path,
+                                 templates_root=f"{os.getenv('APP_WORKING_DIR')}/infra/templates"):
         try:
             # Set up the client
             s = boto3.Session(region_name=aws_region,
@@ -99,8 +100,7 @@ class KctxApi:
 
             # build the cluster config and write to file
             with open(conf_path, "w") as kube_conf:
-                j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
-                                     trim_blocks=True)
+                j2_env = Environment(loader=FileSystemLoader(templates_root), trim_blocks=True)
                 gen_template = j2_env.get_template('cluster_config.j2').render(
                     cert_authority=str(cluster_cert),
                     cluster_endpoint=str(cluster_ep),
@@ -111,12 +111,13 @@ class KctxApi:
             return str(ex), 1
         return gen_template, 0
 
-    def provision_vault(self, cluster_name, root_path, kube_env):
+    def provision_vault(self, cluster_name, root_path, kube_env,
+                        templates_root=f"{os.getenv('APP_WORKING_DIR')}/infra/templates"):
         try:
             os.makedirs(root_path, exist_ok=True)
-            sa_path = "{}/vault_sa.yaml".format(root_path)
+            sa_path = f"{root_path}/vault_sa.yaml"
             with open(sa_path, "w") as vault_sa:
-                j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
+                j2_env = Environment(loader=FileSystemLoader(templates_root),
                                      trim_blocks=True)
                 gen_template = j2_env.get_template('vault_sa.j2').render(vault_service_account_name=VAULT_AUTH)
                 vault_sa.write(gen_template)
@@ -169,7 +170,7 @@ class KctxApi:
         # Create vault mount point
         return self.vault.enable_k8_auth(cluster_name, reviewer_jwt, kube_ca, kube_server)
 
-    def setup_storage(self, kube_env, tmp_root_path):
+    def setup_storage(self, kube_env, tmp_root_path, templates_root=f"{os.getenv('APP_WORKING_DIR')}/infra/templates"):
         """
         Creates aws storage in eks cluster
 
@@ -180,7 +181,7 @@ class KctxApi:
         res, outp = KctxApi.__install_to_kube(
             "aws-storage",
             {"app": "exchange"},
-            kube_env, tmp_root_path)
+            kube_env, tmp_root_path, templates_root)
         for out in outp:
             self.logger.info(out)
         return 0, "Volume creation complete. Result: {}".format(res)
@@ -264,7 +265,7 @@ class KctxApi:
         return self.execute_command(command, kube_env)
 
     @classmethod
-    def __install_to_kube(cls, template_name, params, kube_env, root_path):
+    def __install_to_kube(cls, template_name, params, kube_env, root_path, templates_root):
         """
         :param cls: class
         :param template_name: name without ".j2"
@@ -276,7 +277,7 @@ class KctxApi:
         """
         f_path = "{}/{}.yaml".format(root_path, template_name)
         with open(f_path, "w") as f:
-            j2_env = Environment(loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR')}/infra/templates"),
+            j2_env = Environment(loader=FileSystemLoader(templates_root),
                                  trim_blocks=True)
             gen_template = j2_env.get_template('{}.j2'.format(template_name)).render(**params)
             f.write(gen_template)
@@ -355,7 +356,7 @@ class KctxApi:
                 if code == 0:
                     values = yaml.load(stream_out, Loader=yaml.FullLoader)
                     service_name = values['repo']
-                    service_version = values['image_tag']
+                    service_version = values['images']['service']['tag']
                     service_versions.append({"repo": service_name, "version": service_version})
             except Exception as ex:
                 self.logger.error(ex)
