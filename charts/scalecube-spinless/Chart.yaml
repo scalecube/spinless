@@ -1,7 +1,5 @@
 name: scalecube-spinless
 version: 0.0.1
 description: Helm chart scalecube-spinless
-maintainers:
-  - name: OM2
-appVersion: 0.1
+appVersion: 0.0.1
 apiVersion: v1

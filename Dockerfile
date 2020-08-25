@@ -7,8 +7,8 @@ RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 
 #Install Terraform
-RUN wget https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip
-RUN unzip -u terraform_0.12.24_linux_amd64.zip
+RUN wget https://releases.hashicorp.com/terraform/0.13.0/terraform_0.13.0_linux_amd64.zip
+RUN unzip -u terraform_0.13.0_linux_amd64.zip
 RUN mv terraform /usr/local/bin/terraform
 
 # Install kubectl
