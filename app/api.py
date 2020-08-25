@@ -2,7 +2,6 @@ import multiprocessing
 import os
 from logging.config import dictConfig
 
-from dotenv import load_dotenv
 from flask import request, Response, abort
 from flask_api import FlaskAPI
 
@@ -14,7 +13,6 @@ from infra import infrastructure_bp
 from infra.infrastructure_bp import infra_bp_instance
 from infra.infrastructure_service import InfrastructureService
 
-load_dotenv()
 dictConfig({
     'version': 1,
     'formatters': {'default': {
