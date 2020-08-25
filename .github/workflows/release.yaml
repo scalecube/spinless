@@ -13,7 +13,7 @@ jobs:
         id: get_version
         run: echo ::set-env name=RELEASE_VERSION::$(echo ${{ github.event.release.tag_name }} | sed "s/v//")
       - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag ${{ secrets.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
+        run: docker build . --file Dockerfile --tag scalecube/spinless:${{ env.RELEASE_VERSION }}
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
@@ -21,36 +21,31 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "latest,${{ env.RELEASE_VERSION }}"
-  helm-package-post:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Install Helm package
-        run: |
-          wget -q ${{ secrets.HELM_URL }}/${{ secrets.HELM_TGZ }}
-          tar xzfv ${{ secrets.HELM_TGZ }}
-          PATH=`pwd`/linux-amd64/:$PATH && helm init --client-only
+      - name: Download Helm
+          run: |
+            curl -L https://get.helm.sh/helm-v3.0.2-linux-amd64.tar.gz | tar -xzf - --strip-component=1 linux-amd64/helm
+            chmod +x helm
+      - name: Package and publish to helm registry
+          run: |
+            for directory in `find ./charts -type d -maxdepth 1 -mindepth 1`
+            do
+                echo Helm package for $directory
+                name=$(cat $directory/Chart.yaml | grep ^name: | cut -d: -f2 | cut -c 2- | tr -d '"')
+                chart_version=$(cat $directory/Chart.yaml | grep ^version: | cut -d: -f2 | cut -c 2- | tr -d '"')
+                release_version=$chart_version-${{ env.RELEASE_VERSION }}
+                echo Helm chart version $release_version
+                # change helm chart version in Chart.yaml
+                sed -i.bak 's/version:.*/version: '$release_version'/g' $directory/Chart.yaml
+                helm lint --strict $directory || exit 1
+                helm template --debug $directory
+                helm package --debug $directory
+                pkg=$name-$release_version.tgz
+                curl -sSf -u ${{ secrets.HELM_USER }}:${{ secrets.HELM_PASSWORD }} -X PUT -T $pkg ${{ secrets.HELM_REGISTRY }}/exberry-io/$name/$pkg
+                # revert changes of helm chart version and remove bak files
+                rm $directory/Chart.yaml
+                mv $directory/Chart.yaml.bak $directory/Chart.yaml
+            done
 
-      - name: Check Helm package
-        run: |
-          cd ./charts
-          helm lint ./scalecube-spinless
-          helm package ./scalecube-spinless
-
-      - name: POST Helm package
-        run: |
-          for helm_package in $(find . -name '*.tgz'); do curl -is -u ${{ secrets.HELM_USER}}:${{ secrets.HELM_PASSWORD }} ${{ secrets.HELM_REGISTRY }}/ --upload-file $helm_package; done
-
-
-  robokit-deploy:
-
-    needs:
-      - docker-build-push
-      - helm-package-post
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy
-        run: |
-          echo 'Robokit Deploy Triggered.'
+      - name: Rollback release (remove tag)
+          if: failure()
+          run: git push origin :refs/tags/${{ github.event.release.tag_name }}
