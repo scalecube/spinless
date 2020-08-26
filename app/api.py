@@ -7,6 +7,8 @@ from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
 from common.authentication import AuthError, get_token, requires_auth, requires_account
+from common import authentication
+from common.vault_api import Vault
 from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
@@ -69,6 +71,16 @@ def get_token_api():
 
 
 if __name__ == '__main__':
+    vault = Vault(app.logger)
+    vault_conf = vault.read(f"{vault.base_path}/common")["data"]
+    auth_conf = {
+        "auth0_client_id": vault_conf["auth0_client_id"],
+        "auth0_client_identifier": vault_conf["auth0_client_identifier"],
+        "auth0_client_secret": vault_conf["auth0_client_secret"],
+        "auth0_domain": vault_conf["auth0_domain"]
+    }
+    authentication.auth_config = auth_conf
+
     # initialize helm service
     manager = multiprocessing.Manager()
     helm_results = manager.dict()
