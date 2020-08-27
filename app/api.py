@@ -3,6 +3,7 @@ import os
 from logging.config import dictConfig
 
 from dotenv import load_dotenv, find_dotenv
+from flasgger import Swagger
 from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
@@ -38,6 +39,12 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 
 app = FlaskAPI(__name__)
+app.config['SWAGGER'] = {
+    'title': 'Spinless API documentation',
+}
+
+swagger = Swagger(app, template_file='api_doc.yml')
+
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")

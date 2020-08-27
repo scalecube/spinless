@@ -35,8 +35,8 @@ def get_log_api(job_id):
         return abort(400, Response("No job id provided"))
     return Response(tail_f(job_id))
 
-
-@helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
+# TODO: not supported yet (persistence issue)
+# @helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
 @requires_auth
 def helm_deploy_status(job_id):
     app.logger.info(f'Request to status is {job_id}')
