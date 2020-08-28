@@ -15,7 +15,7 @@ from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
 from helm.helm_service import HelmService
 from infra import infrastructure_bp
-from infra.infrastructure_bp import infra_bp_instance
+from infra.infrastructure_bp import infra_bp_instance, infra_bp_instance_deprecated
 from infra.infrastructure_service import InfrastructureService
 
 dictConfig({
@@ -100,4 +100,5 @@ if __name__ == '__main__':
 
     app.register_blueprint(helm_bp_instance)
     app.register_blueprint(infra_bp_instance)
+    app.register_blueprint(infra_bp_instance_deprecated)
     app.run(host='0.0.0.0')

@@ -6,8 +6,8 @@ terraform {
     access_key = "{{ access_key }}"
     secret_key = "{{ secret_key }}"
     {% if role_arn %}
-    role_arn = "{{ role_arn  }}"
+role_arn = "{{ role_arn  }}"
     {% endif %}
-    dynamodb_table = "{{ dynamodb_table }}"
+dynamodb_table = "{{ dynamodb_table }}"
   }
 }
