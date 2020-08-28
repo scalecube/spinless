@@ -150,12 +150,6 @@ class InfrastructureService:
             return {"error": nss}
         return {"result": nss}
 
-    def delete_namespace(self, cluster_name, ns):
-        nss, code = KctxApi(self.app_logger).delete_ns(cluster_name, ns)
-        if code != 0:
-            return {"error": nss}
-        return {"result": nss}
-
     def create_account(self, logger, account_name, aws_access_key, aws_secret_key):
         vault = Vault(logger)
         vault.write(f"{ACCOUNTS_PATH}/{account_name}",
