@@ -126,7 +126,73 @@ paths:
           description: "Success. Get token from payload and make your calls putting it into authentication Bearer header"
           schema:
             $ref: "#/definitions/TokenResponse"
-
+  /resources:
+    post:
+      tags:
+        - "Resources"
+      summary: "Create resource"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Create resource request"
+          required: true
+          schema:
+            $ref: "#/definitions/CreateResourceRequest"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  /resources/{name}:
+    delete:
+      tags:
+        - "Resources"
+      summary: "Destroy resource. Currently disabled."
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "name"
+          in: "path"
+          description: "Name of resource to delete"
+          required: true
+        - in: "body"
+          name: "body"
+          description: "Destroy resource request"
+          required: true
+          schema:
+            $ref: "#/definitions/DestroyResourceRequest"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  resources/{cluster_name}/namespaces:
+    get:
+      tags:
+        - "Resources"
+      summary: "Get namespaces in given cluster"
+      parameters:
+        - name: "cluster_name"
+          in: "path"
+          description: "Cluster name as it's known to Spinless to get namespaces of."
+          required: true
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Return list namespaces in given cluster"
+          schema:
+            type: object
+            properties:
+              result:
+                type: "array"
+                items: "string"
 definitions:
   Services:
     type: array
@@ -315,3 +381,49 @@ definitions:
         type: "string"
         description: "Token type. For now it's 'Bearer'"
         example: "Bearer"
+  CreateResourceRequest:
+    type: object
+    properties:
+      account:
+        type: "string"
+        description: "Name of account to be used while creating resource. User has to have access to this account. Account should be known to Spinless under this name"
+        example: "production"
+      type:
+        type: "string"
+        description: "Type of resource to be created. Currently only 'cluster'"
+        enum:
+          - "cluster"
+        example: "cluster"
+      name:
+        type: "string"
+        description: "Name of resource to be created."
+        example: "cluster-uat"
+      region:
+        type: "string"
+        description: "AWS region where the resource must be created. Probably has to be moved to 'properties' field, but for now only aws resources are supported"
+        example: "eu-central-1"
+      properties:
+        type: object
+        description: "Some custom resources properties"
+        properties:
+          key:
+            type: "string"
+            description: "Any custom string property key"
+            example: "key1"
+          value:
+            type: "string"
+            description: "Any custom string property value"
+            example: "value1"
+  DestroyResourceRequest:
+    type: object
+    properties:
+      account:
+        type: "string"
+        description: "Name of account to be used while destroying resource. User has to have access to this account. Account should be known to Spinless under this name"
+        example: "production"
+      type:
+        type: "string"
+        description: "Type of resource to be destroyed. Currently only 'cluster'"
+        enum:
+          - "cluster"
+        example: "cluster"
