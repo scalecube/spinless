@@ -16,11 +16,13 @@ infra_bp_instance = Blueprint(name='infra', import_name=__name__, url_prefix="/r
 service = None
 
 
-@infra_bp_instance.route("/", methods=['GET'], strict_slashes=False)
+@infra_bp_instance.route("/<resource_type>", methods=['GET'], strict_slashes=False)
 @requires_auth
-def get_clusters_api():
+def get_clusters_api(resource_type):
+    if resource_type != 'cluster':
+        return abort(400, Response("Only 'cluster' resource type is supported"))
     requires_scope(RESOURCE_READ_SCOPE)
-    app.logger.info(f"Request to list cluster")
+    app.logger.info(f"Request to list {resource_type}-s")
     return service.list_clusters(app.logger)
 
 
@@ -39,8 +41,8 @@ def create_resource_api():
     job = create_job(service.create_resource, app.logger, data).start()
     return jsonify({'id': job.job_id})
 
-
-@infra_bp_instance.route("/<name>", methods=['DELETE'], strict_slashes=False)
+# TODO: currently disabled
+# @infra_bp_instance.route("/<name>", methods=['DELETE'], strict_slashes=False)
 @requires_auth
 def destroy_resource_api(name):
     data = request.get_json()
