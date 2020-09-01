@@ -55,7 +55,7 @@ def props_to_tfvars(base_path, account, resource_name, properties=None):
     resource_vars_path = None
     if properties:
         resource_vars_path = f"{base_path}/resource.tfvars"
-        vars = properties
+        vars = properties.copy()
         vars["nodePools"] = json.dumps(vars["nodePools"])
         vars["resource_name"] = resource_name
         templates = Environment(loader=FileSystemLoader("infra/templates"), trim_blocks=True)
@@ -92,7 +92,7 @@ def resource_post_setup(terraform):
                 }
     # Apply node auth configmap
     yield "RUNNING: Applying node auth configmap...", None
-    auth_conf_map_result, msg = terraform.__apply_node_auth_configmap(kube_env)
+    auth_conf_map_result, msg = terraform.apply_node_auth_configmap(kube_env)
     if auth_conf_map_result != 0:
         yield "FAILED: Failed to apply node config map...", auth_conf_map_result
     else:

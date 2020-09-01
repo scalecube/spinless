@@ -9,7 +9,7 @@ from infra.cluster_service import *
 
 INFRA_TEMPLATES_ROOT = "infra/templates"
 DYNAMO_LOCK_TABLE = "terraform-lock"
-CONFIG_VERSION = "v0.4"
+CONFIG_VERSION = "v0.5"
 # TEST_CONFIG_REPOSITORY = "exberry-io/terraform-config-simple-aws"
 CONFIG_REPOSITORY = "exberry-io/terraform-eks-exberry-tenant"
 
@@ -162,7 +162,7 @@ class Terraform:
                 break
 
         yield "Clearing cluster parameters from S3...", None
-        result = self.__delete_cluster_from_s3()
+        result = self.__delete_resource_from_s3()
         if result:
             yield "Delete cluster parameters from S3: OK", None
         else:
@@ -230,7 +230,7 @@ class Terraform:
             file.write(gen_template)
         return f_name
 
-    def __generate_configmap(self):
+    def generate_configmap(self):
         client = boto3.client('iam',
                               region_name=self.account["aws_region"],
                               aws_access_key_id=self.account["aws_access_key"],
@@ -243,8 +243,8 @@ class Terraform:
             nodes_cm.write(gen_template)
         return f_name
 
-    def __apply_node_auth_configmap(self, kube_env):
-        self.__generate_configmap()
+    def apply_node_auth_configmap(self, kube_env):
+        self.generate_configmap()
         kube_cmd = f"kubectl apply -f {self.work_dir}/nodes_cm.yaml"
         res, outp = shell_run(kube_cmd, env=kube_env)
         if res != 0:
@@ -271,7 +271,7 @@ class Terraform:
             return False
         return True
 
-    def __delete_cluster_from_s3(self):
+    def __delete_resource_from_s3(self):
         try:
             self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"{self.s3_path}")
             self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"states/{self.resource_name}")
