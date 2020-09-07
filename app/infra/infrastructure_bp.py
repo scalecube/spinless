@@ -36,7 +36,7 @@ def create_resource_api():
 
 
 # TODO: currently disabled
-@infra_bp_instance.route("/<name>", methods=['DELETE'], strict_slashes=False)
+# @infra_bp_instance.route("/<name>", methods=['DELETE'], strict_slashes=False)
 @requires_auth
 def destroy_resource_api(name):
     data = request.get_json()
