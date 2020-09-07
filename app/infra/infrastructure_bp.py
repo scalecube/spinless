@@ -18,7 +18,6 @@ infra_bp_instance = Blueprint(name='infra', import_name=__name__, url_prefix="/r
 service = None
 
 # TODO: remove after all clients migrate to new api
-@infra_bp_instance_deprecated.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
 @infra_bp_instance.route("/", methods=['POST'], strict_slashes=False)
 @requires_auth
 def create_resource_api():
@@ -56,8 +55,8 @@ def destroy_resource_api(name):
 # TODO: remove after all clients migrate to new api
 @infra_bp_instance_deprecated.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
 @infra_bp_instance.route("/<cluster_name>/namespaces", methods=['GET'], strict_slashes=False)
-@requires_auth
+# @requires_auth
 def list_namespaces_api(cluster_name):
     app.logger.info(f"Request get namespaces for cluster {cluster_name}")
-    requires_scope(RESOURCE_READ_SCOPE)
+    # requires_scope(RESOURCE_READ_SCOPE)
     return jsonify(service.get_namespaces(cluster_name))
