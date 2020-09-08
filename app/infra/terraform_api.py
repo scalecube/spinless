@@ -1,19 +1,15 @@
-import base64
-import json
 import os
 import time
 
 import boto3
-from jinja2 import Environment, FileSystemLoader
 
-from common.kube_api import KctxApi
 from common.shell import shell_run, create_dirs
-from common.vault_api import Vault
-
 # TODO: pass as parameters from POST request
+from infra.cluster_service import *
+
 INFRA_TEMPLATES_ROOT = "infra/templates"
 DYNAMO_LOCK_TABLE = "terraform-lock"
-CONFIG_VERSION = "v0.2"
+CONFIG_VERSION = "v0.5"
 # TEST_CONFIG_REPOSITORY = "exberry-io/terraform-config-simple-aws"
 CONFIG_REPOSITORY = "exberry-io/terraform-eks-exberry-tenant"
 
@@ -23,56 +19,51 @@ TF_S3_BUCKET_NAME = 'exberry-terraform-states'
 
 
 class Terraform:
-    def __init__(self, logger=None, cluster_name=None, account=None, tf_vars=None, dns_suffix=None, action="UNKNOWN"):
+    def __init__(self, logger=None, name=None, account=None, properties=None, action="UNKNOWN", resource_type=None):
         self.logger = logger
-        self.cluster_name = cluster_name
+        self.resource_name = name
+        self.resource_type = resource_type
         self.account = account
-        self.tf_vars = tf_vars
-        self.dns_suffix = dns_suffix
+        self.properties = properties
         self.account_name = account['name']  # (develop/staging/production)
 
         # calculated props
         timestamp = round(time.time() * 1000)
-        self.work_dir = f'{os.getcwd()}/state/clusters/{action}-{cluster_name}-{timestamp}'
+        self.work_dir = f'{os.getcwd()}/state/{resource_type}/{action}-{name}-{timestamp}'
         create_dirs(self.work_dir)
         self.kube_config_file_path = f"{self.work_dir}/{KUBECONF_FILE}"
         self.templates = Environment(loader=FileSystemLoader("infra/templates"), trim_blocks=True)
         self.kctx_api = KctxApi(logger)
 
         # cluster state properties
-        # TODO: pass as parameters from POST request
         self.tf_dynamodb_table = DYNAMO_LOCK_TABLE  # dynamodb table used to lock states
         self.tf_repository = CONFIG_REPOSITORY  # github repository with tf module to use
         self.tf_repository_version = CONFIG_VERSION  # version of release of github repo
-        self.s3_path = f"{self.account_name}/cluster/{self.cluster_name}"
+        self.s3_path = f"{self.account_name}/{resource_type}/{self.resource_name}"
         self.s3_client = self.__init_s3_client(self.account)
 
-    def create_cluster(self):
-        working_with_existing_cluster = False
-        self.logger.info(f"Started to create cluster in directory {self.work_dir}")
-        # generate tf configuration files (using mapping between cluster type to github repo for tf files)
+    def create_resource(self):
+        self.logger.info(f"Started to create resource in directory {self.work_dir}")
         self.__generate_backend_tf()
-
-        # generate tf credentials (aws credentials and actually cluster configs)
         yield "RUNNING: Creating Terraform vars", None
-        aws_vars_path, aws_vars = self._generate_aws_variables()
+        _, resource_vars = self.__read_environment()
+        if resource_vars:
+            yield f"Resource {self.resource_type}/{self.resource_name} exists, using its state and variables", None
+            # User request may override some existing properties
+            self.properties = {**resource_vars, **self.properties}
 
-        cluster_vars_path, cluster_vars = self.__read_environment()
-        if cluster_vars_path and cluster_vars:
-            yield f"Cluster {self.cluster_name} exists, using its state and variables", None
-            working_with_existing_cluster = True
-        else:
-            # cluster_vars_path, cluster_vars = self.__generate_cluster_variables()
-            cluster_vars_path, cluster_vars = self.__generate_cluster_variables_real()
-            yield "New cluster is being created. Generated tf vars for that", None
-
-        self.__generate_tf_configs(aws_vars + cluster_vars)
+        aws_vars_path, resource_vars_path, variables = "", "", {}
+        if self.resource_type == RESOURCE_CLUSTER:
+            aws_vars_path, resource_vars_path, variables = props_to_tfvars(self.work_dir, self.account,
+                                                                           self.resource_name,
+                                                                           self.properties)
+        yield "New resource is being created. Generated tf vars", None
+        self.__generate_tf_configs(variables)
 
         # Terraform init
-        _cmd_init = f"terraform init"
         yield "RUNNING: Initializing terraform...", None
         # Attention to "cwd=" that's important to work in same directory (/tmp/...)
-        err, outp = shell_run(_cmd_init, cwd=self.work_dir, timeout=300)
+        err, outp = shell_run("terraform init -no-color", cwd=self.work_dir, timeout=300)
         for s in outp:
             yield f"Terraform init: {s}", None
         if err != 0:
@@ -80,59 +71,66 @@ class Terraform:
         else:
             yield "RUNNING: Terraform init complete", None
 
-        # TODO: this is workaround(?). need to copy variables.tf to working dir
-        _cmd_copy_variables = f"cp {self.work_dir}/.terraform/modules/{self.cluster_name}/variables.tf {self.work_dir}/"
-        shell_run(_cmd_copy_variables)
+        # Need to have same exact variables.tf in parent dir, as in module
+        shell_run(f"cp {self.work_dir}/.terraform/modules/{self.resource_name}/variables.tf {self.work_dir}/")
+
+        yield "Saving resource parameters to S3...", None
+        result = self.__save_resource_to_s3(resource_vars_path)
+        if result:
+            yield "Saving resource parameters to S3: OK", None
+        else:
+            yield "Saving resource parameters to S3: FAIL", None
 
         # Terraform apply
-        _cmd_apply = f"terraform apply -var-file={aws_vars_path} -var-file={cluster_vars_path} -auto-approve"
-        yield f"RUNNING: Actually creating cluster. This may take time... {_cmd_apply}", None
+        _cmd_apply = f"terraform apply -no-color -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
+        yield f"RUNNING: Actually CREATING resource. This may take time... {_cmd_apply}", None
         err_code_apply, outp = shell_run(_cmd_apply, cwd=self.work_dir, timeout=900)
         for s in outp:
             self.logger.info(s)
             yield f"Terraform apply: {s}", None
-        self.logger.info(f"Terraform finished cluster creation. Errcode: {err_code_apply}")
+        self.logger.info(f"Terraform finished resource creation. Errcode: {err_code_apply}")
         if err_code_apply != 0:
-            yield "FAILED: Failed to create cluster", err_code_apply
+            yield "FAILED: Failed to create resource", None
+            # Destroy partially created resources if failed to finis apply
+            _cmd_destroy = f"terraform destroy -no-color" \
+                           f" -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
+            yield f"RUNNING: DESTROYING partially created resource. This may take time... {_cmd_destroy}", None
+            err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=900)
+            for s in outp:
+                self.logger.info(s)
+            self.logger.info(f"Terraform destroy complete. Errcode: {err_code_destroy}")
+            yield "FAILED: Failed to create resource", err_code_apply
         else:
-            yield "RUNNING: Terraform has successfully created cluster", None
+            yield "RUNNING: Terraform has successfully created resource", None
 
-        for msg, status in self.__cluster_post_setup():
-            if status is not None:
-                if status == 0:
-                    yield msg, None
-                    break
-                else:
-                    yield msg, status
-            yield msg, status
-
-        if not working_with_existing_cluster:
-            yield "Saving cluster parameters to S3...", None
-            result = self.__save_cluster_to_s3(cluster_vars_path)
-            if result:
-                yield "Saving cluster parameters to S3: OK", None
-            else:
-                yield "Saving cluster parameters to S3: FAIL", None
-        else:
-            yield "Working with existing cluster, no variables saved to S3", None
+        if self.resource_type == RESOURCE_CLUSTER:
+            for msg, status in resource_post_setup(self):
+                if status is not None:
+                    if status == 0:
+                        yield msg, None
+                        break
+                    else:
+                        yield msg, status
+                yield msg, status
         yield "success", 0
 
-    def destroy_cluster(self):
-        self.logger.info(f"Started to DESTROY cluster {self.cluster_name}  in directory {self.work_dir}")
+    def destroy_resource(self):
+        self.logger.info(f"Started to DESTROY cluster {self.resource_name}  in directory {self.work_dir}")
         # generate tf backend
         self.__generate_backend_tf()
 
-        cluster_vars_path, cluster_vars = self.__read_environment()
-        if not cluster_vars_path or not cluster_vars:
-            yield f"FAILED: cluster {self.account_name}/{self.cluster_name} does not exist", 1
+        resource_vars_path, resource_vars = self.__read_environment()
+        if not resource_vars_path or not resource_vars:
+            yield f"FAILED: cluster {self.account_name}/{self.resource_name} does not exist", 1
 
-        yield "RUNNING: Creating AWS vars", None
-        aws_vars_path, aws_vars = self._generate_aws_variables()
+        aws_vars_path, _, aws_vars = "", "", {}
+        if self.resource_type == RESOURCE_CLUSTER:
+            aws_vars_path, _, aws_vars = props_to_tfvars(self.work_dir, self.account, self.resource_name)
 
-        self.__generate_tf_configs(aws_vars + cluster_vars)
+        self.__generate_tf_configs(aws_vars + list(resource_vars.keys()))
 
         # Terraform init
-        _cmd_init = f"terraform init"
+        _cmd_init = f"terraform init -no-color"
         yield "RUNNING: Initializing terraform...", None
         # Attention to "cwd=" that's important to work in same directory (/tmp/...)
         err, outp = shell_run(_cmd_init, cwd=self.work_dir, timeout=300)
@@ -143,11 +141,11 @@ class Terraform:
         else:
             yield "RUNNING: Terraform init complete", None
 
-        _cmd_copy_variables = f"cp {self.work_dir}/.terraform/modules/{self.cluster_name}/variables.tf {self.work_dir}/"
-        shell_run(_cmd_copy_variables)
+        shell_run(f"cp {self.work_dir}/.terraform/modules/{self.resource_name}/variables.tf {self.work_dir}/")
 
-        _cmd_destroy = f"terraform destroy -var-file={aws_vars_path} -var-file={cluster_vars_path} -auto-approve"
-        yield f"RUNNING: Actually DESTROYING cluster. This may take time... {_cmd_destroy}", None
+        _cmd_destroy = f"terraform destroy -no-color" \
+                       f" -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
+        yield f"RUNNING: Actually DESTROYING resources. This may take time... {_cmd_destroy}", None
         err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=900)
         for s in outp:
             self.logger.info(s)
@@ -158,57 +156,19 @@ class Terraform:
         else:
             yield "RUNNING: Terraform has successfully destroyed cluster", None
 
-        for msg, status in self.__cluster_post_destroy():
+        for msg, status in resource_post_destroy(self):
             yield msg, status
             if status is not None:
                 break
 
         yield "Clearing cluster parameters from S3...", None
-        result = self.__delete_cluster_from_s3()
+        result = self.__delete_resource_from_s3()
         if result:
             yield "Delete cluster parameters from S3: OK", None
         else:
             yield "Delete cluster parameters from S3: FAIL", None
 
         yield "success", 0
-
-    def _generate_aws_variables(self):
-        """
-        generate file containing aws credentials (aws.tfvars)
-        :return: pair of filename that was generated and actual dictionary of its content
-        """
-        f_name = f"{self.work_dir}/aws.tfvars"
-        with open(f_name, "w") as aws_vars:
-            aws_vars.write(f'aws_region = "{self.account["aws_region"]}"\n')
-            aws_vars.write(f'aws_access_key = "{self.account["aws_access_key"]}"\n')
-            aws_vars.write(f'aws_secret_key = "{self.account["aws_secret_key"]}"\n')
-        return f_name, ["aws_region", "aws_access_key", "aws_secret_key"]
-
-    def __generate_cluster_variables_real(self):
-        """
-        generate file containing cluster variables names credentials (tfvars.tfvars)
-        :return: pair of filename that was generated and actual dictionary of its content
-        """
-        f_name = f"{self.work_dir}/cluster.tfvars"
-        vars = self.tf_vars
-        vars["nodePools"] = json.dumps(vars["properties"]["eks"]["nodePools"])
-        with open(f_name, "w") as tfvars:
-            gen_template = self.templates.get_template('template_tfvars.tf').render(variables=vars)
-            tfvars.write(gen_template)
-
-        vars.pop("properties")
-        vars["cluster-name"] = vars.pop("cluster_name")
-        return f_name, list(vars.keys())
-
-    # Test with this configuration, not the real one
-    def __generate_test_cluster_variables(self):
-        f_name = f"{self.work_dir}/cluster.tfvars"
-        tf_vars = {"instance_type": "t3.micro"}
-        with open(f_name, "w") as tfvars:
-            gen_template = self.templates.get_template('template_tfvars-test.tf').render(
-                variables=tf_vars)
-            tfvars.write(gen_template)
-        return f_name, list(tf_vars.keys())
 
     def __read_environment(self):
         """
@@ -223,11 +183,12 @@ class Terraform:
             # download variables (if fails - return False
             f_name = f'{self.work_dir}/resource.tfvars'
             self.s3_client.download_file(TF_S3_BUCKET_NAME, f"{self.s3_path}/resource.tfvars", f_name)
-            # extract keys from var file
-            var_keys = self.__read_keys_from_vars_file(f_name)
-            if var_keys is None:
+            # extract dictionary from var file
+            variables_dict = self.__vars_file_to_dict(f_name)
+            if variables_dict:
+                return f_name, variables_dict
+            else:
                 return False, False
-            return f_name, var_keys
         except Exception as e:
             self.logger.error(e)
             return False, False
@@ -262,28 +223,28 @@ class Terraform:
         f_name = f"{self.work_dir}/main.tf"
         with open(f_name, "w") as file:
             gen_template = self.templates.get_template('template_main.tf').render(
-                module_name=self.cluster_name,
+                module_name=self.resource_name,
                 repository=self.tf_repository,
                 version=self.tf_repository_version,
                 variables=all_variables)
             file.write(gen_template)
         return f_name
 
-    def __generate_configmap(self):
+    def generate_configmap(self):
         client = boto3.client('iam',
                               region_name=self.account["aws_region"],
                               aws_access_key_id=self.account["aws_access_key"],
                               aws_secret_access_key=self.account["aws_secret_key"],
                               )
-        role_arn = client.get_role(RoleName=f'eks-node-role-{self.cluster_name}')['Role']['Arn']
+        role_arn = client.get_role(RoleName=f'eks-node-role-{self.resource_name}')['Role']['Arn']
         f_name = f"{self.work_dir}/nodes_cm.yaml"
         with open(f_name, "w") as nodes_cm:
             gen_template = self.templates.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
             nodes_cm.write(gen_template)
         return f_name
 
-    def __apply_node_auth_configmap(self, kube_env):
-        self.__generate_configmap()
+    def apply_node_auth_configmap(self, kube_env):
+        self.generate_configmap()
         kube_cmd = f"kubectl apply -f {self.work_dir}/nodes_cm.yaml"
         res, outp = shell_run(kube_cmd, env=kube_env)
         if res != 0:
@@ -292,126 +253,44 @@ class Terraform:
             return res, "Failed to create nodes_cm"
         return res, outp
 
-    def __cluster_post_setup(self):
-        # Generate cluster config
-        yield "RUNNING: Generating kubernetes cluster config...", None
-
-        kube_conf_str, err = KctxApi.generate_aws_kube_config(cluster_name=self.cluster_name,
-                                                              aws_region=self.account["aws_region"],
-                                                              aws_access_key=self.account["aws_access_key"],
-                                                              aws_secret_key=self.account["aws_secret_key"],
-                                                              conf_path=self.kube_config_file_path,
-                                                              templates_root=INFRA_TEMPLATES_ROOT
-                                                              )
-        if err == 0:
-            yield "RUNNING: Kubernetes config generated successfully", None
-        else:
-            yield "ERROR: Failed to create kubernetes config", err
-
-        kube_env = {"KUBECONFIG": self.kube_config_file_path,
-                    "AWS_DEFAULT_REGION": self.account["aws_region"],
-                    "AWS_ACCESS_KEY_ID": self.account["aws_access_key"],
-                    "AWS_SECRET_ACCESS_KEY": self.account["aws_secret_key"]
-                    }
-        # Apply node auth configmap
-        yield "RUNNING: Applying node auth configmap...", None
-        auth_conf_map_result, msg = self.__apply_node_auth_configmap(kube_env)
-        if auth_conf_map_result != 0:
-            yield "FAILED: Failed to apply node config map...", auth_conf_map_result
-        else:
-            yield "SUCCESS: Cluster creation and conf setup complete", None
-
-        # Provision Vault
-        vault_prov_res, msg = self.kctx_api.provision_vault(self.cluster_name, self.work_dir, kube_env,
-                                                            templates_root=INFRA_TEMPLATES_ROOT)
-        if vault_prov_res != 0:
-            yield f"FAILED: Failed setup vault account in new cluster. Aborting: {msg}", vault_prov_res
-        yield "Vault provisioning complete", None
-
-        # Set up storage
-        storage_res, msg = self.kctx_api.setup_storage(kube_env, self.work_dir, templates_root=INFRA_TEMPLATES_ROOT)
-        if storage_res != 0:
-            yield "FAILED: Failed to setup storage volume. Aborting: {}".format(msg), storage_res
-        yield "Storage volume set up successfully.", None
-
-        #  Setup cluster autoscaler
-        ca, msg = self.kctx_api.setup_ca(kube_env, self.cluster_name, self.account["aws_region"])
-        if ca != 0:
-            yield "Failed to setup cluster autoscaler. Resuming anyway", None
-        else:
-            yield "Cluster autoscaler installed successfully.", None
-
-        # Set up traefik
-        traefik_res, msg = self.kctx_api.setup_traefik(kube_env)
-        if traefik_res != 0:
-            yield "Failed to setup traefik. Resuming anyway", None
-        else:
-            yield "Traefik installed successfully.", None
-
-        # Set up metrics
-        res, msg = self.kctx_api.setup_metrics(kube_env)
-        if res != 0:
-            yield f"FAILED: Failed to setup metrics. Aborting: {msg}", None  # TODO: res
-        yield "Metrics installed successfully.", None
-
-        # If deployment was successful, save kubernetes context to vault
-        kube_conf_base64 = base64.standard_b64encode(kube_conf_str.encode("utf-8")).decode("utf-8")
-        self.kctx_api.save_aws_context(aws_access_key=self.account["aws_access_key"],
-                                       aws_secret_key=self.account["aws_secret_key"],
-                                       aws_region=self.account["aws_region"],
-                                       kube_cfg_base64=kube_conf_base64,
-                                       cluster_name=self.cluster_name,
-                                       dns_suffix=self.dns_suffix)
-        yield "Saved cluster config.", None
-
-    def __save_cluster_to_s3(self, cluster_vars_path):
-        cluster_info_path = f"{self.work_dir}/cluster_info.yaml"
-        with open(cluster_info_path, "w") as file:
+    def __save_resource_to_s3(self, resource_vars_path):
+        resource_info_path = f"{self.work_dir}/resource_info.yaml"
+        with open(resource_info_path, "w") as file:
             gen_template = self.templates.get_template('template_resource_info.yaml').render(
                 account=self.account_name,
-                resource_name=self.cluster_name,
-                resource_type="cluster",
+                resource_name=self.resource_name,
+                resource_type=self.resource_type,
                 github_module_ref=self.tf_repository,
                 github_module_version=self.tf_repository_version)
             file.write(gen_template)
         try:
-            self.s3_client.upload_file(cluster_vars_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource.tfvars")
-            self.s3_client.upload_file(cluster_info_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource_info.yaml")
+            self.s3_client.upload_file(resource_vars_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource.tfvars")
+            self.s3_client.upload_file(resource_info_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource_info.yaml")
         except Exception as e:
             self.logger.error(e)
             return False
         return True
 
-    def __delete_cluster_from_s3(self):
+    def __delete_resource_from_s3(self):
         try:
             self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"{self.s3_path}")
-            self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"states/{self.cluster_name}")
+            self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"states/{self.resource_name}")
         except Exception as e:
             self.logger.error(e)
             return False
         return True
 
-    def __read_keys_from_vars_file(self, file):
+    def __vars_file_to_dict(self, file):
         try:
+            result = {}
             with open(file, 'r') as reader:
-                return list(map(lambda l: l.split(" = ")[0], reader.readlines()))
+                for line in reader.readlines():
+                    key_val = line.rstrip().split(" = ")
+                    result[key_val[0]] = key_val[1].strip('"')
+            return result
         except Exception as ex:
             self.logger.warn(f"Error while getting keys from variables file: {ex}")
             return None
-
-    def __cluster_post_destroy(self):
-        # Generate cluster config
-        yield "RUNNING: Performing cluster post-destroy actions...", None
-
-        # Disable vault mount point
-        res, msg = Vault(self.logger).disable_vault_mount_point(self.cluster_name)
-        if res != 0:
-            yield f"FAILED: Failed to disable vault mount point", res
-        yield f"Disabled Vault mount point for {self.cluster_name}", None
-
-        # If deployment was successful, save kubernetes context to vault
-        self.kctx_api.delete_kubernetes_context(self.cluster_name)
-        yield "Cleared cluster config.", None
 
     def __init_s3_client(self, account):
         session = boto3.Session(aws_access_key_id=account['aws_access_key'],

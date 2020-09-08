@@ -3,16 +3,19 @@ import os
 from logging.config import dictConfig
 
 from dotenv import load_dotenv, find_dotenv
+from flasgger import Swagger
 from flask import request, Response, abort, jsonify
 from flask_api import FlaskAPI
 
 from common.authentication import AuthError, get_token, requires_auth, requires_account
+from common import authentication
+from common.vault_api import Vault
 from helm import helm_bp
 from helm.helm_bp import helm_bp_instance
 from helm.helm_processor import HelmProcessor
 from helm.helm_service import HelmService
 from infra import infrastructure_bp
-from infra.infrastructure_bp import infra_bp_instance
+from infra.infrastructure_bp import infra_bp_instance, infra_bp_instance_deprecated
 from infra.infrastructure_service import InfrastructureService
 
 dictConfig({
@@ -36,6 +39,12 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 
 app = FlaskAPI(__name__)
+app.config['SWAGGER'] = {
+    'title': 'Spinless API documentation',
+}
+
+swagger = Swagger(app, template_file='api_doc.yml')
+
 app.config["VAULT_ADDR"] = os.getenv("VAULT_ADDR")
 app.config["VAULT_ROLE"] = os.getenv("VAULT_ROLE")
 app.config["VAULT_SECRETS_PATH"] = os.getenv("VAULT_SECRETS_PATH")
@@ -69,6 +78,16 @@ def get_token_api():
 
 
 if __name__ == '__main__':
+    vault = Vault(app.logger)
+    vault_conf = vault.read(f"{vault.base_path}/common")["data"]
+    auth_conf = {
+        "auth0_client_id": vault_conf["auth0_client_id"],
+        "auth0_client_identifier": vault_conf["auth0_client_identifier"],
+        "auth0_client_secret": vault_conf["auth0_client_secret"],
+        "auth0_domain": vault_conf["auth0_domain"]
+    }
+    authentication.auth_config = auth_conf
+
     # initialize helm service
     manager = multiprocessing.Manager()
     helm_results = manager.dict()
@@ -81,4 +100,5 @@ if __name__ == '__main__':
 
     app.register_blueprint(helm_bp_instance)
     app.register_blueprint(infra_bp_instance)
+    app.register_blueprint(infra_bp_instance_deprecated)
     app.run(host='0.0.0.0')

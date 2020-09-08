@@ -3,22 +3,13 @@
 
 import json
 from functools import wraps
-from os import environ as env
 
 import requests
-from dotenv import find_dotenv, load_dotenv
 from flask import request, _request_ctx_stack
 from jose import jwt
 from six.moves.urllib.request import urlopen
 
-ENV_FILE = find_dotenv()
-if ENV_FILE:
-    load_dotenv(ENV_FILE)
-
-AUTH0_DOMAIN = env.get("AUTH0_DOMAIN")
-AUTH0_CLIENT_ID = env.get("AUTH0_CLIENT_ID")
-AUTH0_CLIENT_SECRET = env.get("AUTH0_CLIENT_SECRET")
-API_IDENTIFIER = env.get("API_IDENTIFIER")
+auth_config = {}
 ALGORITHMS = ["RS256"]
 
 
@@ -80,7 +71,7 @@ def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = get_token_auth_header()
-        jsonurl = urlopen("https://" + AUTH0_DOMAIN + "/.well-known/jwks.json")
+        jsonurl = urlopen("https://" + auth_config["auth0_domain"] + "/.well-known/jwks.json")
         jwks = json.loads(jsonurl.read())
         try:
             unverified_header = jwt.get_unverified_header(token)
@@ -110,8 +101,8 @@ def requires_auth(f):
                     token,
                     rsa_key,
                     algorithms=ALGORITHMS,
-                    audience=API_IDENTIFIER,
-                    issuer="https://" + AUTH0_DOMAIN + "/"
+                    audience=auth_config['auth0_client_identifier'],
+                    issuer="https://" + auth_config["auth0_domain"] + "/"
                 )
             except jwt.ExpiredSignatureError:
                 raise AuthError({"code": "token_expired",
@@ -154,13 +145,13 @@ def requires_account(account):
 
 def get_token(user_creds):
     app_creds = {
-        "client_id": AUTH0_CLIENT_ID,
-        "client_secret": AUTH0_CLIENT_SECRET,
-        "audience": API_IDENTIFIER,
+        "client_id": auth_config['auth0_client_id'],
+        "client_secret": auth_config['auth0_client_secret'],
+        "audience": auth_config['auth0_client_identifier'],
         "grant_type": "password"
     }
     payload = {**app_creds, **user_creds}
-    url = f"https://{AUTH0_DOMAIN}/oauth/token"
+    url = f"https://{auth_config['auth0_domain']}/oauth/token"
     response = requests.post(url, payload)
     if response.status_code != 200:
         raise AuthError(response.text, response.status_code)

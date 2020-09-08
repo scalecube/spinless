@@ -16,9 +16,9 @@ PROTECTED_NS = ('develop', 'develop-2', 'master', 'master-2')
 
 
 @helm_bp_instance.route('/deploy', methods=['POST'], strict_slashes=False)
-@requires_auth
+# @requires_auth
 def helm_deploy_start():
-    requires_scope(HELM_ADMIN_SCOPE)
+    # requires_scope(HELM_ADMIN_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload: [cmd (no-op) / owner (no_owner) / repo (no-repo)]"))
@@ -28,16 +28,16 @@ def helm_deploy_start():
 
 
 @helm_bp_instance.route('/deploy/<job_id>', strict_slashes=False)
-@requires_auth
+# @requires_auth
 def get_log_api(job_id):
     app.logger.info(f'Request to get_log  is {job_id}')
     if not job_id:
         return abort(400, Response("No job id provided"))
     return Response(tail_f(job_id))
 
-
-@helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
-@requires_auth
+# TODO: not supported yet (persistence issue)
+# @helm_bp_instance.route('/deploy/status/<job_id>', strict_slashes=False)
+# @requires_auth
 def helm_deploy_status(job_id):
     app.logger.info(f'Request to status is {job_id}')
     if not job_id:
@@ -46,9 +46,9 @@ def helm_deploy_status(job_id):
 
 
 @helm_bp_instance.route('/destroy', methods=['POST'], strict_slashes=False)
-@requires_auth
+# @requires_auth
 def destroy_env():
-    requires_scope(HELM_ADMIN_SCOPE)
+    # requires_scope(HELM_ADMIN_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload"))
@@ -62,9 +62,9 @@ def destroy_env():
 
 
 @helm_bp_instance.route('/list', methods=['POST'], strict_slashes=False)
-@requires_auth
+# @requires_auth
 def list_services():
-    requires_scope(HELM_READ_SCOPE)
+    # requires_scope(HELM_READ_SCOPE)
     data = request.get_json()
     if not data:
         return abort(400, Response("Give some payload"))

@@ -1,0 +1,429 @@
+swagger: "2.0"
+info:
+  description: "Spinless application API doc"
+  version: "develop"
+  title: "Spinless API doc"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+tags:
+  - name: "General"
+    description: "Some common operations"
+  - name: "Helm"
+    description: "Helm deployments"
+  - name: "Resources"
+    description: "Resources manipulation using terraform code"
+
+schemes:
+  - "https"
+  - "http"
+
+paths:
+  /helm/deploy:
+    post:
+      tags:
+        - "Helm"
+      summary: "Deploy services"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Deploy list of services."
+          required: true
+          schema:
+            $ref: "#/definitions/Services"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  /helm/deploy/{job_id}:
+    get:
+      tags:
+        - "General"
+        - "Helm"
+      summary: "Get job status"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "job_id"
+          in: "path"
+          description: "Id of job"
+          required: true
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobRecord"
+  /helm/list:
+    post:
+      tags:
+        - "Helm"
+      summary: "Describe environment. Get exact versions in clusters/namespace for each service. This is blocking call and it takes time (up to 10 sec)."
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Describe environment"
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/EnvironmentRequest"
+      responses:
+        "200":
+          description: "Success. Versions of services."
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/EnvironmentDetails"
+  /helm/destroy:
+    post:
+      tags:
+        - "Helm"
+      summary: "Destroys the entire environment. Actually destroys the namespace in a cluster.
+                Also deletes the secrets in Vault for every service provided in request"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Environment to be destroyed"
+          required: true
+          schema:
+            $ref: "#/definitions/DestroyEnvRequest"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  /token:
+    post:
+      tags:
+        - "General"
+      summary: "Get JWT token to perform secure calls. To be used in Authentication Bearer header. Actually makes call to Auth0 endpoint with username/password received from user"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Request to get token"
+          required: true
+          schema:
+            $ref: "#/definitions/TokenRequest"
+      responses:
+        "200":
+          description: "Success. Get token from payload and make your calls putting it into authentication Bearer header"
+          schema:
+            $ref: "#/definitions/TokenResponse"
+  /resources:
+    post:
+      tags:
+        - "Resources"
+      summary: "Create resource"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Create resource request"
+          required: true
+          schema:
+            $ref: "#/definitions/CreateResourceRequest"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  /resources/{name}:
+    delete:
+      tags:
+        - "Resources"
+      summary: "Destroy resource. Currently disabled."
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - name: "name"
+          in: "path"
+          description: "Name of resource to delete"
+          required: true
+        - in: "body"
+          name: "body"
+          description: "Destroy resource request"
+          required: true
+          schema:
+            $ref: "#/definitions/DestroyResourceRequest"
+      responses:
+        "200":
+          description: "Success. Job has been submitted. Get job status by id later"
+          schema:
+            $ref: "#/definitions/JobId"
+  resources/{cluster_name}/namespaces:
+    get:
+      tags:
+        - "Resources"
+      summary: "Get namespaces in given cluster"
+      parameters:
+        - name: "cluster_name"
+          in: "path"
+          description: "Cluster name as it's known to Spinless to get namespaces of."
+          required: true
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Return list namespaces in given cluster"
+          schema:
+            type: object
+            properties:
+              result:
+                type: "array"
+                items: "string"
+definitions:
+  Services:
+    type: array
+    items:
+      $ref: '#/definitions/Service'
+  Service:
+    type: "object"
+    required:
+      - "cluster"
+      - "namespace"
+      - "owner"
+      - "repo"
+      - "image_tag"
+      - "registry"
+    properties:
+      cluster:
+        type: "string"
+        description: "Cluster name where the service should be deployed. This name should be mapped to specific kubernetes context and known to spinless"
+        example: "operations-cluster"
+      namespace:
+        type: "string"
+        description: "Namespace in the cluster where service should be deployed"
+        example: "release-1"
+      owner:
+        type: "string"
+        description: "Service's owner. This is used as prefix for helm chart naming. ($owner/$repo/$repo-$helm_version.tgz)"
+        example: "scalecube"
+      repo:
+        type: "string"
+        description: "Repository's name. Same as service name. This is used as part of helm chart naming.($owner/$repo/$repo-$helm_version.tgz)"
+        example: "discovery-service"
+      image_tag:
+        type: "string"
+        description: "Docker tag of the service that you want to deploy."
+        example: "develop"
+      helm_version:
+        type: "string"
+        description: "Version of helm chart that we want to use for the service. By default '1.0.0'"
+        example: "1.0.1"
+      registry:
+        $ref: "#/definitions/Registry"
+        description: "Docker and Helm registries to use during deployment"
+  Registry:
+    type: "object"
+    required:
+      - "docker"
+      - "helm"
+    properties:
+      docker:
+        type: "string"
+        description: "Docker registry name as it's known to spinless"
+        example: "reg-1"
+      helm:
+        type: "string"
+        description: "Helm registry name as it's known to spinless"
+        example: "reg-2"
+  JobId:
+    type: object
+    properties:
+      id:
+        type: "string"
+        description: "Job id of submitted request. You can get logs of this job by id later"
+        example: "6a55d9a4-e79d-11ea-9aff-3e57f24166b5"
+  JobRecord:
+    type: object
+    properties:
+      id:
+        type: "string"
+        description: "Job id"
+        example: "6a55d9a4-e79d-11ea-9aff-3e57f24166b5"
+      status:
+        type: "string"
+        enum:
+          - "RUNNING"
+          - "SUCCESS"
+          - "EOF"
+          - "FAILED"
+          - "WARNING"
+        description: "Job status for the current moment of time.
+        'EOF' means the end of the job and the record doesn't have any message.
+        SUCCESS/FAILED - the job has complete, EOF to arrive. RUNNING/WARNING - the job in progress (hasn't complete yet)"
+        example: "RUNNING"
+      timestamp:
+        type: "integer"
+        format: "int64"
+        description: "Timestamp of log record in milliseconds (UAT)"
+        example: 1598350573569
+      message:
+        type: "string"
+        description: "Log record's message. Empty if status is EOF"
+        example: "All good so far, proceeding with the job"
+  DestroyEnvRequest:
+    type: object
+    properties:
+      cluster:
+        type: "string"
+        description: "Cluster name where the environment is deployed"
+        example: "cluster-ops"
+      namespace:
+        type: "string"
+        description: "Namespace of the environment. This namespace will be deleted entirely from cluster"
+        example: "ns-release"
+      services:
+        type: "array"
+        items:
+          $ref: "#/definitions/ServiceLight"
+        description: "Services that are being removed. Vault secrets for these services will be removed"
+  ServiceLight:
+    type: object
+    properties:
+      owner:
+        type: "string"
+        description: "Service's owner. This is used as prefix for service's Vault path naming. ($owner/$repo)"
+        example: "scalecube"
+      repo:
+        type: "string"
+        description: "Service's name. This is used as prefix for service's Vault path naming. ($owner/$repo)"
+        example: "discovery-service"
+  EnvironmentRequest:
+    type: object
+    required:
+      - "cluster"
+      - "namespace"
+    properties:
+      cluster:
+        type: "string"
+        description: "Cluster name as it is known by Spinless"
+        example: "cluster-ops"
+      namespace:
+        type: "string"
+        description: "Namespace in cluster where the environment is deployed"
+        example: "develop"
+  EnvironmentDetails:
+    type: object
+    properties:
+      cluster:
+        type: "string"
+        description: "Cluster name as it is known by Spinless"
+        example: "cluster-ops"
+      namespace:
+        type: "string"
+        description: "Namespace in cluster where the environment is deployed"
+        example: "develop"
+      services:
+        type: "array"
+        description: "Service versions"
+        items:
+          $ref: "#/definitions/ServiceVersion"
+  ServiceVersion:
+    type: object
+    properties:
+      service:
+        type: "string"
+        description: "Service name (same as repo in other requests). Omitting owner here"
+        example: "spinless-service"
+      version:
+        type: "string"
+        description: "Version of the service"
+        example: "1.0.3"
+  TokenRequest:
+    type: object
+    required:
+      - "username"
+      - "password"
+    properties:
+      username:
+        type: "string"
+        description: "Username as it's registered in Auth0 app (user's email usually)"
+        example: "spinless@scalecube.org"
+      password:
+        type: "string"
+        description: "User's password"
+        example: "pas$word12!"
+  TokenResponse:
+    type: object
+    properties:
+      access_token:
+        type: "string"
+        description: "JWT token to be used in secured requests"
+        example: "URFMFJUUTBOakJHUVVFME5UVTRNVVUwTVRJMk56RkZNQSJ9.eyJpc3MiOiJodHRwczovL2Rldi14MTlsa2hudS5hdXRoMC5jb20vIiwic3ViIjoiYXV0aDB8NWYyN2U0MGQyMGViNjQwMDM3YjQ0OWM3IiwiYXVkIjoic3Bpbmxlc3MiLCJpYXQiOjE1OTg0NDUwNTEsImV4cCI6MTU5ODUzMTQ1MSwiYXpwIjoiWTdNeVE1a2ZEa3VSaXpza2lhVGJydnpiWXU0Q3VPclIiLCJndHkiOiJwYXNzd29yZCIsInBlcm1pc3Npb25zIjpbImFjY291bnQ6ZGV2ZWxvcCIsImFjY291bnQ6c3RhZ2luZyIsImFkbWluOmNsdXN0ZXJ"
+      expires_in:
+        type: "integer"
+        description: "Token's expiration lifetime"
+        example: 86400
+      token_type:
+        type: "string"
+        description: "Token type. For now it's 'Bearer'"
+        example: "Bearer"
+  CreateResourceRequest:
+    type: object
+    properties:
+      account:
+        type: "string"
+        description: "Name of account to be used while creating resource. User has to have access to this account. Account should be known to Spinless under this name"
+        example: "production"
+      type:
+        type: "string"
+        description: "Type of resource to be created. Currently only 'cluster'"
+        enum:
+          - "cluster"
+        example: "cluster"
+      name:
+        type: "string"
+        description: "Name of resource to be created."
+        example: "cluster-uat"
+      region:
+        type: "string"
+        description: "AWS region where the resource must be created. Probably has to be moved to 'properties' field, but for now only aws resources are supported"
+        example: "eu-central-1"
+      properties:
+        type: object
+        description: "Some custom resources properties"
+        properties:
+          key:
+            type: "string"
+            description: "Any custom string property key"
+            example: "key1"
+          value:
+            type: "string"
+            description: "Any custom string property value"
+            example: "value1"
+  DestroyResourceRequest:
+    type: object
+    properties:
+      account:
+        type: "string"
+        description: "Name of account to be used while destroying resource. User has to have access to this account. Account should be known to Spinless under this name"
+        example: "production"
+      type:
+        type: "string"
+        description: "Type of resource to be destroyed. Currently only 'cluster'"
+        enum:
+          - "cluster"
+        example: "cluster"
