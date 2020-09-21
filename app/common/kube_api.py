@@ -7,7 +7,7 @@ import boto3
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
-from common.shell import shell_await
+from common.shell import shell_await, shell_run
 from common.vault_api import Vault
 
 VAULT_AUTH = "vault-auth"

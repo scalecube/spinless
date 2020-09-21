@@ -11,6 +11,7 @@ from common.shell import shell_run, create_dirs
 from common.vault_api import Vault
 
 SUPPORTED_VALUES = ("owner", "repo", "namespace")
+DEV_BRANCHES = ("develop", "master")
 
 
 class HelmDeployment:
@@ -67,9 +68,6 @@ class HelmDeployment:
         # init traefik values if necessary:
         if "traefik" in actual_values and "dns_suffix" in self.k8s_cluster_conf:
             actual_values["traefik"]["dns_suffix"] = self.k8s_cluster_conf.get("dns_suffix")
-
-        # trigger pods restart for every redeploy
-        actual_values['timestamp'] = str(self.timestamp)
 
         # docker token to put into image pull secret
         actual_values['dockerjsontoken'] = self.registries.get("docker", {}).get("dockerjsontoken", "")
@@ -140,6 +138,10 @@ class HelmDeployment:
 
         values_path, values_content = self.enrich_values_yaml()
 
+        if self.__requires_restart(env):
+            # trigger pods restart for every redeploy
+            values_content['timestamp'] = str(self.timestamp)
+
         # actually call helm install
         helm_install_cmd = f'helm upgrade -i {self.owner}-{self.repo} {self.helm_dir}/{self.repo} -f {values_path}  ' \
                            f'-n {self.namespace} --create-namespace --debug'
@@ -163,3 +165,19 @@ class HelmDeployment:
             tolerations = None
             self.logger.info(f"Get tolerations Exception is: {e}")
         return tolerations
+
+    def __requires_restart(self, env):
+        if self.image_tag in DEV_BRANCHES:
+            return True
+        # get values from helm release
+        code, output = shell_run(f"helm -n {self.namespace} get values {self.owner}-{self.repo} -o yaml",
+                                 env=env,
+                                 get_stream=True)
+        # fresh installation - result doesn't matter
+        if code != 0:
+            return True
+        try:
+            chart_values = yaml.load(output, Loader=yaml.FullLoader)
+            return chart_values['images']['service']['tag'] != self.image_tag
+        except Exception as ex:
+            return False

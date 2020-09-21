@@ -3,6 +3,12 @@ import shlex
 import subprocess
 
 
+class ShellError(Exception):
+    """
+    Raised when some operation fails during shell command execution where we can't recover
+    """
+
+
 def shell_await(cmd, env=None, with_output=False, cwd=None, timeout=300, get_stream=False):
     """
     Execute a command in new Subprocess (Popen(...))
@@ -41,7 +47,7 @@ def shell_await(cmd, env=None, with_output=False, cwd=None, timeout=300, get_str
         return p.wait(timeout=timeout), output()
 
 
-def shell_run(cmd, env=None, cwd=None, timeout=300, get_stream=False):
+def shell_run(cmd, env=None, cwd=None, timeout=300, get_stream=False, fail_fast=None):
     """
     Execute a command in subprocess.run(...)
     :param get_stream: returns output in stream if True, as list of lines - otherwise
@@ -49,6 +55,7 @@ def shell_run(cmd, env=None, cwd=None, timeout=300, get_stream=False):
     :param env: custom environment variables params to pass to command execution
     :param cwd: current working directory (optional)
     :param timeout: timeout to override.
+    :param fail_fast: if you want to fail fast - pass the error message to throw
     :return: exit (code, system out iterable (if any))
     """
     cmd = shlex.split(cmd)
@@ -60,6 +67,8 @@ def shell_run(cmd, env=None, cwd=None, timeout=300, get_stream=False):
         completed = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=cwd, timeout=timeout)
 
     return_code = completed.returncode
+    if fail_fast is not None and return_code != 0:
+        raise ShellError(fail_fast)
     if get_stream:
         return return_code, completed.stdout
     else:
