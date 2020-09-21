@@ -11,6 +11,7 @@ from common.shell import shell_run, create_dirs
 from common.vault_api import Vault
 
 SUPPORTED_VALUES = ("owner", "repo", "namespace")
+DEV_BRANCHES = ("develop", "master")
 
 
 class HelmDeployment:
@@ -166,34 +167,17 @@ class HelmDeployment:
         return tolerations
 
     def __requires_restart(self, env):
-        # find running pod, if no such - nn need to restart and return false
-        _, output = shell_run(f"kubectl -n {self.namespace} get pod -o name",
-                              env=env,
-                              fail_fast="Can't get pods in cluster. That's not normal. Aborting")
-        service_pods = list(filter(lambda pod: self.repo in pod, output))
-        if len(service_pods) == 0:
+        if self.image_tag in DEV_BRANCHES:
+            return True
+        # get values from helm release
+        code, output = shell_run(f"helm -n {self.namespace} get values {self.owner}-{self.repo} -o yaml",
+                                 env=env,
+                                 get_stream=True)
+        # fresh installation - result doesn't matter
+        if code != 0:
+            return True
+        try:
+            chart_values = yaml.load(output, Loader=yaml.FullLoader)
+            return chart_values['images']['service']['tag'] != self.image_tag
+        except Exception as ex:
             return False
-        service_pod = service_pods[0]
-        _, output = shell_run(f"kubectl get pod -n {self.namespace} get pod {service_pod} -o yaml",
-                              env=env,
-                              fail_fast=f"Failed to get pod info ({service_pod}). That's not normal. Aborting")
-        pod_info = yaml.load(output, Loader=yaml.FullLoader)
-
-        for container in pod_info["spec"]["containers"]:
-            # FIXME: replace with REST api docker image info
-            docker_host = self.registries.get("docker")["host"]
-            docker_token = self.registries.get("docker")["token"]
-            # + Bearer:token
-            resp = requests.get(
-                f"https://{docker_host}/v2/{self.owner}/{self.repo}/{self.repo}/manifest/{self.image_tag}",
-                headers={'authorization': f'Bearer {docker_token}'})
-            if resp.status_code != 200:
-                self.logger.warn("Failed to get docker package manifest. Will not restart pods, but that was strange.")
-                return False
-            docker_manifest = resp.json()
-
-        err_code, cmd_output = shell_run(cmd, env)
-        if err_code != 0:
-            self.logger.warn(f"Failed to get current docker sha256 for image ({cmd})")
-        latest_sha = cmd_output[0].split(":")[1]
-        self.logger.info(f"Latest SHA256={latest_sha}")
