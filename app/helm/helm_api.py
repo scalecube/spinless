@@ -59,7 +59,7 @@ class HelmDeployment:
         else:
             return r.content, 0
 
-    def enrich_values_yaml(self):
+    def enrich_values_yaml(self, env):
         with open(f"{self.helm_dir}/{self.repo}/values.yaml") as default_values_yaml:
             actual_values = yaml.load(default_values_yaml, Loader=yaml.FullLoader)
 
@@ -94,6 +94,9 @@ class HelmDeployment:
         actual_values["images"]["service"]["tag"] = self.image_tag
         self.logger.info(f"Env before writing: {actual_values}")
         path_to_values_yaml = f'{self.helm_dir}/spinless-values.yaml'
+        if self.__requires_restart(env):
+            # trigger pods restart for every redeploy
+            actual_values['timestamp'] = str(self.timestamp)
         with open(path_to_values_yaml, "w") as spinless_values_yaml:
             yaml.dump(actual_values, spinless_values_yaml, default_flow_style=False)
         return path_to_values_yaml, actual_values
@@ -136,11 +139,7 @@ class HelmDeployment:
                    "AWS_SECRET_ACCESS_KEY": self.k8s_cluster_conf.get("aws_secret_key")
                    }
 
-        values_path, values_content = self.enrich_values_yaml()
-
-        if self.__requires_restart(env):
-            # trigger pods restart for every redeploy
-            values_content['timestamp'] = str(self.timestamp)
+        values_path, values_content = self.enrich_values_yaml(env)
 
         # actually call helm install
         helm_install_cmd = f'helm upgrade -i {self.owner}-{self.repo} {self.helm_dir}/{self.repo} -f {values_path}  ' \
