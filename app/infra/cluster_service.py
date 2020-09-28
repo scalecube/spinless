@@ -6,33 +6,39 @@ from jinja2 import Environment, FileSystemLoader
 from common.kube_api import KctxApi
 from common.vault_api import Vault
 
-RESERVED_CLUSTERS = {"nebula", "uat-exchange", "uat-ops"}
-CLUSTERS_COMMON_PATH = "secretv2/scalecube/spinless/resources/cluster/common"
+CLUSTERS_RESOURCE_PATH = "secretv2/scalecube/spinless/resources/cluster"
 INFRA_TEMPLATES_ROOT = "infra/templates"
 RESOURCE_CLUSTER = 'cluster'
 
 
-def compute_properties(logger):
+def compute_properties(logger, creating_resource=True):
+    """
+    :param creating_resource: if True - means we are going to create resource, and specific logic applies
+    :param logger: logger
+    :return: cluster config, such as:
+    General cluster settings:
+    "nebula_cidr_block"
+    "nebula_route_table_id"
+    "network_id"
+    "peer_account_id"
+    "peer_vpc_id"
+    Names of clusters that cannot be deleted (array of strings)
+    "reserved_clusters": "cl-1:cl-2"
+    Terraform config location: (owne/repo of github repository)
+    "tf_repo": "scalecube/terraform-cluster",
+    "tf_repo_version": "v0.5"
+}
+    """
     vault = Vault(logger)
-    clusters_common_data = vault.read(CLUSTERS_COMMON_PATH)["data"]
-
+    cluster_config = vault.read(CLUSTERS_RESOURCE_PATH)["data"]
     # Get network_id (for second octet), increase number for new cluster, save for next deployments
-    network_id = int(clusters_common_data["network_id"]) + 1
-    clusters_common_data.update({"network_id": str(network_id)})
-    nebula_cidr_block = clusters_common_data["nebula_cidr_block"]
-    nebula_route_table_id = clusters_common_data["nebula_route_table_id"]
-    peer_account_id = clusters_common_data["peer_account_id"]
-    peer_vpc_id = clusters_common_data["peer_vpc_id"]
-    vault.write(CLUSTERS_COMMON_PATH, **clusters_common_data)
-
-    common_cluster_properties = {
-        "network_id": network_id,
-        "nebula_cidr_block": nebula_cidr_block,
-        "nebula_route_table_id": nebula_route_table_id,
-        "peer_account_id": peer_account_id,
-        "peer_vpc_id": peer_vpc_id
-    }
-    return common_cluster_properties
+    if creating_resource:
+        network_id = int(cluster_config["network_id"]) + 1
+        cluster_config.update({"network_id": str(network_id)})
+        vault.write(CLUSTERS_RESOURCE_PATH, **cluster_config)
+    if "reserved_clusters" in cluster_config:
+        cluster_config["reserved_clusters"] = tuple(cluster_config["reserved_clusters"].split(":"))
+    return cluster_config
 
 
 def props_to_tfvars(base_path, account, resource_name, properties=None):

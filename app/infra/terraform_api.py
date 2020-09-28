@@ -8,14 +8,8 @@ from common.shell import shell_run, create_dirs
 from infra.cluster_service import *
 
 INFRA_TEMPLATES_ROOT = "infra/templates"
-DYNAMO_LOCK_TABLE = "terraform-lock"
-CONFIG_VERSION = "v0.5"
-# TEST_CONFIG_REPOSITORY = "exberry-io/terraform-config-simple-aws"
-CONFIG_REPOSITORY = "exberry-io/terraform-eks-exberry-tenant"
-
 KUBECONF_FILE = "kubeconfig"
 BACKEND_FILE = 'backend.tf'
-TF_S3_BUCKET_NAME = 'exberry-terraform-states'
 
 
 class Terraform:
@@ -36,9 +30,10 @@ class Terraform:
         self.kctx_api = KctxApi(logger)
 
         # cluster state properties
-        self.tf_dynamodb_table = DYNAMO_LOCK_TABLE  # dynamodb table used to lock states
-        self.tf_repository = CONFIG_REPOSITORY  # github repository with tf module to use
-        self.tf_repository_version = CONFIG_VERSION  # version of release of github repo
+        self.tf_dynamodb_table = properties['tf_dynamodb_table']  # dynamodb table used to lock states
+        self.tf_repository = properties['tf_repo']  # github repository with tf module to use
+        self.tf_repository_version = properties['tf_repo_version']  # version of release of github repo
+        self.tf_s3_bucket_name = properties['s3_bucket']  # version of release of github repo
         self.s3_path = f"{self.account_name}/{resource_type}/{self.resource_name}"
         self.s3_client = self.__init_s3_client(self.account)
 
@@ -182,7 +177,7 @@ class Terraform:
                 return False, False
             # download variables (if fails - return False
             f_name = f'{self.work_dir}/resource.tfvars'
-            self.s3_client.download_file(TF_S3_BUCKET_NAME, f"{self.s3_path}/resource.tfvars", f_name)
+            self.s3_client.download_file(self.tf_s3_bucket_name, f"{self.s3_path}/resource.tfvars", f_name)
             # extract dictionary from var file
             variables_dict = self.__vars_file_to_dict(f_name)
             if variables_dict:
@@ -198,7 +193,7 @@ class Terraform:
         return the key's size if it exist, else None
         """
         response = self.s3_client.list_objects_v2(
-            Bucket=TF_S3_BUCKET_NAME,
+            Bucket=self.tf_s3_bucket_name,
             Prefix=key,
         )
         for obj in response.get('Contents', []):
@@ -209,7 +204,7 @@ class Terraform:
         f_name = f"{self.work_dir}/{BACKEND_FILE}"
         with open(f_name, "w") as file:
             gen_template = self.templates.get_template('template_backend.tf').render(
-                bucket=TF_S3_BUCKET_NAME,
+                bucket=self.tf_s3_bucket_name,
                 resource_path=self.s3_path,
                 region=self.account["aws_region"],
                 access_key=self.account["aws_access_key"],
@@ -264,8 +259,8 @@ class Terraform:
                 github_module_version=self.tf_repository_version)
             file.write(gen_template)
         try:
-            self.s3_client.upload_file(resource_vars_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource.tfvars")
-            self.s3_client.upload_file(resource_info_path, TF_S3_BUCKET_NAME, f"{self.s3_path}/resource_info.yaml")
+            self.s3_client.upload_file(resource_vars_path, self.tf_s3_bucket_name, f"{self.s3_path}/resource.tfvars")
+            self.s3_client.upload_file(resource_info_path, self.tf_s3_bucket_name, f"{self.s3_path}/resource_info.yaml")
         except Exception as e:
             self.logger.error(e)
             return False
@@ -273,8 +268,8 @@ class Terraform:
 
     def __delete_resource_from_s3(self):
         try:
-            self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"{self.s3_path}")
-            self.s3_client.delete_object(Bucket=TF_S3_BUCKET_NAME, Key=f"states/{self.resource_name}")
+            self.s3_client.delete_object(Bucket=self.tf_s3_bucket_name, Key=f"{self.s3_path}")
+            self.s3_client.delete_object(Bucket=self.tf_s3_bucket_name, Key=f"states/{self.resource_name}")
         except Exception as e:
             self.logger.error(e)
             return False

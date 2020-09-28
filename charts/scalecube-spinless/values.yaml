@@ -19,6 +19,6 @@ service:
   annotations: {}
   type: NodePort
 
-dnsname: spinless.nebula.exberry.io
+dnsname: none
 
 storageClassName: aws-reclaim
