@@ -170,7 +170,8 @@ class KctxApi:
         # Create vault mount point
         return self.vault.enable_k8_auth(cluster_name, reviewer_jwt, kube_ca, kube_server)
 
-    def setup_storage(self, kube_env, tmp_root_path, templates_root=f"{os.getenv('APP_WORKING_DIR')}/infra/templates"):
+    def setup_storage(self, kube_env, tmp_root_path, app_name,
+                      templates_root=f"{os.getenv('APP_WORKING_DIR')}/infra/templates"):
         """
         Creates aws storage in eks cluster
 
@@ -180,7 +181,7 @@ class KctxApi:
         """
         res, outp = KctxApi.__install_to_kube(
             "aws-storage",
-            {"app": "exchange"},
+            {"app": app_name},
             kube_env, tmp_root_path, templates_root)
         for out in outp:
             self.logger.info(out)
