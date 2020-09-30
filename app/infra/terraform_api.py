@@ -79,7 +79,7 @@ class Terraform:
         # Terraform apply
         _cmd_apply = f"terraform apply -no-color -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
         yield f"RUNNING: Actually CREATING resource. This may take time... {_cmd_apply}", None
-        err_code_apply, outp = shell_run(_cmd_apply, cwd=self.work_dir, timeout=900)
+        err_code_apply, outp = shell_run(_cmd_apply, cwd=self.work_dir, timeout=2000)
         for s in outp:
             self.logger.info(s)
             yield f"Terraform apply: {s}", None
@@ -90,7 +90,7 @@ class Terraform:
             _cmd_destroy = f"terraform destroy -no-color" \
                            f" -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
             yield f"RUNNING: DESTROYING partially created resource. This may take time... {_cmd_destroy}", None
-            err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=900)
+            err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=2000)
             for s in outp:
                 self.logger.info(s)
             self.logger.info(f"Terraform destroy complete. Errcode: {err_code_destroy}")
@@ -141,7 +141,7 @@ class Terraform:
         _cmd_destroy = f"terraform destroy -no-color" \
                        f" -var-file={aws_vars_path} -var-file={resource_vars_path} -auto-approve"
         yield f"RUNNING: Actually DESTROYING resources. This may take time... {_cmd_destroy}", None
-        err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=900)
+        err_code_destroy, outp = shell_run(_cmd_destroy, cwd=self.work_dir, timeout=2000)
         for s in outp:
             self.logger.info(s)
             yield f"Terraform destroy: {s}", None
