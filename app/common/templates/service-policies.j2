@@ -1,4 +1,5 @@
 path "{{secrets_root}}/{{owner}}/{{repo}}/*" { capabilities = ["create", "read", "update", "delete", "list"]}
+path "{{secrets_root}}/{{owner}}/resources/*" { capabilities = ["create", "read", "update", "delete", "list"]}
 
 path "identity/oidc/key/*" { capabilities = ["create", "read", "update", "delete", "list"]}
 path "identity/oidc/role/*" { capabilities = ["create", "read", "update", "delete", "list"]}
