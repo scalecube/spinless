@@ -7,3 +7,10 @@ path "auth/{{mount_point}}/role/*" { capabilities = ["create", "read", "update",
 path "identity/oidc/token/*" { capabilities = ["create", "read", "update", "delete", "list"]}
 path "identity/entity/*" { capabilities = ["read"] }
 path "identity/group/*" { capabilities = ["read"] }
+
+path "/sys/auth/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
+path "auth/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
+path "sys/policy" { capabilities = ["read"]}
+path "/auth/*/config" {  capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
+path "sys/policies/acl/*" {  capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
+path "sys/policy/*" {  capabilities = ["create", "read", "update", "delete", "list", "sudo"]}
