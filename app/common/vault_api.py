@@ -31,53 +31,6 @@ class Vault:
             loader=FileSystemLoader(f"{os.getenv('APP_WORKING_DIR', os.getcwd())}/common/templates"),
             trim_blocks=True)
 
-    def __create_policy(self):
-        policy_name = f"{self.owner}-{self.repo}-policy"
-        try:
-            policies = self.j2_env.get_template('service-policies.j2') \
-                .render(secrets_root=SECRET_ROOT, owner=self.owner, repo=self.repo, mount_point=self.mount_point)
-            self.__auth_client()
-            self.client.sys.create_or_update_policy(policy_name, policies)
-        except Exception as e:
-            self.logger.info("Vault create_policy exception is: {}".format(e))
-        return policy_name
-
-    def create_role(self):
-        self.logger.info("Creating service role")
-        policy_name = self.__create_policy()
-        try:
-            self.__auth_client()
-            service_account_name = f'{self.owner}-{self.repo}'
-            role_name = f"{service_account_name}-role"
-            self.client.create_role(role_name,
-                                    mount_point=self.mount_point,
-                                    bound_service_account_names=service_account_name,
-                                    bound_service_account_namespaces="*",
-                                    policies=[policy_name], ttl="1h")
-            return role_name, 0
-        except Exception as e:
-            self.logger.info("Vault create_role exception is: {}".format(e))
-            return str(e), 1
-
-    def read(self, path):
-        self.__auth_client()
-        return self.client.read(path)
-
-    def list(self, path):
-        self.__auth_client()
-        try:
-            result = self.client.list(path)
-            if "data" in result:
-                return result.get("data").get("keys", [])
-            return []
-        except Exception as ex:
-            self.logger.warning(f"getting secret failed: {ex}")
-            return []
-
-    def write(self, path, **data):
-        self.__auth_client()
-        self.client.write(path, wrap_ttl=None, **data)
-
     def delete(self, path):
         try:
             self.__auth_client()
@@ -108,25 +61,6 @@ class Vault:
             self.logger.warning(f"Failed prepare service path: {e}")
             return str(e), 1
 
-    def enable_k8_auth(self, cluster_name, reviewer_jwt, kube_ca, kube_serv):
-        try:
-            self.__auth_client()
-            # Configure auth here
-            mount_point = 'kubernetes-{}'.format(cluster_name)
-            self.client.sys.enable_auth_method(
-                method_type='kubernetes',
-                path=mount_point,
-            )
-            self.client.create_kubernetes_configuration(
-                kubernetes_host=kube_serv,
-                kubernetes_ca_cert=kube_ca,
-                token_reviewer_jwt=reviewer_jwt,
-                mount_point=mount_point)
-            return 0, "success"
-        except Exception as e:
-            self.logger.warning("Failed to enable k8 auth for {}. Reason: {}".format(cluster_name, e))
-            return 1, str(e)
-
     def disable_vault_mount_point(self, cluster_name):
         try:
             self.__auth_client()
@@ -139,16 +73,3 @@ class Vault:
         except Exception as e:
             self.logger.warning(f"Failed to disable k8 auth for {cluster_name}. Reason: {e}")
             return 1, str(e)
-
-    # Vault's token ttl is too short so this should be called prior to any operation
-    def __auth_client(self):
-        self.client = hvac.Client()
-        try:
-            if not self.dev_mode:
-                with open(self.vault_jwt_token)as f:
-                    jwt = f.read()
-                    self.client.auth_kubernetes(self.service_role, jwt, MOUNT_POINT)
-            else:
-                self.client.lookup_token(os.getenv("LOCAL_VAULT_TOKEN"))
-        except Exception as ex:
-            print(f"Error authenticating vault: {str(ex)}")
