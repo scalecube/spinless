@@ -23,15 +23,6 @@ class KctxApi:
         self.vault = Vault(logger)
         self.logger = logger
 
-    def delete_kubernetes_context(self, cluster_name):
-        kctx_path = "{}/{}/{}".format(self.vault.base_path, K8S_CTX_PATH, cluster_name)
-        try:
-            self.vault.delete(kctx_path)
-            return 0, "Deleted kcts successfully"
-        except Exception as e:
-            self.logger.error("Failed to delete secret from path {}, {}".format(kctx_path, e))
-            return 1, "Failed to delete secret from storage"
-
     def execute_command(self, command, kube_env):
         cmd = shlex.split(command)
         res, logs = shell_await(cmd, env=kube_env, with_output=True)
