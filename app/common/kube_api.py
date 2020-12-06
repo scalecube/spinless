@@ -30,41 +30,6 @@ class KctxApi:
             self.logger.info(l)
         return res, logs
 
-    def setup_traefik(self, kube_env):
-        """
-        Setup traefik plugin in created cluster
-
-        :param kube_env: env to use for kubernetes communication
-        :param tmp_root_path: tmp path to store tmp files
-        :return: err code (0 if success), message
-        """
-        command = f'{HELM} repo add traefik https://containous.github.io/traefik-helm-chart'
-        self.execute_command(command, kube_env)
-
-        command = f'{HELM} repo update'
-        self.execute_command(command, kube_env)
-
-        command = "kubectl create namespace traefik"
-        self.execute_command(command, kube_env)
-
-        command = f'{HELM} upgrade --install traefik traefik/traefik ' \
-                  f'--set service.type=NodePort ' \
-                  f'--set ports.web.nodePort=30003 ' \
-                  f'--set ports.discovery.port=8001 ' \
-                  f'--set ports.discovery.expose=true ' \
-                  f'--set ports.discovery.exposedPort=5801 ' \
-                  f'--set ports.discovery.nodePort=30004 ' \
-                  f'--set ports.external.port=8002 ' \
-                  f'--set ports.external.expose=true ' \
-                  f'--set ports.external.exposedPort=20000 ' \
-                  f'--set ports.external.nodePort=30005 ' \
-                  f'--set tolerations[0].key=type ' \
-                  f'--set tolerations[0].value=kubsystem ' \
-                  f'--set tolerations[0].operator=Equal ' \
-                  f'--set tolerations[0].effect=NoSchedule ' \
-                  f'--namespace traefik'
-        return self.execute_command(command, kube_env)
-
     def setup_metrics(self, kube_env):
         """
         Install Metrics API in created cluster
