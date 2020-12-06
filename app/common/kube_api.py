@@ -30,25 +30,6 @@ class KctxApi:
             self.logger.info(l)
         return res, logs
 
-    def setup_ca(self, kube_env, cluster_name, region):
-        command = "helm repo add stable https://kubernetes-charts.storage.googleapis.com/"
-        self.execute_command(command, kube_env)
-
-        command = "kubectl create namespace cluster-autoscaler"
-        self.execute_command(command, kube_env)
-
-        command = f'helm install cluster-autoscaler stable/cluster-autoscaler ' \
-                  f'--set autoDiscovery.clusterName={cluster_name} ' \
-                  f'--set awsRegion={region} ' \
-                  f'--set tolerations[0].key=type ' \
-                  f'--set tolerations[0].value=kubsystem ' \
-                  f'--set tolerations[0].operator=Equal ' \
-                  f'--set tolerations[0].effect=NoSchedule ' \
-                  f'--set rbac.create=true ' \
-                  f'--set rbac.serviceAccount.name=cluster-autoscaler ' \
-                  f'--namespace cluster-autoscaler'
-        return self.execute_command(command, kube_env)
-
     def setup_traefik(self, kube_env):
         """
         Setup traefik plugin in created cluster
