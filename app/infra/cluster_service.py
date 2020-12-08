@@ -11,36 +11,6 @@ INFRA_TEMPLATES_ROOT = "infra/templates"
 RESOURCE_CLUSTER = 'cluster'
 
 
-def compute_properties(logger, creating_resource=True):
-    """
-    :param creating_resource: if True - means we are going to create resource, and specific logic applies
-    :param logger: logger
-    :return: cluster config, such as:
-    General cluster settings:
-    "nebula_cidr_block"
-    "nebula_route_table_id"
-    "network_id"
-    "peer_account_id"
-    "peer_vpc_id"
-    Names of clusters that cannot be deleted (array of strings)
-    "reserved_clusters": "cl-1:cl-2"
-    Terraform config location: (owne/repo of github repository)
-    "tf_repo": "scalecube/terraform-cluster",
-    "tf_repo_version": "v0.5"
-}
-    """
-    vault = Vault(logger)
-    cluster_config = vault.read(CLUSTERS_RESOURCE_PATH)["data"]
-    # Get network_id (for second octet), increase number for new cluster, save for next deployments
-    if creating_resource:
-        network_id = int(cluster_config["network_id"]) + 1
-        cluster_config.update({"network_id": str(network_id)})
-        vault.write(CLUSTERS_RESOURCE_PATH, **cluster_config)
-    if "reserved_clusters" in cluster_config:
-        cluster_config["reserved_clusters"] = tuple(cluster_config["reserved_clusters"].split(":"))
-    return cluster_config
-
-
 def props_to_tfvars(base_path, account, resource_name, properties=None):
     """
     Generate pair of secret and resource-related tfvar files. Writes to file and returns path-s
