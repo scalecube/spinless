@@ -163,15 +163,6 @@ class InfrastructureService:
         except Exception as ex:
             job_ref.complete_err(f'failed to delete resource. reason {ex}')
 
-    def list_clusters(self):
-        return KctxApi(self.app_logger).get_clusters_list()
-
-    def get_namespaces(self, cluster_name):
-        nss, code = KctxApi(self.app_logger).get_ns(cluster_name)
-        if code != 0:
-            return {"error": nss}
-        return {"result": nss}
-
     def create_account(self, logger, account_name, aws_access_key, aws_secret_key):
         vault = Vault(logger)
         vault.write(f"{ACCOUNTS_PATH}/{account_name}",
