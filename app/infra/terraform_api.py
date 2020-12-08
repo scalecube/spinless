@@ -214,17 +214,6 @@ class Terraform:
             file.write(gen_template)
         return f_name
 
-    def __generate_tf_configs(self, all_variables):
-        f_name = f"{self.work_dir}/main.tf"
-        with open(f_name, "w") as file:
-            gen_template = self.templates.get_template('template_main.tf').render(
-                module_name=self.resource_name,
-                repository=self.tf_repository,
-                version=self.tf_repository_version,
-                variables=all_variables)
-            file.write(gen_template)
-        return f_name
-
     def generate_configmap(self):
         client = boto3.client('iam',
                               region_name=self.account["aws_region"],
