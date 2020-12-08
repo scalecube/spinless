@@ -18,28 +18,6 @@ class InfrastructureService:
         self.app_logger = app_logger
         pass
 
-    def __setup_git_ssh(self):
-        try:
-            common_vault_data = Vault(self.app_logger).read(COMMON_PATH)["data"]
-            # write git ssh keys to disk
-            create_dirs("/root/.ssh")
-            rsa_path = "/root/.ssh/id_rsa"
-            with open(rsa_path, "w") as id_rsa:
-                id_rsa_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key']).decode("utf-8")
-                id_rsa.write(id_rsa_decoded)
-            rsa_pub_path = "/root/.ssh/id_rsa.pub"
-            with open(rsa_pub_path, "w") as id_rsa_pub:
-                id_rsa_pub_decoded = base64.standard_b64decode(common_vault_data['git_ssh_key_pub']).decode("utf-8")
-                id_rsa_pub.write(id_rsa_pub_decoded)
-
-            os.chmod(rsa_path, 0o400)
-            os.chmod(rsa_pub_path, 0o400)
-            shell_run('ssh-agent -s')
-            shell_run('ssh-add /root/.ssh/id_rsa')
-
-        except Exception as err:
-            self.app_logger.error(f"Failed to write git keys from vault to disk: {str(err)}")
-
     def create_resource(self, job_ref, app_logger):
         """
         Create resource of given type/name with given properties.
