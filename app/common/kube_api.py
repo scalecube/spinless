@@ -213,6 +213,10 @@ class KctxApi:
                   f'--namespace cluster-autoscaler'
         return self.execute_command(command, kube_env)
 
+    def setup_ext_snat(self, kube_env):
+        command = "kubectl set env daemonset -n kube-system aws-node AWS_VPC_K8S_CNI_EXTERNALSNAT=true"
+        return self.execute_command(command, kube_env)
+
     def setup_traefik(self, kube_env):
         """
         Setup traefik plugin in created cluster
@@ -233,14 +237,10 @@ class KctxApi:
         command = f'{HELM} upgrade --install traefik traefik/traefik ' \
                   f'--set service.type=NodePort ' \
                   f'--set ports.web.nodePort=30003 ' \
-                  f'--set ports.discovery.port=8001 ' \
-                  f'--set ports.discovery.expose=true ' \
-                  f'--set ports.discovery.exposedPort=5801 ' \
-                  f'--set ports.discovery.nodePort=30004 ' \
-                  f'--set ports.external.port=8002 ' \
-                  f'--set ports.external.expose=true ' \
-                  f'--set ports.external.exposedPort=20000 ' \
-                  f'--set ports.external.nodePort=30005 ' \
+                  f'--set ports.internal.port=8002 ' \
+                  f'--set ports.internal.expose=true ' \
+                  f'--set ports.internal.exposedPort=20000 ' \
+                  f'--set ports.internal.nodePort=30005 ' \
                   f'--set tolerations[0].key=type ' \
                   f'--set tolerations[0].value=kubsystem ' \
                   f'--set tolerations[0].operator=Equal ' \

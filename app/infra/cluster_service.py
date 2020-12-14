@@ -132,6 +132,13 @@ def resource_post_setup(terraform):
     else:
         yield "Traefik installed successfully.", None
 
+    # Set up ext SNAT
+    snat_res, msg = terraform.kctx_api.setup_ext_snat(kube_env)
+    if snat_res != 0:
+        yield "Failed to setup external SNAT. Resuming anyway", None
+    else:
+        yield "External SNAT installed successfully.", None
+
     # Set up metrics
     res, msg = terraform.kctx_api.setup_metrics(kube_env)
     if res != 0:
