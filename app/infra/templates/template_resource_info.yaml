@@ -1,5 +1,0 @@
-account: "{{ account }}"
-module: "{{ github_module_ref }}"
-version: "{{ github_module_version }}"
-resource_type: "{{ resource_type }}"
-resource_name: "{{ resource_name }}"
