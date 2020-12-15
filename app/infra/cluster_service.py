@@ -112,7 +112,7 @@ def resource_post_setup(terraform):
     yield "Vault provisioning complete", None
 
     # Set up storage
-    storage_res, msg = terraform.kctx_api.setup_storage(kube_env, terraform.work_dir,
+    storage_res, msg = terraform.kctx_api.setup_storage(kube_env, terraform.work_dir, terraform.resource_name,
                                                         templates_root=INFRA_TEMPLATES_ROOT)
     if storage_res != 0:
         yield "FAILED: Failed to setup storage volume. Aborting: {}".format(msg), storage_res

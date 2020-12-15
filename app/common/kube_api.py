@@ -175,6 +175,7 @@ class KctxApi:
         """
         Creates aws storage in eks cluster
 
+        :param app_name: to be set as 'app' param in created k8 resource
         :param kube_env: env to use for kubernetes communication
         :param tmp_root_path: tmp path to store tmp files
         :return: err code (0 if success), message
