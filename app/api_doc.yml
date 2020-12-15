@@ -427,3 +427,7 @@ definitions:
         enum:
           - "cluster"
         example: "cluster"
+      region:
+        type: "string"
+        description: "AWS region where the resource is located"
+        example: "eu-west-2"
