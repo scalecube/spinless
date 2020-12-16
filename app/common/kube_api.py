@@ -196,7 +196,7 @@ class KctxApi:
         return res, logs
 
     def setup_ca(self, kube_env, cluster_name, region):
-        command = "helm repo add stable https://kubernetes-charts.storage.googleapis.com/"
+        command = "helm repo add stable https://charts.helm.sh/stable"
         self.execute_command(command, kube_env)
 
         command = "kubectl create namespace cluster-autoscaler"
