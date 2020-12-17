@@ -4,17 +4,6 @@ import json
 from jinja2 import Environment, FileSystemLoader
 
 
-def resource_post_setup(terraform):
-    # Apply node auth configmap
-    yield "RUNNING: Applying node auth configmap...", None
-    auth_conf_map_result, msg = terraform.apply_node_auth_configmap(kube_env)
-    if auth_conf_map_result != 0:
-        yield "FAILED: Failed to apply node config map...", auth_conf_map_result
-    else:
-        yield "SUCCESS: Cluster creation and conf setup complete", None
-    yield "Saved cluster config.", None
-
-
 def resource_post_destroy(terraform):
     # Generate cluster config
     yield "RUNNING: Performing cluster post-destroy actions...", None

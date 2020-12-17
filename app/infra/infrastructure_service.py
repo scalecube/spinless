@@ -64,10 +64,3 @@ class InfrastructureService:
 
         except Exception as ex:
             job_ref.complete_err(f'failed to delete resource. reason {ex}')
-
-    def create_account(self, logger, account_name, aws_access_key, aws_secret_key):
-        vault = Vault(logger)
-        vault.write(f"{ACCOUNTS_PATH}/{account_name}",
-                    aws_access_key=aws_access_key,
-                    aws_secret_key=aws_secret_key)
-        return {f"Account '{account_name}' created"}

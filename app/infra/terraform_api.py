@@ -63,26 +63,3 @@ class Terraform:
             yield "Delete cluster parameters from S3: FAIL", None
 
         yield "success", 0
-
-    def generate_configmap(self):
-        client = boto3.client('iam',
-                              region_name=self.account["aws_region"],
-                              aws_access_key_id=self.account["aws_access_key"],
-                              aws_secret_access_key=self.account["aws_secret_key"],
-                              )
-        role_arn = client.get_role(RoleName=f'eks-node-role-{self.resource_name}')['Role']['Arn']
-        f_name = f"{self.work_dir}/nodes_cm.yaml"
-        with open(f_name, "w") as nodes_cm:
-            gen_template = self.templates.get_template('nodes_cm.j2').render(aws_iam_role_eksnode_arn=role_arn)
-            nodes_cm.write(gen_template)
-        return f_name
-
-    def apply_node_auth_configmap(self, kube_env):
-        self.generate_configmap()
-        kube_cmd = f"kubectl apply -f {self.work_dir}/nodes_cm.yaml"
-        res, outp = shell_run(kube_cmd, env=kube_env)
-        if res != 0:
-            for s in outp:
-                self.logger.info(s)
-            return res, "Failed to create nodes_cm"
-        return res, outp
