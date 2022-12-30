@@ -15,7 +15,7 @@ jobs:
         id: get_version
         run: echo "RELEASE_VERSION=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
       - name: Publish to Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: scalecube/spinless
           username: ${{ secrets.DOCKER_USER }}
